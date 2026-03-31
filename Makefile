@@ -6,7 +6,9 @@ SRC = src/main.c \
       src/vm/memory.c \
       src/vm/context.c \
       src/vm/vm.c \
-      src/vm/crypto.c
+      src/vm/crypto.c \
+      src/mcp/json.c \
+      src/mcp/server.c
 
 OBJ = $(SRC:.c=.o)
 BIN = tardygrada

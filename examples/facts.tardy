@@ -1,0 +1,42 @@
+// Tardygrada — Fact Verification Example
+//
+// LLM produces a claim. It goes through the verification pipeline.
+// Only grounded claims become Facts.
+
+agent Researcher(ontology: "domain.owl") {
+
+    // Ask an LLM — response is mutable until verified
+    response: str = ask("Where was Dr Who created?")
+
+    // Ground it in the ontology — find evidence
+    evidence = ontology.query(response)
+
+    // Freeze it: mutable -> immutable, with evidence
+    let fact: Fact = freeze(response, evidence) @verified
+
+    // fact.provenance shows:
+    //   - which LLM said it
+    //   - what prompt was used
+    //   - what ontology triples support it
+    //   - when it was frozen
+    //   - by whom
+}
+
+agent MedicalAdvisor(ontology: "medical.owl") @semantics(
+    truth.min_confidence: 0.99,
+    truth.min_consensus_agents: 5,
+    hallucination.min_decomposers: 5,
+    pipeline.layer_formal_certification: true,
+    pipeline.min_passing_layers: 7,
+) {
+    // Medical claims require near-certainty
+    let diagnosis: Fact = ask("symptoms analysis") grounded_in(ontology)
+}
+
+agent CasualBot(ontology: "general.owl") @semantics(
+    truth.min_confidence: 0.5,
+    truth.min_consensus_agents: 1,
+) {
+    // Casual chat — lower thresholds
+    response: str = ask("tell me a joke")
+}

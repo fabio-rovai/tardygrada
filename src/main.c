@@ -17,6 +17,7 @@
  */
 
 #include "vm/vm.h"
+#include "mcp/server.h"
 #include <sys/mman.h>
 #include <unistd.h>  /* write() for stdout — no printf, no stdio */
 #include <string.h>
@@ -61,7 +62,7 @@ static void fail(const char *test)
     print("\n");
 }
 
-int main(void)
+static int run_tests(void)
 {
     /* VM is too large for stack — allocate via mmap */
     tardy_vm_t *vmp = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
@@ -220,4 +221,65 @@ int main(void)
 
     print("\n=== All tests passed ===\n\n");
     return 0;
+}
+
+/* ============================================
+ * MCP Server Mode
+ *
+ * In Tardygrada syntax:
+ *
+ *   agent Main {
+ *       let x: int = 5 @verified
+ *       let y: int = 42
+ *       let z: int = 7 @sovereign
+ *   }
+ *
+ * Deploy as MCP. Clients connect and read agent values.
+ * ============================================ */
+
+static int run_mcp(void)
+{
+    tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
+                                         PROT_READ | PROT_WRITE,
+                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (vm == MAP_FAILED)
+        return 1;
+
+    tardy_vm_init(vm, NULL);
+
+    /* Spawn agents — this is what a compiled .tardy file produces */
+    int64_t five = 5;
+    tardy_vm_spawn(vm, vm->root_id, "x", TARDY_TYPE_INT,
+                   TARDY_TRUST_VERIFIED, &five, sizeof(int64_t));
+
+    int64_t fortytwo = 42;
+    tardy_vm_spawn(vm, vm->root_id, "y", TARDY_TYPE_INT,
+                   TARDY_TRUST_DEFAULT, &fortytwo, sizeof(int64_t));
+
+    int64_t seven = 7;
+    tardy_vm_spawn(vm, vm->root_id, "z", TARDY_TYPE_INT,
+                   TARDY_TRUST_SOVEREIGN, &seven, sizeof(int64_t));
+
+    /* Start MCP server */
+    tardy_mcp_server_t srv;
+    tardy_mcp_init(&srv, vm);
+    tardy_mcp_run(&srv);
+
+    tardy_vm_shutdown(vm);
+    munmap(vm, sizeof(tardy_vm_t));
+    return 0;
+}
+
+/* ============================================
+ * Entry Point
+ * ============================================ */
+
+int main(int argc, char **argv)
+{
+    /* --serve: run as MCP server */
+    if (argc > 1 && strcmp(argv[1], "--serve") == 0)
+        return run_mcp();
+
+    /* Default: run tests */
+    return run_tests();
 }
