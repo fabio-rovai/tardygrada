@@ -191,14 +191,14 @@ static void parse_binding(tardy_parser_t *p, bool immutable)
         advance_tok(p);
         break;
 
-    case TOK_ASK:
-        /* ask("prompt") — LLM call */
-        inst.opcode = OP_ASK;
-        advance_tok(p); /* skip 'ask' */
-        if (!expect(p, TOK_LPAREN, "expected '(' after ask"))
+    case TOK_RECEIVE:
+        /* receive("prompt") — pending slot, filled via MCP */
+        inst.opcode = OP_RECEIVE;
+        advance_tok(p); /* skip 'receive' */
+        if (!expect(p, TOK_LPAREN, "expected '(' after receive"))
             return;
         if (!check(p, TOK_STR_LIT)) {
-            error(p, "expected string prompt for ask()");
+            error(p, "expected string prompt for receive()");
             return;
         }
         strncpy(inst.str_val, current(p)->text, sizeof(inst.str_val) - 1);
@@ -223,7 +223,7 @@ static void parse_binding(tardy_parser_t *p, bool immutable)
         break;
 
     default:
-        error(p, "expected value (int, float, string, bool, ask())");
+        error(p, "expected value (int, float, string, bool, receive())");
         return;
     }
 

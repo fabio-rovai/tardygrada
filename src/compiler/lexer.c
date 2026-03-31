@@ -93,7 +93,7 @@ static tardy_tok_type_t keyword_type(const char *word)
     if (strcmp(word, "Fact") == 0)        return TOK_FACT;
     if (strcmp(word, "true") == 0)       return TOK_BOOL_LIT;
     if (strcmp(word, "false") == 0)      return TOK_BOOL_LIT;
-    if (strcmp(word, "ask") == 0)        return TOK_ASK;
+    if (strcmp(word, "receive") == 0)     return TOK_RECEIVE;
     if (strcmp(word, "grounded_in") == 0) return TOK_GROUNDED_IN;
     if (strcmp(word, "freeze") == 0)     return TOK_FREEZE;
     return TOK_IDENT;

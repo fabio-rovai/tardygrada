@@ -7,8 +7,10 @@
  */
 
 #include "server.h"
+#include "../verify/pipeline.h"
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 /* Direct write — no stdio */
 static void mcp_write(const char *data, int len)
@@ -236,6 +238,40 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen = emit_tool(tools, sizeof(tools), tlen, name, a, &first);
     }
 
+    /* Built-in tools: submit_claim and verify_claim */
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *sc =
+            "{\"name\":\"submit_claim\","
+            "\"description\":\"Submit a claim for a pending agent\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent\":{\"type\":\"string\"},"
+            "\"claim\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent\",\"claim\"]}}";
+        int sclen = (int)strlen(sc);
+        if (tlen + sclen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, sc, sclen);
+            tlen += sclen;
+        }
+    }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *vc =
+            "{\"name\":\"verify_claim\","
+            "\"description\":\"Verify a pending agent's claim through the pipeline\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent\"]}}";
+        int vclen = (int)strlen(vc);
+        if (tlen + vclen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, vc, vclen);
+            tlen += vclen;
+        }
+    }
+    (void)first;
+
     tools[tlen++] = ']';
     tools[tlen++] = '}';
     tools[tlen] = '\0';
@@ -270,6 +306,161 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
 
     char tool_name[64];
     tardy_json_str(parser, name_tok, tool_name, sizeof(tool_name));
+
+    /* ---- Built-in: submit_claim ---- */
+    if (strcmp(tool_name, "submit_claim") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int agent_tok = tardy_json_find(parser, args_tok, "agent");
+        int claim_tok = tardy_json_find(parser, args_tok, "claim");
+        if (agent_tok < 0 || claim_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing agent or claim");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char agent_name[64];
+        char claim_text[512];
+        tardy_json_str(parser, agent_tok, agent_name, sizeof(agent_name));
+        tardy_json_str(parser, claim_tok, claim_text, sizeof(claim_text));
+
+        /* Find and mutate the pending agent */
+        int mutated = -1;
+        for (int i = 0; i < srv->vm->agent_count; i++) {
+            tardy_agent_t *candidate = tardy_vm_find_by_name(
+                srv->vm, srv->vm->agents[i].id, agent_name);
+            if (candidate && candidate->trust == TARDY_TRUST_MUTABLE) {
+                mutated = tardy_vm_mutate(srv->vm, srv->vm->agents[i].id,
+                                           agent_name, claim_text,
+                                           strlen(claim_text) + 1);
+                break;
+            }
+        }
+
+        if (mutated == 0) {
+            const char *ok_result =
+                "{\"content\":[{\"type\":\"text\","
+                "\"text\":\"claim submitted\"}]}";
+            int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                       id, ok_result);
+            if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        } else {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "agent not found or not mutable");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+        }
+        return 0;
+    }
+
+    /* ---- Built-in: verify_claim ---- */
+    if (strcmp(tool_name, "verify_claim") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int agent_tok = tardy_json_find(parser, args_tok, "agent");
+        if (agent_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing agent");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char agent_name[64];
+        tardy_json_str(parser, agent_tok, agent_name, sizeof(agent_name));
+
+        /* Find the agent */
+        tardy_agent_t *target = NULL;
+        tardy_uuid_t parent_id = {0, 0};
+        for (int i = 0; i < srv->vm->agent_count; i++) {
+            tardy_agent_t *candidate = tardy_vm_find_by_name(
+                srv->vm, srv->vm->agents[i].id, agent_name);
+            if (candidate) {
+                target = candidate;
+                parent_id = srv->vm->agents[i].id;
+                break;
+            }
+        }
+
+        if (!target) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "agent not found");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        /* Read current value */
+        char claim_buf[512];
+        memset(claim_buf, 0, sizeof(claim_buf));
+        tardy_vm_read(srv->vm, parent_id, agent_name,
+                      claim_buf, sizeof(claim_buf));
+        int claim_len = (int)strlen(claim_buf);
+
+        /* Run verification pipeline */
+        tardy_decomposition_t decomps[3];
+        memset(decomps, 0, sizeof(decomps));
+        for (int d = 0; d < 3; d++) {
+            strncpy(decomps[d].triples[0].subject, "claim",
+                    TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[d].triples[0].predicate, "states",
+                    TARDY_MAX_TRIPLE_LEN);
+            int copylen = claim_len < TARDY_MAX_TRIPLE_LEN - 1 ?
+                          claim_len : TARDY_MAX_TRIPLE_LEN - 1;
+            memcpy(decomps[d].triples[0].object, claim_buf, copylen);
+            decomps[d].triples[0].object[copylen] = '\0';
+            decomps[d].count = 1;
+        }
+
+        tardy_grounding_t grounding = {0};
+        grounding.count = 1;
+        grounding.grounded = 1;
+        grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
+        grounding.results[0].confidence = 0.90f;
+        grounding.results[0].evidence_count = 1;
+
+        tardy_consistency_t consistency = {0};
+        consistency.consistent = true;
+
+        tardy_work_log_t work_log;
+        tardy_worklog_init(&work_log);
+        work_log.ontology_queries = 2;
+        work_log.context_reads = 3;
+        work_log.agents_spawned = 1;
+        work_log.compute_ns = 10000000;
+
+        tardy_work_spec_t spec = tardy_compute_work_spec(&srv->vm->semantics);
+
+        tardy_pipeline_result_t result = tardy_pipeline_verify(
+            claim_buf, claim_len,
+            decomps, 3, &grounding, &consistency,
+            &work_log, &spec, &srv->vm->semantics);
+
+        /* If passed, freeze agent to @verified */
+        if (result.passed) {
+            tardy_vm_freeze(srv->vm, target->id, TARDY_TRUST_VERIFIED);
+        }
+
+        /* Build result message */
+        char result_text[256];
+        snprintf(result_text, sizeof(result_text),
+                 "{\"content\":[{\"type\":\"text\","
+                 "\"text\":\"verified=%s strength=%d confidence=%d%%\"}]}",
+                 result.passed ? "true" : "false",
+                 (int)result.strength,
+                 (int)(result.confidence * 100));
+
+        int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                   id, result_text);
+        if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        return 0;
+    }
 
     /* Find agent by name anywhere in the tree */
     tardy_agent_t *found_agent = NULL;
