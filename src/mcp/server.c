@@ -155,19 +155,51 @@ static int handle_initialize(tardy_mcp_server_t *srv, const char *id)
     return 0;
 }
 
-/* tools/list — expose VM agents as tools */
+/* Emit one tool entry into the buffer. Returns bytes written. */
+static int emit_tool(char *buf, int buf_size, int pos, const char *name,
+                      tardy_agent_t *agent, int *first)
+{
+    int tlen = pos;
+    if (!*first && tlen < buf_size) buf[tlen++] = ',';
+    *first = 0;
+
+    const char *pre = "{\"name\":\"";
+    int prelen = (int)strlen(pre);
+    if (tlen + prelen >= buf_size) return tlen;
+    memcpy(buf + tlen, pre, prelen);
+    tlen += prelen;
+
+    int nlen = (int)strlen(name);
+    if (tlen + nlen >= buf_size) return tlen;
+    memcpy(buf + tlen, name, nlen);
+    tlen += nlen;
+
+    const char *mid_desc;
+    if (agent && agent->trust >= TARDY_TRUST_SOVEREIGN)
+        mid_desc = "\",\"description\":\"sovereign agent\",";
+    else if (agent && agent->trust >= TARDY_TRUST_VERIFIED)
+        mid_desc = "\",\"description\":\"verified agent\",";
+    else if (agent && agent->trust >= TARDY_TRUST_DEFAULT)
+        mid_desc = "\",\"description\":\"immutable agent\",";
+    else
+        mid_desc = "\",\"description\":\"mutable agent\",";
+
+    int mdlen = (int)strlen(mid_desc);
+    if (tlen + mdlen >= buf_size) return tlen;
+    memcpy(buf + tlen, mid_desc, mdlen);
+    tlen += mdlen;
+
+    const char *schema = "\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}";
+    int slen = (int)strlen(schema);
+    if (tlen + slen >= buf_size) return tlen;
+    memcpy(buf + tlen, schema, slen);
+    tlen += slen;
+    return tlen;
+}
+
+/* tools/list — expose ALL agents in the tree as tools */
 static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
 {
-    /* List agents in root context as tools */
-    tardy_agent_t *root = tardy_vm_find(srv->vm, srv->vm->root_id);
-    if (!root) {
-        int len = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
-                               id, -32603, "VM root not found");
-        if (len > 0) mcp_write(srv->write_buf, len);
-        return -1;
-    }
-
-    /* Build tools array */
     char tools[4096];
     int tlen = 0;
     tools[tlen++] = '{';
@@ -176,41 +208,32 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
     memcpy(tools + tlen, tp, tplen);
     tlen += tplen;
 
-    for (int i = 0; i < root->context.child_count; i++) {
-        if (i > 0) tools[tlen++] = ',';
+    int first = 1;
 
-        const char *name = root->context.children[i].name;
-        tardy_agent_t *child = tardy_vm_find(srv->vm,
-                                              root->context.children[i].agent_id);
+    /* Walk all agents (skip root at index 0), expose value agents as tools */
+    for (int i = 1; i < srv->vm->agent_count; i++) {
+        tardy_agent_t *a = &srv->vm->agents[i];
+        if (a->state == TARDY_STATE_DEAD)
+            continue;
+        if (a->type_tag == TARDY_TYPE_AGENT)
+            continue; /* skip container agents, expose values only */
 
-        /* {"name":"x","description":"agent holding value","inputSchema":{"type":"object"}} */
-        const char *pre = "{\"name\":\"";
-        int prelen = (int)strlen(pre);
-        memcpy(tools + tlen, pre, prelen);
-        tlen += prelen;
+        /* Find this agent's name by scanning all parents' contexts */
+        const char *name = NULL;
+        for (int p = 0; p < srv->vm->agent_count; p++) {
+            tardy_agent_t *parent = &srv->vm->agents[p];
+            for (int c = 0; c < parent->context.child_count; c++) {
+                if (parent->context.children[c].agent_id.hi == a->id.hi &&
+                    parent->context.children[c].agent_id.lo == a->id.lo) {
+                    name = parent->context.children[c].name;
+                    break;
+                }
+            }
+            if (name) break;
+        }
 
-        int nlen = (int)strlen(name);
-        memcpy(tools + tlen, name, nlen);
-        tlen += nlen;
-
-        const char *mid_desc;
-        if (child && child->trust >= TARDY_TRUST_SOVEREIGN)
-            mid_desc = "\",\"description\":\"sovereign agent\",";
-        else if (child && child->trust >= TARDY_TRUST_VERIFIED)
-            mid_desc = "\",\"description\":\"verified agent\",";
-        else if (child && child->trust >= TARDY_TRUST_DEFAULT)
-            mid_desc = "\",\"description\":\"immutable agent\",";
-        else
-            mid_desc = "\",\"description\":\"mutable agent\",";
-
-        int mdlen = (int)strlen(mid_desc);
-        memcpy(tools + tlen, mid_desc, mdlen);
-        tlen += mdlen;
-
-        const char *schema = "\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}";
-        int slen = (int)strlen(schema);
-        memcpy(tools + tlen, schema, slen);
-        tlen += slen;
+        if (name)
+            tlen = emit_tool(tools, sizeof(tools), tlen, name, a, &first);
     }
 
     tools[tlen++] = ']';
@@ -248,11 +271,15 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
     char tool_name[64];
     tardy_json_str(parser, name_tok, tool_name, sizeof(tool_name));
 
-    /* Read the agent's value */
+    /* Find agent by name anywhere in the tree */
     int64_t val = 0;
-    tardy_read_status_t status = tardy_vm_read(srv->vm, srv->vm->root_id,
-                                                tool_name, &val,
-                                                sizeof(int64_t));
+    tardy_read_status_t status = TARDY_READ_HASH_MISMATCH;
+
+    /* Search all parents for a child with this name */
+    for (int i = 0; i < srv->vm->agent_count && status != TARDY_READ_OK; i++) {
+        status = tardy_vm_read(srv->vm, srv->vm->agents[i].id,
+                               tool_name, &val, sizeof(int64_t));
+    }
 
     if (status == TARDY_READ_OK) {
         /* Build result with value and provenance */

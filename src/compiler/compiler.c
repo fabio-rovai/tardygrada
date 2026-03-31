@@ -1,0 +1,337 @@
+/*
+ * Tardygrada — Compiler Implementation
+ *
+ * Simple recursive descent parser.
+ * Emits spawn instructions for the VM.
+ */
+
+#include "compiler.h"
+#include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+/* ============================================
+ * Parser State
+ * ============================================ */
+
+typedef struct {
+    tardy_lexer_t    *lex;
+    int               pos;       /* current token index */
+    tardy_program_t  *prog;
+} tardy_parser_t;
+
+static tardy_token_t *current(tardy_parser_t *p)
+{
+    if (p->pos >= p->lex->count)
+        return &p->lex->tokens[p->lex->count - 1]; /* EOF */
+    return &p->lex->tokens[p->pos];
+}
+
+static tardy_token_t *advance_tok(tardy_parser_t *p)
+{
+    tardy_token_t *tok = current(p);
+    if (tok->type != TOK_EOF)
+        p->pos++;
+    return tok;
+}
+
+static bool check(tardy_parser_t *p, tardy_tok_type_t type)
+{
+    return current(p)->type == type;
+}
+
+static bool match(tardy_parser_t *p, tardy_tok_type_t type)
+{
+    if (check(p, type)) {
+        advance_tok(p);
+        return true;
+    }
+    return false;
+}
+
+static void error(tardy_parser_t *p, const char *msg)
+{
+    tardy_token_t *tok = current(p);
+    snprintf(p->prog->error, sizeof(p->prog->error),
+             "line %d col %d: %s (got '%s')",
+             tok->line, tok->col, msg, tok->text);
+    p->prog->has_error = true;
+}
+
+static bool expect(tardy_parser_t *p, tardy_tok_type_t type, const char *msg)
+{
+    if (check(p, type)) {
+        advance_tok(p);
+        return true;
+    }
+    error(p, msg);
+    return false;
+}
+
+static void emit_inst(tardy_parser_t *p, tardy_instruction_t inst)
+{
+    if (p->prog->count < TARDY_MAX_INSTRUCTIONS)
+        p->prog->instructions[p->prog->count++] = inst;
+}
+
+/* ============================================
+ * Parse type annotation
+ * ============================================ */
+
+static tardy_type_t parse_type(tardy_parser_t *p)
+{
+    tardy_token_t *tok = current(p);
+    tardy_type_t type = TARDY_TYPE_UNIT;
+
+    switch (tok->type) {
+    case TOK_INT:   type = TARDY_TYPE_INT;   break;
+    case TOK_FLOAT: type = TARDY_TYPE_FLOAT; break;
+    case TOK_STR:   type = TARDY_TYPE_STR;   break;
+    case TOK_BOOL:  type = TARDY_TYPE_BOOL;  break;
+    case TOK_FACT:  type = TARDY_TYPE_FACT;  break;
+    default:
+        error(p, "expected type (int, float, str, bool, Fact)");
+        return TARDY_TYPE_UNIT;
+    }
+
+    advance_tok(p);
+    return type;
+}
+
+/* ============================================
+ * Parse trust annotation (@verified, @sovereign, etc.)
+ * ============================================ */
+
+static tardy_trust_t parse_trust(tardy_parser_t *p)
+{
+    if (check(p, TOK_AT_VERIFIED))  { advance_tok(p); return TARDY_TRUST_VERIFIED; }
+    if (check(p, TOK_AT_HARDENED))  { advance_tok(p); return TARDY_TRUST_HARDENED; }
+    if (check(p, TOK_AT_SOVEREIGN)) { advance_tok(p); return TARDY_TRUST_SOVEREIGN; }
+    return TARDY_TRUST_DEFAULT; /* no annotation = default immutable */
+}
+
+/* ============================================
+ * Parse value binding
+ *
+ * let x: int = 5 @verified    (immutable)
+ * x: int = 5                  (mutable)
+ * ============================================ */
+
+static void parse_binding(tardy_parser_t *p, bool immutable)
+{
+    tardy_instruction_t inst = {0};
+    inst.opcode = OP_SPAWN_VALUE;
+
+    /* Name */
+    if (!check(p, TOK_IDENT)) {
+        error(p, "expected identifier");
+        return;
+    }
+    strncpy(inst.name, current(p)->text, sizeof(inst.name) - 1);
+    advance_tok(p);
+
+    /* : type */
+    if (!expect(p, TOK_COLON, "expected ':'"))
+        return;
+
+    inst.type = parse_type(p);
+
+    /* = value */
+    if (!expect(p, TOK_EQUALS, "expected '='"))
+        return;
+
+    tardy_token_t *val = current(p);
+    switch (val->type) {
+    case TOK_INT_LIT:
+        inst.int_val = 0;
+        {
+            const char *s = val->text;
+            int neg = 0;
+            int i = 0;
+            if (s[0] == '-') { neg = 1; i = 1; }
+            for (; s[i]; i++)
+                inst.int_val = inst.int_val * 10 + (s[i] - '0');
+            if (neg) inst.int_val = -inst.int_val;
+        }
+        advance_tok(p);
+        break;
+
+    case TOK_FLOAT_LIT:
+        /* Simple float parse */
+        {
+            const char *s = val->text;
+            double v = 0.0;
+            int neg = 0;
+            int i = 0;
+            if (s[0] == '-') { neg = 1; i = 1; }
+            for (; s[i] && s[i] != '.'; i++)
+                v = v * 10.0 + (s[i] - '0');
+            if (s[i] == '.') {
+                i++;
+                double frac = 0.1;
+                for (; s[i]; i++) {
+                    v += (s[i] - '0') * frac;
+                    frac *= 0.1;
+                }
+            }
+            inst.float_val = neg ? -v : v;
+        }
+        advance_tok(p);
+        break;
+
+    case TOK_STR_LIT:
+        strncpy(inst.str_val, val->text, sizeof(inst.str_val) - 1);
+        advance_tok(p);
+        break;
+
+    case TOK_BOOL_LIT:
+        inst.bool_val = (strcmp(val->text, "true") == 0);
+        advance_tok(p);
+        break;
+
+    default:
+        error(p, "expected value (int, float, string, bool)");
+        return;
+    }
+
+    /* Optional trust annotation */
+    if (immutable)
+        inst.trust = parse_trust(p);
+    else
+        inst.trust = TARDY_TRUST_MUTABLE;
+
+    emit_inst(p, inst);
+}
+
+/* ============================================
+ * Parse agent body
+ *
+ * agent Name {
+ *     let x: int = 5
+ *     y: str = "hello"
+ * }
+ * ============================================ */
+
+static void parse_agent(tardy_parser_t *p)
+{
+    /* agent keyword already consumed */
+
+    /* Name */
+    if (!check(p, TOK_IDENT)) {
+        error(p, "expected agent name");
+        return;
+    }
+
+    tardy_instruction_t agent_inst = {0};
+    agent_inst.opcode = OP_SPAWN_AGENT;
+    strncpy(agent_inst.name, current(p)->text, sizeof(agent_inst.name) - 1);
+    strncpy(p->prog->agent_name, current(p)->text,
+            sizeof(p->prog->agent_name) - 1);
+    advance_tok(p);
+
+    /* Optional trust annotation on the agent itself */
+    agent_inst.trust = parse_trust(p);
+
+    emit_inst(p, agent_inst);
+
+    /* Body */
+    if (!expect(p, TOK_LBRACE, "expected '{'"))
+        return;
+
+    while (!check(p, TOK_RBRACE) && !check(p, TOK_EOF) && !p->prog->has_error) {
+        if (match(p, TOK_LET)) {
+            /* Immutable binding */
+            parse_binding(p, true);
+        } else if (check(p, TOK_IDENT)) {
+            /* Mutable binding */
+            parse_binding(p, false);
+        } else {
+            error(p, "expected 'let' or identifier");
+            return;
+        }
+    }
+
+    if (!expect(p, TOK_RBRACE, "expected '}'"))
+        return;
+
+    /* Emit halt */
+    tardy_instruction_t halt = {0};
+    halt.opcode = OP_HALT;
+    emit_inst(p, halt);
+}
+
+/* ============================================
+ * Compiler Entry Point
+ * ============================================ */
+
+int tardy_compile(tardy_program_t *prog, const char *src, int len)
+{
+    if (!prog || !src)
+        return -1;
+
+    memset(prog, 0, sizeof(tardy_program_t));
+
+    /* Lex */
+    tardy_lexer_t lex;
+    if (tardy_lex(&lex, src, len) != 0) {
+        snprintf(prog->error, sizeof(prog->error), "lexer error");
+        prog->has_error = true;
+        return -1;
+    }
+
+    /* Parse */
+    tardy_parser_t parser = {0};
+    parser.lex = &lex;
+    parser.pos = 0;
+    parser.prog = prog;
+
+    while (!check(&parser, TOK_EOF) && !prog->has_error) {
+        if (match(&parser, TOK_AGENT)) {
+            parse_agent(&parser);
+        } else {
+            error(&parser, "expected 'agent'");
+            break;
+        }
+    }
+
+    return prog->has_error ? -1 : 0;
+}
+
+/* ============================================
+ * Compile from file
+ * ============================================ */
+
+int tardy_compile_file(tardy_program_t *prog, const char *path)
+{
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        snprintf(prog->error, sizeof(prog->error),
+                 "cannot open file: %s", path);
+        prog->has_error = true;
+        return -1;
+    }
+
+    struct stat st;
+    if (fstat(fd, &st) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    if (st.st_size > 1024 * 1024) { /* 1MB max source file */
+        close(fd);
+        snprintf(prog->error, sizeof(prog->error), "file too large");
+        prog->has_error = true;
+        return -1;
+    }
+
+    char buf[1024 * 1024];
+    ssize_t n = read(fd, buf, st.st_size);
+    close(fd);
+
+    if (n <= 0)
+        return -1;
+
+    return tardy_compile(prog, buf, (int)n);
+}

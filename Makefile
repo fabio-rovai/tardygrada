@@ -8,7 +8,12 @@ SRC = src/main.c \
       src/vm/vm.c \
       src/vm/crypto.c \
       src/mcp/json.c \
-      src/mcp/server.c
+      src/mcp/server.c \
+      src/verify/pipeline.c \
+      src/ontology/bridge.c \
+      src/compiler/lexer.c \
+      src/compiler/compiler.c \
+      src/compiler/exec.c
 
 OBJ = $(SRC:.c=.o)
 BIN = tardygrada

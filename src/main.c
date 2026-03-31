@@ -18,8 +18,10 @@
 
 #include "vm/vm.h"
 #include "mcp/server.h"
+#include "verify/pipeline.h"
+#include "compiler/exec.h"
 #include <sys/mman.h>
-#include <unistd.h>  /* write() for stdout — no printf, no stdio */
+#include <unistd.h>
 #include <string.h>
 
 static int is_zero_uuid(tardy_uuid_t id)
@@ -204,6 +206,150 @@ static int run_tests(void)
         }
     }
 
+    /* ============================================
+     * Verification Pipeline Tests
+     * ============================================ */
+
+    print("\n--- Verification Pipeline ---\n");
+
+    tardy_semantics_t sem = TARDY_DEFAULT_SEMANTICS;
+
+    /* Test 1: Successful verification — grounded claim */
+    {
+        /* 3 decomposers produce overlapping triples */
+        tardy_decomposition_t decomps[3];
+        memset(decomps, 0, sizeof(decomps));
+
+        /* All 3 agree on the same triple */
+        for (int i = 0; i < 3; i++) {
+            strncpy(decomps[i].triples[0].subject, "DrWho", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].predicate, "created_at", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].object, "BBCTelevisionCentre", TARDY_MAX_TRIPLE_LEN);
+            decomps[i].count = 1;
+        }
+
+        /* Grounding: the triple is confirmed by ontology */
+        tardy_grounding_t grounding = {0};
+        grounding.count = 1;
+        grounding.grounded = 1;
+        grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
+        grounding.results[0].confidence = 0.95f;
+        grounding.results[0].evidence_count = 3;
+
+        /* Consistency: no contradictions */
+        tardy_consistency_t consistency = {0};
+        consistency.consistent = true;
+        consistency.contradiction_count = 0;
+
+        /* Work log: agent did real work */
+        tardy_work_log_t work_log;
+        tardy_worklog_init(&work_log);
+        work_log.ontology_queries = 3;
+        work_log.context_reads = 5;
+        work_log.agents_spawned = 2;
+        work_log.compute_ns = 50000000; /* 50ms */
+
+        tardy_work_spec_t spec = tardy_compute_work_spec(&sem);
+
+        tardy_pipeline_result_t result = tardy_pipeline_verify(
+            "DrWho created at BBC Television Centre", 38,
+            decomps, 3, &grounding, &consistency,
+            &work_log, &spec, &sem);
+
+        if (result.passed && result.strength >= TARDY_TRUTH_EVIDENCED)
+            ok("grounded claim passed pipeline — EVIDENCED");
+        else
+            fail("grounded claim should have passed");
+
+        print("  [OK] truth strength: ");
+        print_int((int64_t)result.strength);
+        print(" confidence: ");
+        /* Print confidence as integer percentage */
+        print_int((int64_t)(result.confidence * 100));
+        print("%\n");
+    }
+
+    /* Test 2: Hallucination detected — contradicted by ontology */
+    {
+        tardy_decomposition_t decomps[3];
+        memset(decomps, 0, sizeof(decomps));
+        for (int i = 0; i < 3; i++) {
+            strncpy(decomps[i].triples[0].subject, "DrWho", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].predicate, "created_at", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].object, "Tokyo", TARDY_MAX_TRIPLE_LEN);
+            decomps[i].count = 1;
+        }
+
+        tardy_grounding_t grounding = {0};
+        grounding.count = 1;
+        grounding.contradicted = 1; /* ontology says BBC, not Tokyo */
+        grounding.results[0].status = TARDY_KNOWLEDGE_CONTRADICTED;
+        grounding.results[0].confidence = 0.0f;
+
+        tardy_consistency_t consistency = {0};
+        consistency.consistent = false;
+        consistency.contradiction_count = 1;
+        strncpy(consistency.explanation,
+                "ontology says BBCTelevisionCentre, not Tokyo",
+                sizeof(consistency.explanation));
+
+        tardy_work_log_t work_log;
+        tardy_worklog_init(&work_log);
+        work_log.ontology_queries = 2;
+        work_log.context_reads = 3;
+        work_log.compute_ns = 30000000;
+
+        tardy_work_spec_t spec = tardy_compute_work_spec(&sem);
+
+        tardy_pipeline_result_t result = tardy_pipeline_verify(
+            "DrWho created in Tokyo", 22,
+            decomps, 3, &grounding, &consistency,
+            &work_log, &spec, &sem);
+
+        if (!result.passed && result.failed_at == TARDY_LAYER_GROUNDING)
+            ok("hallucination detected at grounding layer");
+        else
+            fail("hallucination should have been caught");
+    }
+
+    /* Test 3: Laziness detected — agent did no work */
+    {
+        tardy_decomposition_t decomps[3];
+        memset(decomps, 0, sizeof(decomps));
+        for (int i = 0; i < 3; i++) {
+            strncpy(decomps[i].triples[0].subject, "X", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].predicate, "is", TARDY_MAX_TRIPLE_LEN);
+            strncpy(decomps[i].triples[0].object, "Y", TARDY_MAX_TRIPLE_LEN);
+            decomps[i].count = 1;
+        }
+
+        tardy_grounding_t grounding = {0};
+        grounding.count = 1;
+        grounding.grounded = 1;
+        grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
+        grounding.results[0].confidence = 0.9f;
+
+        tardy_consistency_t consistency = {0};
+        consistency.consistent = true;
+
+        /* Work log: ZERO operations — agent was lazy */
+        tardy_work_log_t work_log;
+        tardy_worklog_init(&work_log);
+        /* Everything stays at 0 */
+
+        tardy_work_spec_t spec = tardy_compute_work_spec(&sem);
+
+        tardy_pipeline_result_t result = tardy_pipeline_verify(
+            "X is Y", 6,
+            decomps, 3, &grounding, &consistency,
+            &work_log, &spec, &sem);
+
+        if (!result.passed && result.failed_at == TARDY_LAYER_WORK_VERIFY)
+            ok("laziness detected — agent did no work");
+        else
+            fail("laziness should have been caught");
+    }
+
     /* ---- Stats ---- */
     print("\n--- Stats ---\n");
     print("  Agents alive: ");
@@ -276,9 +422,17 @@ static int run_mcp(void)
 
 int main(int argc, char **argv)
 {
-    /* --serve: run as MCP server */
+    /* --serve: run as MCP server (hardcoded agents) */
     if (argc > 1 && strcmp(argv[1], "--serve") == 0)
         return run_mcp();
+
+    /* <file.tardy>: compile and serve */
+    if (argc > 1) {
+        const char *path = argv[1];
+        int len = (int)strlen(path);
+        if (len > 6 && strcmp(path + len - 6, ".tardy") == 0)
+            return tardy_exec_file(path);
+    }
 
     /* Default: run tests */
     return run_tests();
