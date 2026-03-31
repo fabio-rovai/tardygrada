@@ -1,0 +1,4 @@
+*.o
+tardygrada
+tardygrada_dbg
+.DS_Store
