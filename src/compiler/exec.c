@@ -6,6 +6,7 @@
  */
 
 #include "exec.h"
+#include "../verify/pipeline.h"
 #include <sys/mman.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,13 +20,6 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
 {
     if (!vm || !prog)
         return -1;
-
-    /* Initialize LLM backend — stub by default, Anthropic if key present */
-    tardy_llm_backend_t llm;
-    tardy_llm_config_t llm_cfg = tardy_llm_anthropic_config();
-    if (!llm_cfg.api_key[0])
-        llm_cfg = tardy_llm_stub_config();
-    tardy_llm_init(&llm, &llm_cfg);
 
     tardy_uuid_t current_agent = vm->root_id;
 
@@ -100,128 +94,22 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             break;
         }
 
-        case OP_ASK: {
-            /* LLM ask() — call model, get response, verify, spawn agent */
-            exec_print("[tardygrada]   ask(\"");
+        case OP_RECEIVE: {
+            exec_print("[tardygrada]   receive(\"");
             exec_print(inst->str_val);
             exec_print("\")");
-            if (inst->grounded)  {
+            if (inst->grounded) {
                 exec_print(" grounded_in(");
                 exec_print(inst->ontology);
                 exec_print(")");
             }
-            exec_print("\n");
+            exec_print(" -> pending\n");
 
-            /* 1. Call LLM */
-            tardy_llm_response_t resp;
-            int ask_ok = tardy_llm_ask(&llm, NULL, inst->str_val, &resp);
-
-            if (ask_ok != 0 || !resp.success) {
-                exec_print("[tardygrada]   ERROR: ");
-                exec_print(resp.error[0] ? resp.error : "LLM call failed");
-                exec_print("\n");
-                /* Spawn error agent */
-                const char *err = resp.error[0] ? resp.error : "LLM call failed";
-                tardy_vm_spawn(vm, current_agent, inst->name,
-                              TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
-                              err, strlen(err) + 1);
-                break;
-            }
-
-            exec_print("[tardygrada]   -> \"");
-            /* Print first 80 chars of response */
-            {
-                char preview[81];
-                int plen = resp.text_len < 80 ? resp.text_len : 80;
-                memcpy(preview, resp.text, plen);
-                preview[plen] = '\0';
-                exec_print(preview);
-                if (resp.text_len > 80) exec_print("...");
-            }
-            exec_print("\"\n");
-
-            /* 2. If grounded_in specified, run verification pipeline */
-            if (inst->grounded) {
-                exec_print("[tardygrada]   verifying against ontology...\n");
-
-                /* Build decomposition (stub: single decomposer, whole text as one triple) */
-                tardy_decomposition_t decomps[3];
-                memset(decomps, 0, sizeof(decomps));
-                for (int d = 0; d < 3; d++) {
-                    strncpy(decomps[d].triples[0].subject, "claim",
-                            TARDY_MAX_TRIPLE_LEN);
-                    strncpy(decomps[d].triples[0].predicate, "states",
-                            TARDY_MAX_TRIPLE_LEN);
-                    int copylen = resp.text_len < TARDY_MAX_TRIPLE_LEN - 1 ?
-                                  resp.text_len : TARDY_MAX_TRIPLE_LEN - 1;
-                    memcpy(decomps[d].triples[0].object, resp.text, copylen);
-                    decomps[d].triples[0].object[copylen] = '\0';
-                    decomps[d].count = 1;
-                }
-
-                /* Grounding: try ontology bridge, fall back to stub */
-                tardy_grounding_t grounding = {0};
-                grounding.count = 1;
-                grounding.grounded = 1;
-                grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
-                grounding.results[0].confidence = 0.90f;
-                grounding.results[0].evidence_count = 1;
-
-                tardy_consistency_t consistency = {0};
-                consistency.consistent = true;
-
-                /* Work log */
-                tardy_work_log_t work_log;
-                tardy_worklog_init(&work_log);
-                work_log.ontology_queries = 2;
-                work_log.context_reads = 3;
-                work_log.agents_spawned = 1;
-                work_log.compute_ns = 10000000;
-
-                tardy_work_spec_t spec = tardy_compute_work_spec(&vm->semantics);
-
-                tardy_pipeline_result_t result = tardy_pipeline_verify(
-                    resp.text, resp.text_len,
-                    decomps, 3, &grounding, &consistency,
-                    &work_log, &spec, &vm->semantics);
-
-                if (result.passed) {
-                    exec_print("[tardygrada]   VERIFIED (strength=");
-                    char snum[8];
-                    snum[0] = '0' + (char)result.strength;
-                    snum[1] = '\0';
-                    exec_print(snum);
-                    exec_print(", confidence=");
-                    snum[0] = '0' + (char)(int)(result.confidence * 10);
-                    snum[1] = '\0';
-                    exec_print(snum);
-                    exec_print(")\n");
-
-                    /* Spawn as immutable with requested trust */
-                    tardy_trust_t trust = inst->trust >= TARDY_TRUST_DEFAULT ?
-                                          inst->trust : TARDY_TRUST_VERIFIED;
-                    tardy_vm_spawn(vm, current_agent, inst->name,
-                                  TARDY_TYPE_STR, trust,
-                                  resp.text, resp.text_len + 1);
-                } else {
-                    exec_print("[tardygrada]   VERIFICATION FAILED at layer ");
-                    char lnum[8];
-                    lnum[0] = '0' + (char)result.failed_at;
-                    lnum[1] = '\0';
-                    exec_print(lnum);
-                    exec_print("\n");
-
-                    /* Spawn as mutable — not verified, can't be trusted */
-                    tardy_vm_spawn(vm, current_agent, inst->name,
-                                  TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
-                                  resp.text, resp.text_len + 1);
-                }
-            } else {
-                /* No grounding — spawn as mutable (untrusted) */
-                tardy_vm_spawn(vm, current_agent, inst->name,
-                              TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
-                              resp.text, resp.text_len + 1);
-            }
+            /* Spawn empty mutable agent (will be filled via MCP submit_claim) */
+            const char *empty = "";
+            tardy_vm_spawn(vm, current_agent, inst->name,
+                          TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
+                          empty, 1);
             break;
         }
 
@@ -231,12 +119,10 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
 
         case OP_HALT:
             exec_print("[tardygrada] program loaded\n");
-            tardy_llm_shutdown(&llm);
             return 0;
         }
     }
 
-    tardy_llm_shutdown(&llm);
     return 0;
 }
 

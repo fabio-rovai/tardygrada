@@ -1,0 +1,5 @@
+agent Researcher {
+    let origin: Fact = receive("Where was Doctor Who created?") grounded_in(bbc) @verified
+    let capital: Fact = receive("Capital of France?") grounded_in(geography) @verified
+    let name: str = "tardygrada" @sovereign
+}

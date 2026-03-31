@@ -1,19 +1,17 @@
-// Tardygrada — LLM ask() Example
+// Tardygrada — receive() Example
 //
 // Demonstrates the core flow:
-// 1. ask() calls the LLM
-// 2. grounded_in() runs the verification pipeline
-// 3. If verified → frozen as immutable Fact
-// 4. If not verified → stays mutable (untrusted)
+// 1. receive() creates a pending agent slot
+// 2. External agents submit claims via MCP submit_claim
+// 3. verify_claim runs the verification pipeline
+// 4. If verified -> frozen as immutable Fact
+// 5. If not verified -> stays mutable (untrusted)
 
 agent Researcher {
-    // Grounded ask: response goes through verification pipeline
-    let origin: Fact = ask("Where was Doctor Who created?") grounded_in(bbc) @verified
+    // Grounded receive: claim goes through verification pipeline
+    let origin: Fact = receive("Where was Doctor Who created?") grounded_in(bbc) @verified
 
-    // Ungrounded ask: response is mutable, untrusted
-    joke: str = ask("Tell me a joke")
-
-    // Static values alongside LLM responses
+    // Static values alongside pending claims
     let version: int = 1
     let name: str = "tardygrada" @sovereign
 }
