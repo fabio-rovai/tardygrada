@@ -272,41 +272,66 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
     tardy_json_str(parser, name_tok, tool_name, sizeof(tool_name));
 
     /* Find agent by name anywhere in the tree */
-    int64_t val = 0;
+    tardy_agent_t *found_agent = NULL;
     tardy_read_status_t status = TARDY_READ_HASH_MISMATCH;
+    char read_buf[512];
+    memset(read_buf, 0, sizeof(read_buf));
 
-    /* Search all parents for a child with this name */
-    for (int i = 0; i < srv->vm->agent_count && status != TARDY_READ_OK; i++) {
-        status = tardy_vm_read(srv->vm, srv->vm->agents[i].id,
-                               tool_name, &val, sizeof(int64_t));
+    for (int i = 0; i < srv->vm->agent_count; i++) {
+        tardy_agent_t *candidate = tardy_vm_find_by_name(
+            srv->vm, srv->vm->agents[i].id, tool_name);
+        if (candidate) {
+            found_agent = candidate;
+            status = tardy_vm_read(srv->vm, srv->vm->agents[i].id,
+                                    tool_name, read_buf, sizeof(read_buf));
+            break;
+        }
     }
 
-    if (status == TARDY_READ_OK) {
-        /* Build result with value and provenance */
-        char result[512];
+    if (status == TARDY_READ_OK && found_agent) {
+        char result[1024];
         int rlen = 0;
         const char *pre = "{\"content\":[{\"type\":\"text\",\"text\":\"";
         int prelen = (int)strlen(pre);
         memcpy(result + rlen, pre, prelen);
         rlen += prelen;
 
-        /* Value as string */
-        char numstr[32];
-        int nlen = 0;
-        int neg = 0;
-        int64_t v = val;
-        if (v < 0) { neg = 1; v = -v; }
-        if (v == 0) numstr[nlen++] = '0';
-        while (v > 0) { numstr[nlen++] = '0' + (char)(v % 10); v /= 10; }
-        if (neg) numstr[nlen++] = '-';
-        /* reverse */
-        for (int i = 0; i < nlen / 2; i++) {
-            char t = numstr[i];
-            numstr[i] = numstr[nlen - 1 - i];
-            numstr[nlen - 1 - i] = t;
+        /* Format value based on type */
+        if (found_agent->type_tag == TARDY_TYPE_STR) {
+            /* String: copy directly (escape quotes) */
+            const char *s = read_buf;
+            while (*s && rlen < (int)sizeof(result) - 10) {
+                if (*s == '"' || *s == '\\')
+                    result[rlen++] = '\\';
+                result[rlen++] = *s++;
+            }
+        } else if (found_agent->type_tag == TARDY_TYPE_BOOL) {
+            int64_t bval;
+            memcpy(&bval, read_buf, sizeof(int64_t));
+            const char *bs = bval ? "true" : "false";
+            int bslen = (int)strlen(bs);
+            memcpy(result + rlen, bs, bslen);
+            rlen += bslen;
+        } else {
+            /* Int/Float: format as number string */
+            int64_t val;
+            memcpy(&val, read_buf, sizeof(int64_t));
+            char numstr[32];
+            int nlen = 0;
+            int neg = 0;
+            int64_t v = val;
+            if (v < 0) { neg = 1; v = -v; }
+            if (v == 0) numstr[nlen++] = '0';
+            while (v > 0) { numstr[nlen++] = '0' + (char)(v % 10); v /= 10; }
+            if (neg) numstr[nlen++] = '-';
+            for (int j = 0; j < nlen / 2; j++) {
+                char t = numstr[j];
+                numstr[j] = numstr[nlen - 1 - j];
+                numstr[nlen - 1 - j] = t;
+            }
+            memcpy(result + rlen, numstr, nlen);
+            rlen += nlen;
         }
-        memcpy(result + rlen, numstr, nlen);
-        rlen += nlen;
 
         const char *suf = "\"}]}";
         int suflen = (int)strlen(suf);

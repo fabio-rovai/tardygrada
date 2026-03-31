@@ -10,6 +10,8 @@
 #include "compiler.h"
 #include "../vm/vm.h"
 #include "../mcp/server.h"
+#include "../llm/backend.h"
+#include "../verify/pipeline.h"
 
 /* Execute a compiled program on the VM.
  * Spawns all agents, then starts MCP server.

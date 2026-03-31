@@ -27,6 +27,8 @@
 typedef enum {
     OP_SPAWN_AGENT,    /* create a named agent (parent context) */
     OP_SPAWN_VALUE,    /* create a value agent in current agent */
+    OP_ASK,            /* LLM ask() — spawn mutable agent from LLM response */
+    OP_FREEZE,         /* freeze mutable agent to immutable with trust level */
     OP_HALT,           /* end of program */
 } tardy_opcode_t;
 
@@ -37,8 +39,10 @@ typedef struct {
     tardy_trust_t  trust;
     int64_t        int_val;
     double         float_val;
-    char           str_val[256];
+    char           str_val[256];   /* also used as prompt for OP_ASK */
     bool           bool_val;
+    char           ontology[128];  /* grounded_in() ontology ref */
+    bool           grounded;       /* whether grounded_in() was specified */
 } tardy_instruction_t;
 
 typedef struct {

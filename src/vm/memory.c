@@ -185,25 +185,33 @@ void tardy_mem_init(tardy_agent_memory_t *mem, const void *data, size_t len,
  * Agent Memory — Verified Read
  * ============================================ */
 
-/* Byzantine majority for int64 values */
-static bool byzantine_majority_i64(const tardy_page_t *replicas, int count,
-                                    int64_t *out)
+/* Byzantine majority — generic byte-level vote.
+ * Hashes each replica and votes on hashes, then returns
+ * the data from the majority replica. Works for any data size. */
+static bool byzantine_majority(const tardy_page_t *replicas, int count,
+                                void *out, size_t len)
 {
-    /* Simple majority vote — works for 3f+1 where f=1 */
-    int64_t vals[16]; /* max 16 replicas */
     if (count > 16) count = 16;
 
-    for (int i = 0; i < count; i++)
-        tardy_page_read(&replicas[i], &vals[i], sizeof(int64_t));
+    /* Hash each replica's data */
+    tardy_hash_t hashes[16];
+    for (int i = 0; i < count; i++) {
+        uint8_t tmp[4096];
+        size_t read_len = len < sizeof(tmp) ? len : sizeof(tmp);
+        tardy_page_read(&replicas[i], tmp, read_len);
+        tardy_sha256(tmp, read_len, &hashes[i]);
+    }
 
+    /* Vote on hashes */
     for (int i = 0; i < count; i++) {
         int votes = 0;
         for (int j = 0; j < count; j++) {
-            if (vals[j] == vals[i])
+            if (tardy_hash_eq(&hashes[j], &hashes[i]))
                 votes++;
         }
         if (votes > count / 2) {
-            *out = vals[i];
+            /* Majority found — read from this replica */
+            tardy_page_read(&replicas[i], out, len);
             return true;
         }
     }
@@ -236,40 +244,35 @@ tardy_read_status_t tardy_mem_read(const tardy_agent_memory_t *mem,
 
     /* @hardened: Byzantine vote + hash check */
     if (mem->trust == TARDY_TRUST_HARDENED) {
-        int64_t voted;
-        if (!byzantine_majority_i64(mem->replicas, mem->replica_count, &voted))
+        if (!byzantine_majority(mem->replicas, mem->replica_count, out, len))
             return TARDY_READ_NO_CONSENSUS;
 
         if (mem->has_hash) {
             tardy_hash_t current;
-            tardy_sha256(&voted, sizeof(int64_t), &current);
+            tardy_sha256(out, len, &current);
             if (!tardy_hash_eq(&current, &mem->birth_hash))
                 return TARDY_READ_HASH_MISMATCH;
         }
 
-        memcpy(out, &voted, len < sizeof(int64_t) ? len : sizeof(int64_t));
         return TARDY_READ_OK;
     }
 
     /* @sovereign: vote + hash + signature verification */
     if (mem->trust == TARDY_TRUST_SOVEREIGN) {
-        int64_t voted;
-        if (!byzantine_majority_i64(mem->replicas, mem->replica_count, &voted))
+        if (!byzantine_majority(mem->replicas, mem->replica_count, out, len))
             return TARDY_READ_NO_CONSENSUS;
 
-        tardy_hash_t current;
-        tardy_sha256(&voted, sizeof(int64_t), &current);
-
-        if (mem->has_hash && !tardy_hash_eq(&current, &mem->birth_hash))
-            return TARDY_READ_HASH_MISMATCH;
-
-        /* TODO: verify ed25519 signature against parent public key */
-        /* For now, check signature exists */
-        if (mem->has_signature) {
-            /* Full verification requires parent's public key from trust chain */
+        if (mem->has_hash) {
+            tardy_hash_t current;
+            tardy_sha256(out, len, &current);
+            if (!tardy_hash_eq(&current, &mem->birth_hash))
+                return TARDY_READ_HASH_MISMATCH;
         }
 
-        memcpy(out, &voted, len < sizeof(int64_t) ? len : sizeof(int64_t));
+        if (mem->has_signature) {
+            /* TODO: full ed25519 verify against parent public key */
+        }
+
         return TARDY_READ_OK;
     }
 
