@@ -1,0 +1,123 @@
+/*
+ * Tardygrada VM — The Agent Society
+ * The VM manages all agents. It IS the root agent.
+ * It's the incorruptible judge — deterministic C, not an LLM.
+ */
+
+#ifndef TARDY_VM_H
+#define TARDY_VM_H
+
+#include "types.h"
+#include "context.h"
+#include "semantics.h"
+#include "crypto.h"
+
+/* ============================================
+ * VM Configuration
+ * ============================================ */
+
+#define TARDY_MAX_AGENTS     65536
+#define TARDY_MAX_TOMBSTONES 16384
+
+/* ============================================
+ * The VM
+ * ============================================ */
+
+typedef struct {
+    /* Agent society — all living agents */
+    tardy_agent_t      agents[TARDY_MAX_AGENTS];
+    int                agent_count;
+
+    /* Graveyard — tombstones of dead agents */
+    tardy_tombstone_t  tombstones[TARDY_MAX_TOMBSTONES];
+    int                tombstone_count;
+
+    /* Root agent identity */
+    tardy_uuid_t       root_id;
+    tardy_keypair_t    root_key;  /* VM's signing key */
+
+    /* Semantics — tunable thresholds */
+    tardy_semantics_t  semantics;
+
+    /* Monotonic clock base */
+    tardy_timestamp_t  boot_time;
+
+    /* Running flag */
+    bool               running;
+} tardy_vm_t;
+
+/* ============================================
+ * VM Lifecycle
+ * ============================================ */
+
+/* Initialize the VM — creates root agent, generates keys */
+int tardy_vm_init(tardy_vm_t *vm, const tardy_semantics_t *semantics);
+
+/* Shutdown — free all agents, dump sovereigns to disk */
+void tardy_vm_shutdown(tardy_vm_t *vm);
+
+/* ============================================
+ * Agent Management
+ * ============================================ */
+
+/* Spawn a new agent — the core operation
+ * parent: who's spawning this agent
+ * name: name in parent's context
+ * type: what type of value
+ * trust: immutability level
+ * data/len: initial value
+ * Returns agent ID or zero UUID on failure
+ */
+tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
+                             tardy_uuid_t parent_id,
+                             const char *name,
+                             tardy_type_t type,
+                             tardy_trust_t trust,
+                             const void *data, size_t len);
+
+/* Kill a mutable agent — immutable agents cannot be killed */
+int tardy_vm_kill(tardy_vm_t *vm, tardy_uuid_t agent_id);
+
+/* Read an agent's value by name from parent's context */
+tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
+                                   tardy_uuid_t parent_id,
+                                   const char *name,
+                                   void *out, size_t len);
+
+/* Mutate a mutable agent's value */
+int tardy_vm_mutate(tardy_vm_t *vm,
+                     tardy_uuid_t parent_id,
+                     const char *name,
+                     const void *data, size_t len);
+
+/* Freeze a mutable agent into an immutable one */
+tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
+                              tardy_uuid_t agent_id,
+                              tardy_trust_t new_trust);
+
+/* ============================================
+ * Agent Lookup
+ * ============================================ */
+
+/* Find agent by ID */
+tardy_agent_t *tardy_vm_find(tardy_vm_t *vm, tardy_uuid_t id);
+
+/* Find agent by name in parent's context */
+tardy_agent_t *tardy_vm_find_by_name(tardy_vm_t *vm,
+                                      tardy_uuid_t parent_id,
+                                      const char *name);
+
+/* ============================================
+ * Garbage Collection
+ * ============================================ */
+
+/* Run one GC cycle — demote idle agents, collect dead ones */
+int tardy_vm_gc(tardy_vm_t *vm);
+
+/* Demote a live agent to static */
+int tardy_vm_demote(tardy_vm_t *vm, tardy_uuid_t agent_id);
+
+/* Promote a static agent back to temp */
+int tardy_vm_promote(tardy_vm_t *vm, tardy_uuid_t agent_id);
+
+#endif /* TARDY_VM_H */
