@@ -1,0 +1,11 @@
+// Tardygrada — Hello World
+//
+// This compiles to an MCP server.
+// Clients connect, see three tools (x, y, z),
+// and get verified responses with provenance.
+
+agent Main {
+    let x: int = 5 @verified
+    let y: int = 42
+    let z: int = 7 @sovereign
+}
