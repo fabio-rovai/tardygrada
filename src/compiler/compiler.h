@@ -1,0 +1,62 @@
+/*
+ * Tardygrada — Compiler
+ *
+ * Parses .tardy source and emits VM operations.
+ * The compiler produces a sequence of spawn instructions
+ * that the VM executes to create the agent society.
+ *
+ * Syntax:
+ *   agent Name {
+ *       let x: int = 5 @verified
+ *       y: str = "hello"
+ *   }
+ */
+
+#ifndef TARDY_COMPILER_H
+#define TARDY_COMPILER_H
+
+#include "lexer.h"
+#include "../vm/types.h"
+
+#define TARDY_MAX_INSTRUCTIONS 256
+
+/* ============================================
+ * VM Instructions — what the compiler emits
+ * ============================================ */
+
+typedef enum {
+    OP_SPAWN_AGENT,    /* create a named agent (parent context) */
+    OP_SPAWN_VALUE,    /* create a value agent in current agent */
+    OP_HALT,           /* end of program */
+} tardy_opcode_t;
+
+typedef struct {
+    tardy_opcode_t opcode;
+    char           name[64];
+    tardy_type_t   type;
+    tardy_trust_t  trust;
+    int64_t        int_val;
+    double         float_val;
+    char           str_val[256];
+    bool           bool_val;
+} tardy_instruction_t;
+
+typedef struct {
+    tardy_instruction_t instructions[TARDY_MAX_INSTRUCTIONS];
+    int                 count;
+    char                agent_name[64];  /* top-level agent name */
+    char                error[256];
+    bool                has_error;
+} tardy_program_t;
+
+/* ============================================
+ * Compiler API
+ * ============================================ */
+
+/* Compile .tardy source into a program */
+int tardy_compile(tardy_program_t *prog, const char *src, int len);
+
+/* Compile from a file path */
+int tardy_compile_file(tardy_program_t *prog, const char *path);
+
+#endif /* TARDY_COMPILER_H */
