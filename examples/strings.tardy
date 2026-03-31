@@ -1,0 +1,8 @@
+// Tardygrada — String Types Example
+
+agent Greeter {
+    let greeting: str = "hello world" @verified
+    let name: str = "tardygrada" @sovereign
+    let version: int = 1
+    active: bool = true
+}

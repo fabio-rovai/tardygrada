@@ -1,0 +1,19 @@
+// Tardygrada — LLM ask() Example
+//
+// Demonstrates the core flow:
+// 1. ask() calls the LLM
+// 2. grounded_in() runs the verification pipeline
+// 3. If verified → frozen as immutable Fact
+// 4. If not verified → stays mutable (untrusted)
+
+agent Researcher {
+    // Grounded ask: response goes through verification pipeline
+    let origin: Fact = ask("Where was Doctor Who created?") grounded_in(bbc) @verified
+
+    // Ungrounded ask: response is mutable, untrusted
+    joke: str = ask("Tell me a joke")
+
+    // Static values alongside LLM responses
+    let version: int = 1
+    let name: str = "tardygrada" @sovereign
+}

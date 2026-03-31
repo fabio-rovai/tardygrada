@@ -120,8 +120,12 @@ typedef struct tardy_agent {
     int                    mutation_count;
     int                    mutation_cap;
 
+    /* Data size tracking */
+    size_t                 data_size;     /* size of stored value in bytes */
+
     /* Static state (when demoted) */
-    int64_t                static_value;  /* the raw value */
+    int64_t                static_value;  /* the raw value (int/float/bool) */
+    char                   static_str[256]; /* string value when static */
     tardy_snapshot_t       snapshot;
 
     /* GC tracking */

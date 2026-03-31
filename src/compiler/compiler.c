@@ -191,8 +191,39 @@ static void parse_binding(tardy_parser_t *p, bool immutable)
         advance_tok(p);
         break;
 
+    case TOK_ASK:
+        /* ask("prompt") — LLM call */
+        inst.opcode = OP_ASK;
+        advance_tok(p); /* skip 'ask' */
+        if (!expect(p, TOK_LPAREN, "expected '(' after ask"))
+            return;
+        if (!check(p, TOK_STR_LIT)) {
+            error(p, "expected string prompt for ask()");
+            return;
+        }
+        strncpy(inst.str_val, current(p)->text, sizeof(inst.str_val) - 1);
+        advance_tok(p);
+        if (!expect(p, TOK_RPAREN, "expected ')' after prompt"))
+            return;
+
+        /* Optional: grounded_in(ontology) */
+        if (check(p, TOK_GROUNDED_IN)) {
+            advance_tok(p);
+            if (!expect(p, TOK_LPAREN, "expected '(' after grounded_in"))
+                return;
+            if (check(p, TOK_IDENT) || check(p, TOK_STR_LIT)) {
+                strncpy(inst.ontology, current(p)->text,
+                        sizeof(inst.ontology) - 1);
+                advance_tok(p);
+            }
+            if (!expect(p, TOK_RPAREN, "expected ')' after ontology"))
+                return;
+            inst.grounded = true;
+        }
+        break;
+
     default:
-        error(p, "expected value (int, float, string, bool)");
+        error(p, "expected value (int, float, string, bool, ask())");
         return;
     }
 

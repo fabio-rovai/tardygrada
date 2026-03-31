@@ -152,6 +152,7 @@ tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
     agent->state     = TARDY_STATE_LIVE;
     agent->type_tag  = type;
     agent->trust     = trust;
+    agent->data_size = len;
     agent->ref_count = 1;
     agent->last_accessed = now_ns_vm();
 
@@ -232,13 +233,21 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
 
     /* If static, return the cached value directly */
     if (agent->state == TARDY_STATE_STATIC) {
-        memcpy(out, &agent->static_value,
-               len < sizeof(int64_t) ? len : sizeof(int64_t));
+        if (agent->type_tag == TARDY_TYPE_STR) {
+            size_t copy = agent->data_size;
+            if (copy > len) copy = len;
+            memcpy(out, agent->static_str, copy);
+        } else {
+            memcpy(out, &agent->static_value,
+                   len < sizeof(int64_t) ? len : sizeof(int64_t));
+        }
         return TARDY_READ_OK;
     }
 
-    /* Live/Temp: go through verified memory read */
-    return tardy_mem_read(&agent->memory, out, len);
+    /* Live/Temp: read using the original data size for correct hash verification */
+    size_t read_size = agent->data_size > 0 ? agent->data_size : len;
+    if (read_size > len) read_size = len;
+    return tardy_mem_read(&agent->memory, out, read_size);
 }
 
 /* ============================================
