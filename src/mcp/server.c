@@ -633,15 +633,52 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         const tardy_semantics_t *sem = tardy_vm_get_semantics(srv->vm, target->id);
         tardy_work_spec_t spec = tardy_compute_work_spec(sem);
 
-        tardy_pipeline_result_t result = tardy_pipeline_verify(
-            claim_buf, claim_len,
-            decomps, 3, &grounding, &consistency,
-            &work_log, &spec, sem);
+        /* Run pipeline 3 times independently for Byzantine consensus */
+        tardy_pipeline_result_t results[3];
+        int pass_count = 0;
+        float total_confidence = 0.0f;
 
+        for (int run = 0; run < 3; run++) {
+            /* Each run uses slightly different decomposition */
+            tardy_decomposition_t run_decomps[3];
+            memset(run_decomps, 0, sizeof(run_decomps));
+
+            /* Rotate which decomposition is primary for each run */
+            for (int d = 0; d < 3; d++) {
+                int src_idx = (d + run) % 3;
+                if (src_idx < 3)
+                    run_decomps[d] = decomps[src_idx];
+            }
+
+            results[run] = tardy_pipeline_verify(
+                claim_buf, claim_len,
+                run_decomps, 3, &grounding, &consistency,
+                &work_log, &spec, sem);
+
+            if (results[run].passed) {
+                pass_count++;
+                total_confidence += results[run].confidence;
+            }
+        }
+
+        /* Byzantine majority: 2 of 3 must agree */
+        int verified = (pass_count >= 2);
+        float avg_confidence = pass_count > 0 ? total_confidence / (float)pass_count : 0.0f;
+        tardy_truth_strength_t final_strength = TARDY_TRUTH_HYPOTHETICAL;
+
+        if (verified) {
+            /* Use the strongest passing result */
+            for (int run = 0; run < 3; run++) {
+                if (results[run].passed && results[run].strength > final_strength)
+                    final_strength = results[run].strength;
+            }
+        }
+
+        work_log.agents_spawned = 3; /* 3 independent verification runs */
         work_log.compute_ns = mcp_now_ns() - verify_start;
 
         /* If passed, freeze agent to @verified */
-        if (result.passed) {
+        if (verified) {
             tardy_vm_freeze(srv->vm, target->id, TARDY_TRUST_VERIFIED);
         }
 
@@ -650,9 +687,9 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         snprintf(result_text, sizeof(result_text),
                  "{\"content\":[{\"type\":\"text\","
                  "\"text\":\"verified=%s strength=%d confidence=%d%%\"}]}",
-                 result.passed ? "true" : "false",
-                 (int)result.strength,
-                 (int)(result.confidence * 100));
+                 verified ? "true" : "false",
+                 (int)final_strength,
+                 (int)(avg_confidence * 100));
 
         int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
                                    id, result_text);

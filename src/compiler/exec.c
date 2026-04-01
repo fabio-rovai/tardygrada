@@ -173,9 +173,57 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             exec_print("} on(\"");
             exec_print(inst->coord_task);
             exec_print("\")\n");
-            /* Coordination sends the task to each named agent's inbox
-             * and waits for responses. For now, log and continue. */
-            /* TODO: dispatch task to agents, collect results, consensus vote */
+
+            /* Parse comma-separated agent names */
+            char names[256];
+            strncpy(names, inst->coord_agents, sizeof(names) - 1);
+            names[sizeof(names) - 1] = '\0';
+
+            tardy_uuid_t agent_ids[16];
+            int agent_count = 0;
+            char *tok = names;
+            char *next;
+            while (tok && agent_count < 16) {
+                next = strchr(tok, ',');
+                if (next) *next = '\0';
+                /* Trim whitespace */
+                while (*tok == ' ') tok++;
+                char *end = tok + strlen(tok) - 1;
+                while (end > tok && *end == ' ') *end-- = '\0';
+
+                if (*tok) {
+                    tardy_agent_t *a = tardy_vm_find_by_name(vm, current_agent, tok);
+                    if (a) {
+                        agent_ids[agent_count++] = a->id;
+                    } else {
+                        exec_print("[tardygrada]     agent not found: ");
+                        exec_print(tok);
+                        exec_print("\n");
+                    }
+                }
+                tok = next ? next + 1 : NULL;
+            }
+
+            if (agent_count < 2) {
+                exec_print("[tardygrada]     need at least 2 agents for coordination\n");
+                break;
+            }
+
+            /* Send the task to each agent's inbox */
+            for (int ci = 0; ci < agent_count; ci++) {
+                tardy_vm_send(vm, current_agent, agent_ids[ci],
+                               inst->coord_task, strlen(inst->coord_task) + 1,
+                               TARDY_TYPE_STR);
+            }
+
+            exec_print("[tardygrada]     dispatched to ");
+            /* print count */
+            char cntstr[8];
+            cntstr[0] = '0' + (char)agent_count;
+            cntstr[1] = '\0';
+            exec_print(cntstr);
+            exec_print(" agents\n");
+
             break;
         }
 
