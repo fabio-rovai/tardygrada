@@ -1,7 +1,7 @@
 /*
  * Tardygrada VM — Crypto Implementation
  * Minimal SHA-256. No dependencies.
- * ed25519 stubbed for now — will link Rust lib later.
+ * SHA-256 (hand-written) + ed25519 (Monocypher). Zero dependencies.
  */
 
 #include "crypto.h"

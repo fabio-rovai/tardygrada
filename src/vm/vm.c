@@ -430,7 +430,8 @@ int tardy_vm_mutate(tardy_vm_t *vm,
         return -1;
     }
 
-    /* TODO: record mutation in provenance log */
+    /* Record mutation in conversation history */
+    tardy_vm_converse(vm, agent->id, "system", "value mutated");
 
     agent->last_accessed = now_ns_vm();
     agent->data_size = len;

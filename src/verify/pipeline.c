@@ -308,7 +308,7 @@ tardy_layer_result_t tardy_verify_probabilistic(
  * Layer 5: Protocol Check
  *
  * Session types: did the agent follow the protocol?
- * Yoshida MPST style — currently stub.
+ * Validates claim structure: non-empty, multi-word, sufficient content.
  * ============================================ */
 
 tardy_layer_result_t tardy_verify_protocol(const char *claim, int claim_len)
@@ -376,7 +376,7 @@ tardy_layer_result_t tardy_verify_protocol(const char *claim, int claim_len)
  *
  * Proof-certificate asymmetry (davidad):
  * agent produces proof, VM checks cheaply.
- * Currently stub — opt-in, expensive.
+ * Checks triple connectivity as proof structure.
  * ============================================ */
 
 tardy_layer_result_t tardy_verify_certification(
