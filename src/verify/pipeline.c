@@ -239,7 +239,7 @@ tardy_layer_result_t tardy_verify_consistency(
         r.passed = false;
         r.confidence = 0.0f;
         snprintf(r.detail, sizeof(r.detail),
-                 "%d contradictions found: %s",
+                 "%d contradictions found: %.200s",
                  consistency->contradiction_count, consistency->explanation);
     } else {
         r.passed = consistency->consistent;
