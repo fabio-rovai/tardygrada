@@ -98,6 +98,63 @@ void tardy_bridge_shutdown(tardy_ontology_bridge_t *bridge)
 }
 
 /* ============================================
+ * IRI Normalization
+ *
+ * The decomposer produces plain English names like "Doctor Who"
+ * but the ontology stores CamelCase IRIs like "DoctorWho".
+ * Bridge the gap here so grounding queries can match.
+ * ============================================ */
+
+/* Normalize a name for IRI matching:
+ * "Doctor Who" -> "DoctorWho"
+ * "BBC Television Centre" -> "BBCTelevisionCentre" */
+static void normalize_for_iri(const char *input, char *output, int max_len)
+{
+    int oi = 0;
+    int capitalize_next = 1; /* capitalize first char */
+    for (int i = 0; input[i] && oi < max_len - 1; i++) {
+        if (input[i] == ' ' || input[i] == '-' || input[i] == '_') {
+            capitalize_next = 1;
+            continue;
+        }
+        if (capitalize_next && input[i] >= 'a' && input[i] <= 'z') {
+            output[oi++] = input[i] - 32; /* uppercase */
+            capitalize_next = 0;
+        } else {
+            output[oi++] = input[i];
+            capitalize_next = 0;
+        }
+    }
+    output[oi] = '\0';
+}
+
+/* Map common decomposer predicates to schema.org predicates */
+static const char *map_predicate(const char *pred)
+{
+    if (strcmp(pred, "created_at") == 0) return "locationCreated";
+    if (strcmp(pred, "created_by") == 0) return "creator";
+    if (strcmp(pred, "created_in") == 0) return "dateCreated";
+    if (strcmp(pred, "born_in") == 0) return "birthPlace";
+    if (strcmp(pred, "born_on") == 0) return "birthDate";
+    if (strcmp(pred, "died_in") == 0) return "deathPlace";
+    if (strcmp(pred, "died_on") == 0) return "deathDate";
+    if (strcmp(pred, "located_in") == 0) return "address";
+    if (strcmp(pred, "part_of") == 0) return "isPartOf";
+    if (strcmp(pred, "type_of") == 0) return "additionalType";
+    if (strcmp(pred, "is_a") == 0) return "additionalType";
+    if (strcmp(pred, "is") == 0) return "description";
+    if (strcmp(pred, "has") == 0) return "owns";
+    if (strcmp(pred, "wrote") == 0) return "author";
+    if (strcmp(pred, "directed") == 0) return "director";
+    if (strcmp(pred, "produced") == 0) return "producer";
+    if (strcmp(pred, "founded_by") == 0) return "founder";
+    if (strcmp(pred, "founded_in") == 0) return "foundingDate";
+    if (strcmp(pred, "works_for") == 0) return "worksFor";
+    if (strcmp(pred, "works_at") == 0) return "workLocation";
+    return pred; /* unmapped -- use as-is */
+}
+
+/* ============================================
  * Build JSON request for grounding
  * ============================================ */
 
@@ -107,14 +164,20 @@ static int build_ground_request(char *buf, int buf_size,
     int w = 0;
     w += snprintf(buf + w, buf_size - w, "{\"action\":\"ground\",\"triples\":[");
 
-    for (int i = 0; i < count && w < buf_size - 200; i++) {
+    for (int i = 0; i < count && w < buf_size - 400; i++) {
         if (i > 0)
             buf[w++] = ',';
+
+        /* Normalize for IRI matching */
+        char norm_s[TARDY_MAX_TRIPLE_LEN];
+        char norm_o[TARDY_MAX_TRIPLE_LEN];
+        normalize_for_iri(triples[i].subject, norm_s, TARDY_MAX_TRIPLE_LEN);
+        normalize_for_iri(triples[i].object, norm_o, TARDY_MAX_TRIPLE_LEN);
+        const char *norm_p = map_predicate(triples[i].predicate);
+
         w += snprintf(buf + w, buf_size - w,
                       "{\"s\":\"%s\",\"p\":\"%s\",\"o\":\"%s\"}",
-                      triples[i].subject,
-                      triples[i].predicate,
-                      triples[i].object);
+                      norm_s, norm_p, norm_o);
     }
 
     w += snprintf(buf + w, buf_size - w, "]}");
@@ -128,14 +191,20 @@ static int build_consistency_request(char *buf, int buf_size,
     w += snprintf(buf + w, buf_size - w,
                   "{\"action\":\"check_consistency\",\"triples\":[");
 
-    for (int i = 0; i < count && w < buf_size - 200; i++) {
+    for (int i = 0; i < count && w < buf_size - 400; i++) {
         if (i > 0)
             buf[w++] = ',';
+
+        /* Normalize for IRI matching */
+        char norm_s[TARDY_MAX_TRIPLE_LEN];
+        char norm_o[TARDY_MAX_TRIPLE_LEN];
+        normalize_for_iri(triples[i].subject, norm_s, TARDY_MAX_TRIPLE_LEN);
+        normalize_for_iri(triples[i].object, norm_o, TARDY_MAX_TRIPLE_LEN);
+        const char *norm_p = map_predicate(triples[i].predicate);
+
         w += snprintf(buf + w, buf_size - w,
                       "{\"s\":\"%s\",\"p\":\"%s\",\"o\":\"%s\"}",
-                      triples[i].subject,
-                      triples[i].predicate,
-                      triples[i].object);
+                      norm_s, norm_p, norm_o);
     }
 
     w += snprintf(buf + w, buf_size - w, "]}");
