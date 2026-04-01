@@ -201,7 +201,8 @@ static const char *type_str(tardy_type_t t)
  * Returns new position, or -1 on overflow.
  */
 static int append_provenance(char *buf, int pos, int buf_size,
-                              const tardy_read_result_t *r)
+                              const tardy_read_result_t *r,
+                              const char *ontology_status)
 {
     /* Build the birth_hash hex string (first 16 bytes = 32 hex chars) */
     char hash_hex[65];
@@ -214,6 +215,7 @@ static int append_provenance(char *buf, int pos, int buf_size,
     hash_hex[hbytes * 2] = '\0';
 
     const char *reason = r->provenance.reason ? r->provenance.reason : "unknown";
+    const char *ont = ontology_status ? ontology_status : "unknown";
 
     /* Format the _tardy object */
     char tardy_json[512];
@@ -224,14 +226,16 @@ static int append_provenance(char *buf, int pos, int buf_size,
         "\"type\":\"%s\","
         "\"created_at\":%llu,"
         "\"reason\":\"%s\","
-        "\"birth_hash\":\"%s\""
+        "\"birth_hash\":\"%s\","
+        "\"ontology\":\"%s\""
         "}",
         trust_str(r->trust),
         state_str(r->state),
         type_str(r->type_tag),
         (unsigned long long)r->provenance.created_at,
         reason,
-        hash_hex);
+        hash_hex,
+        ont);
 
     if (tlen < 0 || pos + tlen >= buf_size)
         return -1;
@@ -701,6 +705,60 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             }
         }
 
+        /* Retry logic — feedback-driven based on failure type */
+        int max_retries = 2;
+        int retry = 0;
+        while (!verified && retry < max_retries) {
+            tardy_failure_type_t fail = TARDY_FAIL_NONE;
+            /* Get failure type from the best failing result */
+            for (int run = 0; run < 3; run++) {
+                if (!results[run].passed && results[run].failure_type != TARDY_FAIL_NONE) {
+                    fail = results[run].failure_type;
+                    break;
+                }
+            }
+
+            if (fail == TARDY_FAIL_ONTOLOGY_GAP) {
+                /* Can't retry — ontology doesn't have the data */
+                break;
+            } else if (fail == TARDY_FAIL_DECOMPOSITION) {
+                /* Just break for now — decomposition is deterministic */
+                break;
+            } else if (fail == TARDY_FAIL_LOW_CONFIDENCE) {
+                /* Lower the threshold slightly for retry */
+                tardy_semantics_t retry_sem = *sem;
+                retry_sem.truth.min_confidence *= 0.9f;
+                /* Re-run pipeline with relaxed threshold */
+                pass_count = 0;
+                total_confidence = 0.0f;
+                for (int run = 0; run < 3; run++) {
+                    tardy_decomposition_t run_decomps[3];
+                    memset(run_decomps, 0, sizeof(run_decomps));
+                    for (int d = 0; d < 3; d++)
+                        run_decomps[d] = decomps[(d + run) % 3];
+                    results[run] = tardy_pipeline_verify(
+                        claim_buf, claim_len,
+                        run_decomps, 3, &grounding, &consistency,
+                        &work_log, &spec, &retry_sem);
+                    if (results[run].passed) {
+                        pass_count++;
+                        total_confidence += results[run].confidence;
+                    }
+                }
+                verified = (pass_count >= 2);
+                if (verified) {
+                    avg_confidence = total_confidence / (float)pass_count;
+                    for (int run = 0; run < 3; run++)
+                        if (results[run].passed && results[run].strength > final_strength)
+                            final_strength = results[run].strength;
+                }
+            } else {
+                /* Other failures — don't retry blindly */
+                break;
+            }
+            retry++;
+        }
+
         work_log.agents_spawned = 3; /* 3 independent verification runs */
         work_log.compute_ns = mcp_now_ns() - verify_start;
 
@@ -724,18 +782,51 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                                "verification failed");
         }
 
+        /* Determine failure type string for response */
+        const char *fail_str = "none";
+        if (!verified) {
+            /* Find the dominant failure type from results */
+            tardy_failure_type_t dominant_fail = TARDY_FAIL_NONE;
+            for (int run = 0; run < 3; run++) {
+                if (!results[run].passed && results[run].failure_type != TARDY_FAIL_NONE) {
+                    dominant_fail = results[run].failure_type;
+                    break;
+                }
+            }
+            switch (dominant_fail) {
+            case TARDY_FAIL_DECOMPOSITION:  fail_str = "decomposition_error"; break;
+            case TARDY_FAIL_ONTOLOGY_GAP:   fail_str = "ontology_gap"; break;
+            case TARDY_FAIL_CONTRADICTION:   fail_str = "contradiction"; break;
+            case TARDY_FAIL_LOW_CONFIDENCE:  fail_str = "low_confidence"; break;
+            case TARDY_FAIL_INCONSISTENCY:   fail_str = "inconsistency"; break;
+            case TARDY_FAIL_NO_EVIDENCE:     fail_str = "no_evidence"; break;
+            case TARDY_FAIL_PROTOCOL:        fail_str = "protocol_error"; break;
+            case TARDY_FAIL_LAZINESS:        fail_str = "laziness"; break;
+            case TARDY_FAIL_AMBIGUITY:       fail_str = "ambiguity"; break;
+            case TARDY_FAIL_CROSS_REP:       fail_str = "cross_rep_conflict"; break;
+            default: fail_str = "none"; break;
+            }
+        }
+
+        /* Ontology status */
+        const char *ont_status = srv->bridge_connected ? "connected" : "offline";
+
         /* Build result message */
         char result_text[512];
         snprintf(result_text, sizeof(result_text),
                  "{\"content\":[{\"type\":\"text\","
                  "\"text\":\"verified=%s strength=%d confidence=%d%% "
-                 "bft=%d/3 triples_grounded=%d/%d\"}]}",
+                 "bft=%d/3 triples_grounded=%d/%d "
+                 "failure=%s retries=%d ontology=%s\"}]}",
                  verified ? "true" : "false",
                  (int)final_strength,
                  (int)(avg_confidence * 100),
                  pass_count,
                  grounding.grounded,
-                 grounding.count);
+                 grounding.count,
+                 fail_str,
+                 retry,
+                 ont_status);
 
         int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
                                    id, result_text);
@@ -1184,8 +1275,9 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         }
 
         /* Append provenance */
+        const char *prov_ont = srv->bridge_connected ? "connected" : "offline";
         int new_rlen = append_provenance(result, rlen, (int)sizeof(result),
-                                          &full_result);
+                                          &full_result, prov_ont);
         if (new_rlen > 0)
             rlen = new_rlen;
 

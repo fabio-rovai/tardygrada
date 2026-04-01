@@ -1,8 +1,12 @@
 # Tardygrada
 
+<p align="center">
+  <img src="docs/tardygrada-logo.png" alt="Tardygrada" width="300">
+</p>
+
 A formally verified agent programming language where every value is an agent. Programs compile to MCP servers. External agents submit claims via MCP, Tardygrada verifies them against ontologies, and serves verified responses with provenance.
 
-107KB binary. Zero dependencies. Pure C11.
+177KB binary. Zero dependencies. Pure C11. Real ed25519 signatures. Coq-proven BFT consensus.
 
 ## Why
 

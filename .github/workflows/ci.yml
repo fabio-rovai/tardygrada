@@ -183,3 +183,6 @@ jobs:
             print('WARNING: no verify result received')
         "
 
+    - name: Compliance test harness
+      run: python3 tests/compliance/run_compliance.py --quick
+

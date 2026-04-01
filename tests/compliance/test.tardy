@@ -1,0 +1,5 @@
+agent ComplianceChecker @semantics(
+    truth.min_confidence: 0.85,
+) {
+    let claim: Fact = receive("compliance statement") grounded_in(finance) @verified
+}

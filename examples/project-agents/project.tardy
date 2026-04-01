@@ -1,0 +1,33 @@
+// Tardygrada — Project Agent Orchestration
+//
+// Case study: multi-agent project management with verified outputs.
+// Inspired by oh-my-claudecode but with cryptographic verification.
+//
+// Pattern: Leader decomposes → Workers execute → Verifier checks
+// Every output is verified, every claim is grounded, every agent is tracked.
+
+agent ProjectManager @sovereign @semantics(
+    truth.min_confidence: 0.95,
+    truth.min_consensus_agents: 3,
+) {
+    // Task definitions — each is a pending slot filled by worker agents
+    let task_1: Fact = receive("implement user authentication") grounded_in(spec) @verified
+    let task_2: Fact = receive("write unit tests for auth module") grounded_in(spec) @verified
+    let task_3: Fact = receive("review auth implementation") grounded_in(spec) @verified
+
+    // Worker agents — each holds their role and current status
+    let executor: str = "implementation specialist" @verified
+    let tester: str = "test engineering specialist" @verified
+    let reviewer: str = "code review specialist" @verified
+
+    // Constitution: all agents must be at least @verified
+    invariant(trust_min: @verified)
+    invariant(non_empty)
+
+    // Coordinate workers on the project
+    coordinate {executor, tester, reviewer} on("implement and verify user auth") consensus(ProofWeight)
+
+    // Project metadata
+    let project_name: str = "user-auth-module" @sovereign
+    let version: int = 1
+}

@@ -755,5 +755,55 @@ tardy_pipeline_result_t tardy_pipeline_verify(
     /* Compute truth strength */
     result.strength = tardy_compute_truth_strength(&result);
 
+    /* Set structured failure type based on which layer failed and why */
+    result.failure_type = TARDY_FAIL_NONE;
+    memset(result.failure_detail, 0, sizeof(result.failure_detail));
+
+    if (!result.passed) {
+        switch (result.failed_at) {
+        case TARDY_LAYER_DECOMPOSE:
+            result.failure_type = TARDY_FAIL_DECOMPOSITION;
+            break;
+        case TARDY_LAYER_GROUNDING:
+            /* Distinguish: all UNKNOWN vs CONTRADICTED vs low evidence */
+            if (grounding && grounding->contradicted > 0)
+                result.failure_type = TARDY_FAIL_CONTRADICTION;
+            else if (grounding && grounding->grounded == 0 &&
+                     grounding->unknown == grounding->count)
+                result.failure_type = TARDY_FAIL_ONTOLOGY_GAP;
+            else
+                result.failure_type = TARDY_FAIL_NO_EVIDENCE;
+            break;
+        case TARDY_LAYER_CONSISTENCY:
+            result.failure_type = TARDY_FAIL_INCONSISTENCY;
+            break;
+        case TARDY_LAYER_PROBABILISTIC:
+            result.failure_type = TARDY_FAIL_LOW_CONFIDENCE;
+            break;
+        case TARDY_LAYER_PROTOCOL:
+            result.failure_type = TARDY_FAIL_PROTOCOL;
+            break;
+        case TARDY_LAYER_WORK_VERIFY:
+            result.failure_type = TARDY_FAIL_LAZINESS;
+            break;
+        case TARDY_LAYER_CROSS_REP:
+            result.failure_type = TARDY_FAIL_CROSS_REP;
+            break;
+        default:
+            result.failure_type = TARDY_FAIL_NONE;
+            break;
+        }
+
+        /* Copy the failing layer's detail into failure_detail */
+        for (int i = 0; i < layer_idx; i++) {
+            if (result.layers[i].layer == result.failed_at &&
+                !result.layers[i].passed) {
+                snprintf(result.failure_detail, sizeof(result.failure_detail),
+                         "%s", result.layers[i].detail);
+                break;
+            }
+        }
+    }
+
     return result;
 }
