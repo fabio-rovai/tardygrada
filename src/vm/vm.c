@@ -269,6 +269,7 @@ int tardy_vm_mutate(tardy_vm_t *vm,
     /* TODO: record mutation in provenance log */
 
     agent->last_accessed = now_ns_vm();
+    agent->data_size = len;
     return tardy_mem_mutate(&agent->memory, data, len);
 }
 
@@ -291,9 +292,11 @@ tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
     if (new_trust < TARDY_TRUST_DEFAULT)
         return ZERO_UUID; /* can't freeze to mutable */
 
-    /* Read current value */
-    int64_t current_val;
-    tardy_page_read(&agent->memory.primary, &current_val, sizeof(int64_t));
+    /* Read current value (use data_size for proper length) */
+    size_t dsize = agent->data_size > 0 ? agent->data_size : sizeof(int64_t);
+    char current_buf[4096];
+    if (dsize > sizeof(current_buf)) dsize = sizeof(current_buf);
+    tardy_page_read(&agent->memory.primary, current_buf, dsize);
 
     /* Free old mutable memory */
     tardy_mem_free(&agent->memory);
@@ -306,9 +309,8 @@ tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
         replicas = vm->semantics.immutability.sovereign_replica_count;
 
     /* Reallocate with new trust level */
-    agent->memory = tardy_mem_alloc(sizeof(int64_t), new_trust, replicas);
-    tardy_mem_init(&agent->memory, &current_val, sizeof(int64_t),
-                   &vm->root_key);
+    agent->memory = tardy_mem_alloc(dsize, new_trust, replicas);
+    tardy_mem_init(&agent->memory, current_buf, dsize, &vm->root_key);
 
     agent->trust = new_trust;
     agent->provenance.reason = "frozen";
