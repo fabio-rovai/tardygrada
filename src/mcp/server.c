@@ -362,6 +362,39 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen += vclen;
         }
     }
+    /* Built-in tools: send_message and read_inbox */
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *sm =
+            "{\"name\":\"send_message\","
+            "\"description\":\"Send a message from one agent to another\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent_from\":{\"type\":\"string\"},"
+            "\"agent_to\":{\"type\":\"string\"},"
+            "\"payload\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent_from\",\"agent_to\",\"payload\"]}}";
+        int smlen = (int)strlen(sm);
+        if (tlen + smlen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, sm, smlen);
+            tlen += smlen;
+        }
+    }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *ri =
+            "{\"name\":\"read_inbox\","
+            "\"description\":\"Read the next message from an agent's inbox\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent\"]}}";
+        int rilen = (int)strlen(ri);
+        if (tlen + rilen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, ri, rilen);
+            tlen += rilen;
+        }
+    }
     (void)first;
 
     tools[tlen++] = ']';
@@ -541,6 +574,143 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
                                    id, result_text);
         if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        return 0;
+    }
+
+    /* ---- Built-in: send_message ---- */
+    if (strcmp(tool_name, "send_message") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int from_tok = tardy_json_find(parser, args_tok, "agent_from");
+        int to_tok   = tardy_json_find(parser, args_tok, "agent_to");
+        int pay_tok  = tardy_json_find(parser, args_tok, "payload");
+        if (from_tok < 0 || to_tok < 0 || pay_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602,
+                                    "missing agent_from, agent_to, or payload");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char from_name[64], to_name[64], pay_text[TARDY_MAX_PAYLOAD];
+        tardy_json_str(parser, from_tok, from_name, sizeof(from_name));
+        tardy_json_str(parser, to_tok, to_name, sizeof(to_name));
+        tardy_json_str(parser, pay_tok, pay_text, sizeof(pay_text));
+
+        /* Find sender and receiver agents */
+        tardy_agent_t *sender = NULL;
+        tardy_agent_t *receiver = NULL;
+        for (int i = 0; i < srv->vm->agent_count && (!sender || !receiver); i++) {
+            if (!sender) {
+                tardy_agent_t *c = tardy_vm_find_by_name(
+                    srv->vm, srv->vm->agents[i].id, from_name);
+                if (c) sender = c;
+            }
+            if (!receiver) {
+                tardy_agent_t *c = tardy_vm_find_by_name(
+                    srv->vm, srv->vm->agents[i].id, to_name);
+                if (c) receiver = c;
+            }
+        }
+
+        if (!sender || !receiver) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "sender or receiver not found");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        size_t pay_len = strlen(pay_text) + 1;
+        int sent = tardy_vm_send(srv->vm, sender->id, receiver->id,
+                                  pay_text, pay_len, TARDY_TYPE_STR);
+        if (sent == 0) {
+            const char *ok_result =
+                "{\"content\":[{\"type\":\"text\","
+                "\"text\":\"message sent\"}]}";
+            int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                       id, ok_result);
+            if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        } else {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "send failed (inbox full?)");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+        }
+        return 0;
+    }
+
+    /* ---- Built-in: read_inbox ---- */
+    if (strcmp(tool_name, "read_inbox") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int agent_tok = tardy_json_find(parser, args_tok, "agent");
+        if (agent_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing agent");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char agent_name[64];
+        tardy_json_str(parser, agent_tok, agent_name, sizeof(agent_name));
+
+        /* Find the agent */
+        tardy_agent_t *target = NULL;
+        for (int i = 0; i < srv->vm->agent_count; i++) {
+            tardy_agent_t *c = tardy_vm_find_by_name(
+                srv->vm, srv->vm->agents[i].id, agent_name);
+            if (c) { target = c; break; }
+        }
+
+        if (!target) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "agent not found");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        tardy_message_t msg;
+        int got = tardy_vm_recv(srv->vm, target->id, &msg);
+        if (got == 0) {
+            /* Build result with payload and sender info */
+            char result_text[1024];
+            /* Escape payload for JSON */
+            char escaped[TARDY_MAX_PAYLOAD * 2];
+            int ei = 0;
+            for (size_t pi = 0; pi < msg.payload_len && msg.payload[pi]; pi++) {
+                if (msg.payload[pi] == '"' || msg.payload[pi] == '\\') {
+                    if (ei < (int)sizeof(escaped) - 2)
+                        escaped[ei++] = '\\';
+                }
+                if (ei < (int)sizeof(escaped) - 1)
+                    escaped[ei++] = msg.payload[pi];
+            }
+            escaped[ei] = '\0';
+
+            snprintf(result_text, sizeof(result_text),
+                     "{\"content\":[{\"type\":\"text\","
+                     "\"text\":\"from=%016llx%016llx payload=%s\"}]}",
+                     (unsigned long long)msg.from.hi,
+                     (unsigned long long)msg.from.lo,
+                     escaped);
+            int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                       id, result_text);
+            if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        } else {
+            const char *empty_result =
+                "{\"content\":[{\"type\":\"text\","
+                "\"text\":\"inbox empty\"}]}";
+            int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                       id, empty_result);
+            if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        }
         return 0;
     }
 
