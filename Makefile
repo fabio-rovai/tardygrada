@@ -16,7 +16,8 @@ SRC = src/main.c \
       src/ontology/bridge.c \
       src/compiler/lexer.c \
       src/compiler/compiler.c \
-      src/compiler/exec.c
+      src/compiler/exec.c \
+      src/vm/semantic.c
 
 OBJ = $(SRC:.c=.o)
 BIN = tardygrada
