@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "constitution.h"
 #include "message.h"
+#include "semantics.h"
 
 /* ============================================
  * Context Pointer — the fundamental reference
@@ -137,6 +138,9 @@ typedef struct tardy_agent {
 
     /* Constitution — invariants checked every operation */
     tardy_constitution_t   constitution;
+
+    /* Per-agent semantics override (NULL = use VM global) */
+    tardy_semantics_t     *custom_semantics;
 
     /* Temp state */
     uint64_t               temp_ttl_ms;

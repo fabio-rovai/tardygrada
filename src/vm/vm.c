@@ -7,6 +7,7 @@
 #include "constitution.h"
 #include <string.h>
 #include <time.h>
+#include <sys/mman.h>
 
 /* Forward declarations from context.c */
 extern tardy_uuid_t tardy_uuid_gen(void);
@@ -77,6 +78,10 @@ void tardy_vm_shutdown(tardy_vm_t *vm)
         if (a->mutations)
             /* TODO: proper free for mutation log */
             ;
+        if (a->custom_semantics) {
+            munmap(a->custom_semantics, 4096);
+            a->custom_semantics = NULL;
+        }
     }
 }
 
@@ -449,6 +454,40 @@ tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
     agent->provenance.reason = "frozen";
 
     return agent->id;
+}
+
+/* ============================================
+ * Per-Agent Semantics
+ * ============================================ */
+
+const tardy_semantics_t *tardy_vm_get_semantics(tardy_vm_t *vm,
+                                                  tardy_uuid_t agent_id)
+{
+    if (!vm)
+        return NULL;
+    tardy_agent_t *agent = tardy_vm_find(vm, agent_id);
+    if (agent && agent->custom_semantics)
+        return agent->custom_semantics;
+    return &vm->semantics;
+}
+
+int tardy_vm_set_semantics(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                            const tardy_semantics_t *sem)
+{
+    if (!vm || !sem)
+        return -1;
+    tardy_agent_t *agent = tardy_vm_find(vm, agent_id);
+    if (!agent)
+        return -1;
+    if (!agent->custom_semantics) {
+        void *p = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (p == MAP_FAILED)
+            return -1;
+        agent->custom_semantics = (tardy_semantics_t *)p;
+    }
+    memcpy(agent->custom_semantics, sem, sizeof(tardy_semantics_t));
+    return 0;
 }
 
 /* ============================================
