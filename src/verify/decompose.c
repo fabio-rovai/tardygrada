@@ -201,7 +201,7 @@ static int try_is_the_of(const char *sent, int sent_len,
 
     /* Build predicate: "has_Y" */
     char pred[TARDY_MAX_TRIPLE_LEN];
-    snprintf(pred, TARDY_MAX_TRIPLE_LEN, "has_%s", y_buf);
+    snprintf(pred, TARDY_MAX_TRIPLE_LEN, "has_%.240s", y_buf);
 
     /* Triple: (Z, has_Y, X) */
     trim_copy(triple->subject, TARDY_MAX_TRIPLE_LEN, z_start, z_len);
@@ -252,7 +252,7 @@ static int try_the_of_is(const char *sent, int sent_len,
     trim_copy(y_buf, TARDY_MAX_TRIPLE_LEN, sent + 4, y_len);
 
     char pred[TARDY_MAX_TRIPLE_LEN];
-    snprintf(pred, TARDY_MAX_TRIPLE_LEN, "has_%s", y_buf);
+    snprintf(pred, TARDY_MAX_TRIPLE_LEN, "has_%.240s", y_buf);
 
     trim_copy(triple->subject, TARDY_MAX_TRIPLE_LEN, x_start, x_len);
     strncpy(triple->predicate, pred, TARDY_MAX_TRIPLE_LEN - 1);
