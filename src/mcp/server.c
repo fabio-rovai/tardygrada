@@ -9,6 +9,7 @@
 #include "server.h"
 #include "../verify/pipeline.h"
 #include "../verify/decompose.h"
+#include "../vm/semantic.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -412,6 +413,21 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen += sslen;
         }
     }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *qa =
+            "{\"name\":\"query_agents\","
+            "\"description\":\"Search agents by keyword matching\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"query\":{\"type\":\"string\"}},"
+            "\"required\":[\"query\"]}}";
+        int qalen = (int)strlen(qa);
+        if (tlen + qalen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, qa, qalen);
+            tlen += qalen;
+        }
+    }
     (void)first;
 
     tools[tlen++] = ']';
@@ -801,6 +817,82 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             "{\"content\":[{\"type\":\"text\","
             "\"text\":\"semantics updated\"}]}";
         int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE, id, ok_result);
+        if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        return 0;
+    }
+
+    /* ---- Built-in: query_agents ---- */
+    if (strcmp(tool_name, "query_agents") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int query_tok = tardy_json_find(parser, args_tok, "query");
+        if (query_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing query");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char query_text[256];
+        tardy_json_str(parser, query_tok, query_text, sizeof(query_text));
+
+        tardy_query_result_t qresults[TARDY_MAX_QUERY_RESULTS];
+        int total_found = 0;
+
+        for (int qi = 0; qi < srv->vm->agent_count && total_found < TARDY_MAX_QUERY_RESULTS; qi++) {
+            tardy_agent_t *qa = &srv->vm->agents[qi];
+            if (qa->state == TARDY_STATE_DEAD || qa->context.child_count == 0)
+                continue;
+            tardy_query_result_t batch[TARDY_MAX_QUERY_RESULTS];
+            int found = tardy_vm_query(srv->vm, qa->id, query_text,
+                                        batch, TARDY_MAX_QUERY_RESULTS - total_found);
+            for (int qj = 0; qj < found; qj++) {
+                int dup = 0;
+                for (int qk = 0; qk < total_found; qk++) {
+                    if (qresults[qk].agent_id.hi == batch[qj].agent_id.hi &&
+                        qresults[qk].agent_id.lo == batch[qj].agent_id.lo) {
+                        dup = 1;
+                        if (batch[qj].score > qresults[qk].score)
+                            qresults[qk].score = batch[qj].score;
+                        break;
+                    }
+                }
+                if (!dup && total_found < TARDY_MAX_QUERY_RESULTS)
+                    qresults[total_found++] = batch[qj];
+            }
+        }
+
+        char result_buf[2048];
+        int rpos = 0;
+        const char *rpre = "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"results\\\":[";
+        int rplen = (int)strlen(rpre);
+        memcpy(result_buf + rpos, rpre, rplen);
+        rpos += rplen;
+        for (int qi = 0; qi < total_found; qi++) {
+            if (qi > 0 && rpos < (int)sizeof(result_buf) - 1)
+                result_buf[rpos++] = ',';
+            char entry[128];
+            int score_int = (int)(qresults[qi].score * 100);
+            int elen = snprintf(entry, sizeof(entry),
+                "{\\\"name\\\":\\\"%s\\\",\\\"score\\\":%d.%02d}",
+                qresults[qi].name, score_int / 100, score_int % 100);
+            if (elen > 0 && rpos + elen < (int)sizeof(result_buf)) {
+                memcpy(result_buf + rpos, entry, elen);
+                rpos += elen;
+            }
+        }
+        const char *rsuf = "]}\"}]}";
+        int rslen = (int)strlen(rsuf);
+        if (rpos + rslen < (int)sizeof(result_buf)) {
+            memcpy(result_buf + rpos, rsuf, rslen);
+            rpos += rslen;
+        }
+        result_buf[rpos] = '\0';
+        int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE, id, result_buf);
         if (rlen > 0) mcp_write(srv->write_buf, rlen);
         return 0;
     }
