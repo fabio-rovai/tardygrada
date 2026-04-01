@@ -7,6 +7,7 @@ SRC = src/main.c \
       src/vm/context.c \
       src/vm/vm.c \
       src/vm/crypto.c \
+      src/vm/constitution.c \
       src/mcp/json.c \
       src/mcp/server.c \
       src/verify/pipeline.c \
