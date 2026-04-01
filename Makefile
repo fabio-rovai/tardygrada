@@ -7,6 +7,12 @@ ifeq ($(UNAME),Linux)
 endif
 LDFLAGS =
 
+# Monocypher compiled separately (no -pedantic, it uses extensions)
+MONOCYPHER_FLAGS = -Wall -O2 -std=c11 -Isrc
+ifeq ($(UNAME),Linux)
+  MONOCYPHER_FLAGS += -D_DEFAULT_SOURCE
+endif
+
 SRC = src/main.c \
       src/vm/memory.c \
       src/vm/context.c \
@@ -27,16 +33,19 @@ SRC = src/main.c \
       src/vm/semantic.c \
       src/compiler/terraform.c
 
-OBJ = $(SRC:.c=.o)
+OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
 
-.PHONY: all clean run size
+.PHONY: all clean run size bench
 
 all: $(BIN)
 
 $(BIN): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 	@echo "Built: $@ ($$(wc -c < $@ | tr -d ' ') bytes)"
+
+src/vm/monocypher.o: src/vm/monocypher.c
+	$(CC) $(MONOCYPHER_FLAGS) -c -o $@ $<
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -50,14 +59,15 @@ size: $(BIN)
 	@echo "\nSection sizes:"
 	@size $(BIN)
 
-bench: tardygrada
-	$(CC) $(CFLAGS) $(LDFLAGS) -o bench tests/benchmark.c \
+bench: $(BIN)
+	$(CC) $(CFLAGS) $(MONOCYPHER_FLAGS) $(LDFLAGS) -o bench tests/benchmark.c \
 		src/vm/memory.c src/vm/context.c src/vm/vm.c src/vm/crypto.c \
-		src/vm/message.c src/vm/constitution.c src/vm/heal.c src/vm/persist.c \
-		src/vm/semantic.c src/verify/pipeline.c src/verify/decompose.c \
+		src/vm/monocypher.c src/vm/message.c src/vm/constitution.c \
+		src/vm/heal.c src/vm/persist.c src/vm/semantic.c \
+		src/verify/pipeline.c src/verify/decompose.c \
 		src/mcp/json.c src/ontology/bridge.c
 	./bench
 	rm -f bench
 
 clean:
-	rm -f $(OBJ) $(BIN)
+	rm -f $(OBJ) $(BIN) src/vm/monocypher.o

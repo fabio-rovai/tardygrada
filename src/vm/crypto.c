@@ -122,52 +122,42 @@ bool tardy_hash_eq(const tardy_hash_t *a, const tardy_hash_t *b)
 }
 
 /* ============================================
- * ed25519 — HMAC-SHA256 prototype
- * Uses /dev/urandom for keygen, HMAC-SHA256 for sign/verify.
- * Real ed25519 can be swapped in later via a Rust static lib.
+ * ed25519 — Real implementation via Monocypher
+ * Public domain, single .c file, battle-tested.
  * ============================================ */
+
+#include "monocypher.h"
 
 void tardy_keygen(tardy_keypair_t *kp)
 {
+    /* Read 32 bytes of entropy for the secret seed */
+    uint8_t seed[32];
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) {
-        ssize_t n = read(fd, kp->secret, 64);
+        ssize_t n = read(fd, seed, 32);
         (void)n;
-        /* Public key = hash of first 32 bytes of secret key */
-        tardy_sha256(kp->secret, 32, (tardy_hash_t *)kp->public);
         close(fd);
+    } else {
+        memset(seed, 0x42, 32); /* fallback — should not happen */
     }
+
+    /* Monocypher: derive keypair from seed
+     * secret = seed (32 bytes) + public key (32 bytes) = 64 bytes
+     * public = 32 bytes */
+    crypto_eddsa_key_pair(kp->secret, kp->public, seed);
+
+    /* Wipe seed from stack */
+    crypto_wipe(seed, 32);
 }
 
 void tardy_sign(const tardy_keypair_t *kp, const void *data, size_t len,
                 tardy_signature_t *out)
 {
-    /* HMAC-SHA256 two-part signature:
-     * First 32 bytes:  SHA256(secret || data) — proves possession of secret
-     * Second 32 bytes: SHA256(public || data) — verifiable with public key */
-    uint8_t buf[64 + 4096];
-    size_t copy = len < 4096 ? len : 4096;
-
-    /* First half: hash(secret || data) */
-    memcpy(buf, kp->secret, 64);
-    memcpy(buf + 64, data, copy);
-    tardy_sha256(buf, 64 + copy, (tardy_hash_t *)out->bytes);
-
-    /* Second half: hash(public || data) */
-    memcpy(buf, kp->public, 32);
-    memcpy(buf + 32, data, copy);
-    tardy_sha256(buf, 32 + copy, (tardy_hash_t *)(out->bytes + 32));
+    crypto_eddsa_sign(out->bytes, kp->secret, data, len);
 }
 
 bool tardy_verify(const uint8_t pub[32], const void *data, size_t len,
                   const tardy_signature_t *sig)
 {
-    /* Recompute second half: hash(public || data) and compare */
-    uint8_t buf[32 + 4096];
-    size_t copy = len < 4096 ? len : 4096;
-    memcpy(buf, pub, 32);
-    memcpy(buf + 32, data, copy);
-    tardy_hash_t expected;
-    tardy_sha256(buf, 32 + copy, &expected);
-    return memcmp(sig->bytes + 32, expected.bytes, 32) == 0;
+    return crypto_eddsa_check(sig->bytes, pub, data, len) == 0;
 }
