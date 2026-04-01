@@ -311,14 +311,63 @@ tardy_layer_result_t tardy_verify_probabilistic(
  * Yoshida MPST style — currently stub.
  * ============================================ */
 
-tardy_layer_result_t tardy_verify_protocol(void)
+tardy_layer_result_t tardy_verify_protocol(const char *claim, int claim_len)
 {
+    uint64_t start = now_ns();
     tardy_layer_result_t r = {0};
     r.layer = TARDY_LAYER_PROTOCOL;
+
+    if (!claim || claim_len == 0) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "empty claim — protocol violation");
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Check claim has substance — at least 3 characters of content */
+    int content_chars = 0;
+    for (int i = 0; i < claim_len; i++) {
+        if (claim[i] != ' ' && claim[i] != '\t' && claim[i] != '\n')
+            content_chars++;
+    }
+    if (content_chars < 3) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "claim too short (%d chars) — possible empty submission",
+                 content_chars);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Check claim has at least 2 words (subject + predicate minimum) */
+    int words = 0;
+    int in_word = 0;
+    for (int i = 0; i < claim_len; i++) {
+        if (claim[i] == ' ' || claim[i] == '\t' || claim[i] == '\n') {
+            in_word = 0;
+        } else if (!in_word) {
+            in_word = 1;
+            words++;
+        }
+    }
+    if (words < 2) {
+        r.passed = false;
+        r.confidence = 0.5f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "claim has only %d word(s) — insufficient structure",
+                 words);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
     r.passed = true;
     r.confidence = 1.0f;
     snprintf(r.detail, sizeof(r.detail),
-             "protocol check — session types pending");
+             "protocol ok: %d words, %d chars", words, content_chars);
+    r.compute_ns = now_ns() - start;
     return r;
 }
 
@@ -330,14 +379,68 @@ tardy_layer_result_t tardy_verify_protocol(void)
  * Currently stub — opt-in, expensive.
  * ============================================ */
 
-tardy_layer_result_t tardy_verify_certification(void)
+tardy_layer_result_t tardy_verify_certification(
+    const tardy_decomposition_t *decomps, int decomp_count)
 {
+    uint64_t start = now_ns();
     tardy_layer_result_t r = {0};
     r.layer = TARDY_LAYER_CERTIFICATION;
-    r.passed = true;
-    r.confidence = 1.0f;
+
+    if (!decomps || decomp_count == 0) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail), "no decomposition data");
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Use first decomposition as reference */
+    const tardy_decomposition_t *d = &decomps[0];
+
+    if (d->count == 0) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail), "zero triples extracted");
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Single triple = atomic fact, automatically certified */
+    if (d->count == 1) {
+        r.passed = true;
+        r.confidence = 0.9f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "atomic fact — auto-certified");
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Multiple triples: check connectivity
+     * At least one triple's subject should appear as another triple's
+     * subject or object (they're about related things) */
+    int connected = 0;
+    for (int i = 0; i < d->count; i++) {
+        for (int j = 0; j < d->count; j++) {
+            if (i == j) continue;
+            if (strcmp(d->triples[i].subject,
+                       d->triples[j].subject) == 0 ||
+                strcmp(d->triples[i].subject,
+                       d->triples[j].object) == 0 ||
+                strcmp(d->triples[i].object,
+                       d->triples[j].subject) == 0) {
+                connected++;
+                break;
+            }
+        }
+    }
+
+    float connectivity = (float)connected / (float)d->count;
+    r.passed = connectivity >= 0.5f;
+    r.confidence = connectivity;
     snprintf(r.detail, sizeof(r.detail),
-             "formal certification — Coq integration pending");
+             "certification: %d/%d triples connected (%.0f%%)",
+             connected, d->count, connectivity * 100.0f);
+    r.compute_ns = now_ns() - start;
     return r;
 }
 
@@ -356,36 +459,77 @@ tardy_layer_result_t tardy_verify_cross_representation(
     tardy_layer_result_t r = {0};
     r.layer = TARDY_LAYER_CROSS_REP;
 
-    /* Check for conflicting signals */
-    bool has_high_confidence = false;
-    bool has_low_confidence = false;
+    if (count == 0) {
+        r.passed = true;
+        r.confidence = 1.0f;
+        snprintf(r.detail, sizeof(r.detail), "no layers to cross-check");
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Check 1: No layer that passed should contradict a layer that also
+     * passed. If grounding says "grounded" but consistency says
+     * "inconsistent", something's wrong. */
+    int grounding_passed = 0;
+    int consistency_passed = 0;
+    float grounding_conf = 0.0f;
+    float consistency_conf = 0.0f;
 
     for (int i = 0; i < count; i++) {
-        if (layers[i].confidence > 0.9f)
-            has_high_confidence = true;
-        if (layers[i].confidence < 0.3f && layers[i].layer != TARDY_LAYER_CROSS_REP)
-            has_low_confidence = true;
-    }
-
-    /* If one layer is very confident but another is very not,
-     * there's a cross-representation disagreement */
-    if (has_high_confidence && has_low_confidence) {
-        r.passed = false;
-        r.confidence = 0.5f;
-        snprintf(r.detail, sizeof(r.detail),
-                 "cross-representation conflict: layers disagree");
-    } else {
-        r.passed = true;
-        /* Confidence = minimum across all preceding layers */
-        r.confidence = 1.0f;
-        for (int i = 0; i < count; i++) {
-            if (layers[i].confidence < r.confidence)
-                r.confidence = layers[i].confidence;
+        if (layers[i].layer == TARDY_LAYER_GROUNDING) {
+            grounding_passed = layers[i].passed;
+            grounding_conf = layers[i].confidence;
         }
-        snprintf(r.detail, sizeof(r.detail),
-                 "all layers consistent, min confidence %.3f", r.confidence);
+        if (layers[i].layer == TARDY_LAYER_CONSISTENCY) {
+            consistency_passed = layers[i].passed;
+            consistency_conf = layers[i].confidence;
+        }
     }
 
+    /* Contradiction: grounded but inconsistent */
+    if (grounding_passed && !consistency_passed) {
+        r.passed = false;
+        r.confidence = 0.3f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "cross-rep conflict: grounded (%.2f) but inconsistent (%.2f)",
+                 grounding_conf, consistency_conf);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* Check 2: Confidence spread — if layers wildly disagree, flag it */
+    float min_conf = 1.0f;
+    float max_conf = 0.0f;
+    int passed_count = 0;
+
+    for (int i = 0; i < count; i++) {
+        if (layers[i].layer == TARDY_LAYER_CROSS_REP) continue;
+        if (layers[i].passed) {
+            if (layers[i].confidence < min_conf)
+                min_conf = layers[i].confidence;
+            if (layers[i].confidence > max_conf)
+                max_conf = layers[i].confidence;
+            passed_count++;
+        }
+    }
+
+    float spread = max_conf - min_conf;
+    if (passed_count >= 2 && spread > 0.5f) {
+        r.passed = false;
+        r.confidence = 1.0f - spread;
+        snprintf(r.detail, sizeof(r.detail),
+                 "cross-rep warning: confidence spread %.2f (%.2f to %.2f)",
+                 spread, min_conf, max_conf);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* All consistent */
+    r.passed = true;
+    r.confidence = passed_count > 0 ? min_conf : 1.0f;
+    snprintf(r.detail, sizeof(r.detail),
+             "cross-rep ok: %d layers consistent, spread=%.2f",
+             passed_count, spread);
     r.compute_ns = now_ns() - start;
     return r;
 }
@@ -497,9 +641,6 @@ tardy_pipeline_result_t tardy_pipeline_verify(
     const tardy_work_spec_t *work_spec,
     const tardy_semantics_t *semantics)
 {
-    (void)claim;
-    (void)claim_len;
-
     tardy_pipeline_result_t result = {0};
     result.passed = true;
     result.confidence = 1.0f;
@@ -560,7 +701,7 @@ tardy_pipeline_result_t tardy_pipeline_verify(
 
     /* Layer 5: Protocol */
     if (semantics->pipeline.layer_protocol_check) {
-        result.layers[layer_idx] = tardy_verify_protocol();
+        result.layers[layer_idx] = tardy_verify_protocol(claim, claim_len);
         if (!result.layers[layer_idx].passed && result.passed) {
             result.passed = false;
             result.failed_at = TARDY_LAYER_PROTOCOL;
@@ -570,7 +711,8 @@ tardy_pipeline_result_t tardy_pipeline_verify(
 
     /* Layer 6: Formal certification (opt-in) */
     if (semantics->pipeline.layer_formal_certification) {
-        result.layers[layer_idx] = tardy_verify_certification();
+        result.layers[layer_idx] = tardy_verify_certification(
+            decompositions, decomposition_count);
         if (!result.layers[layer_idx].passed && result.passed) {
             result.passed = false;
             result.failed_at = TARDY_LAYER_CERTIFICATION;

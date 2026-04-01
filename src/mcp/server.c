@@ -13,6 +13,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+
+static uint64_t mcp_now_ns(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+}
 
 /* Direct write — no stdio */
 static void mcp_write(const char *data, int len)
@@ -562,26 +570,65 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         int claim_len = (int)strlen(claim_buf);
 
         /* Run verification pipeline */
+        uint64_t verify_start = mcp_now_ns();
+
+        /* Step 1: Decompose text into triples */
         tardy_decomposition_t decomps[3];
         memset(decomps, 0, sizeof(decomps));
         tardy_decompose_multi(claim_buf, claim_len, decomps, 3);
 
+        /* Step 2: Collect unique triples from all decompositions */
+        tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
+        int triple_count = 0;
+        for (int d = 0; d < 3; d++) {
+            for (int t = 0; t < decomps[d].count &&
+                 triple_count < TARDY_MAX_TRIPLES; t++) {
+                /* Deduplicate */
+                int dup = 0;
+                for (int e = 0; e < triple_count; e++) {
+                    if (strcmp(all_triples[e].subject,
+                              decomps[d].triples[t].subject) == 0 &&
+                        strcmp(all_triples[e].predicate,
+                              decomps[d].triples[t].predicate) == 0 &&
+                        strcmp(all_triples[e].object,
+                              decomps[d].triples[t].object) == 0) {
+                        dup = 1;
+                        break;
+                    }
+                }
+                if (!dup)
+                    all_triples[triple_count++] = decomps[d].triples[t];
+            }
+        }
+
+        /* Step 3: Ground triples against ontology (real or fallback) */
         tardy_grounding_t grounding = {0};
-        grounding.count = 1;
-        grounding.grounded = 1;
-        grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
-        grounding.results[0].confidence = 0.90f;
-        grounding.results[0].evidence_count = 1;
-
         tardy_consistency_t consistency = {0};
-        consistency.consistent = true;
 
+        if (srv->bridge_connected) {
+            /* REAL: use ontology bridge */
+            tardy_bridge_verify(&srv->bridge, all_triples, triple_count,
+                                 &grounding, &consistency);
+        } else {
+            /* FALLBACK: no ontology — everything UNKNOWN (honest) */
+            grounding.count = triple_count;
+            for (int i = 0; i < triple_count &&
+                 i < TARDY_MAX_TRIPLES; i++) {
+                grounding.results[i].triple = all_triples[i];
+                grounding.results[i].status = TARDY_KNOWLEDGE_UNKNOWN;
+                grounding.results[i].confidence = 0.0f;
+                grounding.results[i].evidence_count = 0;
+                grounding.unknown++;
+            }
+            consistency.consistent = true;
+        }
+
+        /* Step 4: Real work log — record actual operations */
         tardy_work_log_t work_log;
         tardy_worklog_init(&work_log);
-        work_log.ontology_queries = 2;
-        work_log.context_reads = 3;
-        work_log.agents_spawned = 1;
-        work_log.compute_ns = 10000000;
+        work_log.ontology_queries = srv->bridge_connected ? triple_count : 0;
+        work_log.context_reads = triple_count;
+        work_log.agents_spawned = 0;
 
         const tardy_semantics_t *sem = tardy_vm_get_semantics(srv->vm, target->id);
         tardy_work_spec_t spec = tardy_compute_work_spec(sem);
@@ -590,6 +637,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             claim_buf, claim_len,
             decomps, 3, &grounding, &consistency,
             &work_log, &spec, sem);
+
+        work_log.compute_ns = mcp_now_ns() - verify_start;
 
         /* If passed, freeze agent to @verified */
         if (result.passed) {
@@ -1017,6 +1066,13 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
     memset(srv, 0, sizeof(tardy_mcp_server_t));
     srv->vm = vm;
     srv->running = 1;
+
+    /* Try connecting to ontology engines */
+    int bridge_ok = tardy_bridge_init(&srv->bridge,
+        "/tmp/tardygrada-ontology-sketch.sock",
+        "/tmp/tardygrada-ontology-complete.sock");
+    srv->bridge_connected = (bridge_ok == 0);
+
     return 0;
 }
 
@@ -1137,6 +1193,8 @@ int tardy_mcp_run(tardy_mcp_server_t *srv)
 
 void tardy_mcp_stop(tardy_mcp_server_t *srv)
 {
-    if (srv)
+    if (srv) {
         srv->running = 0;
+        tardy_bridge_shutdown(&srv->bridge);
+    }
 }

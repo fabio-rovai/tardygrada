@@ -10,6 +10,7 @@
 #define TARDY_MCP_SERVER_H
 
 #include "../vm/vm.h"
+#include "../ontology/bridge.h"
 #include "json.h"
 
 #define TARDY_MCP_BUF_SIZE 8192
@@ -19,10 +20,12 @@
  * ============================================ */
 
 typedef struct {
-    tardy_vm_t    *vm;
-    char           read_buf[TARDY_MCP_BUF_SIZE];
-    char           write_buf[TARDY_MCP_BUF_SIZE];
-    int            running;
+    tardy_vm_t              *vm;
+    tardy_ontology_bridge_t  bridge;
+    bool                     bridge_connected;
+    char                     read_buf[TARDY_MCP_BUF_SIZE];
+    char                     write_buf[TARDY_MCP_BUF_SIZE];
+    int                      running;
 } tardy_mcp_server_t;
 
 /* Initialize MCP server wrapping a VM */

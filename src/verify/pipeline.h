@@ -189,9 +189,10 @@ tardy_layer_result_t tardy_verify_probabilistic(
     const tardy_grounding_t *grounding,
     const tardy_semantics_t *sem);
 
-tardy_layer_result_t tardy_verify_protocol(void);
+tardy_layer_result_t tardy_verify_protocol(const char *claim, int claim_len);
 
-tardy_layer_result_t tardy_verify_certification(void);
+tardy_layer_result_t tardy_verify_certification(
+    const tardy_decomposition_t *decomps, int decomp_count);
 
 tardy_layer_result_t tardy_verify_cross_representation(
     const tardy_layer_result_t *layers, int count);
