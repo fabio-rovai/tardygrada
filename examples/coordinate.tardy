@@ -1,0 +1,14 @@
+// Tardygrada — Multi-Agent Coordination Example
+//
+// Three agents work together to verify a claim.
+// Demonstrates: coordinate keyword, agent-to-agent patterns
+
+agent Team {
+    let analyzer: str = "data analysis agent" @verified
+    let validator: str = "fact validation agent" @verified
+    let reporter: str = "report generation agent" @verified
+
+    coordinate {analyzer, validator, reporter} on("verify incoming claims") consensus(ProofWeight)
+
+    let result: Fact = receive("coordinated analysis result") grounded_in(domain) @verified
+}

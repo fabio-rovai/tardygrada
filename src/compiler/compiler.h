@@ -30,6 +30,8 @@ typedef enum {
     OP_RECEIVE,        /* receive() — spawn pending agent, filled via MCP */
     OP_FREEZE,         /* freeze mutable agent to immutable with trust level */
     OP_FORK,           /* fork a .tardy file into current context */
+    OP_SET_SEMANTICS,  /* set per-agent semantics override */
+    OP_COORDINATE,     /* coordinate [agents] on(task) consensus(method) */
     OP_HALT,           /* end of program */
 } tardy_opcode_t;
 
@@ -44,6 +46,12 @@ typedef struct {
     bool           bool_val;
     char           ontology[128];  /* grounded_in() ontology ref */
     bool           grounded;       /* whether grounded_in() was specified */
+    /* @semantics() key-value pairs */
+    char           sem_key[64];
+    char           sem_value[64];
+    /* coordinate */
+    char           coord_agents[256]; /* comma-separated agent names */
+    char           coord_task[256];   /* task description */
 } tardy_instruction_t;
 
 typedef struct {

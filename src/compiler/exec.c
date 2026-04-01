@@ -123,6 +123,62 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             /* TODO: runtime freeze of mutable agent */
             break;
 
+        case OP_SET_SEMANTICS: {
+            exec_print("[tardygrada]   @semantics(");
+            exec_print(inst->sem_key);
+            exec_print(": ");
+            exec_print(inst->sem_value);
+            exec_print(")\n");
+
+            /* Apply semantics override to current agent */
+            const tardy_semantics_t *current_sem =
+                tardy_vm_get_semantics(vm, current_agent);
+            tardy_semantics_t updated = *current_sem;
+
+            /* Parse key and set value */
+            if (strcmp(inst->sem_key, "truth.min_confidence") == 0) {
+                float f = 0.0f;
+                const char *s = inst->sem_value;
+                int i = 0;
+                for (; s[i] && s[i] != '.'; i++) f = f * 10.0f + (s[i] - '0');
+                if (s[i] == '.') {
+                    i++;
+                    float frac = 0.1f;
+                    for (; s[i]; i++) { f += (s[i] - '0') * frac; frac *= 0.1f; }
+                }
+                updated.truth.min_confidence = f;
+            } else if (strcmp(inst->sem_key, "truth.min_consensus_agents") == 0) {
+                updated.truth.min_consensus_agents = (int)inst->int_val;
+                if (updated.truth.min_consensus_agents == 0) {
+                    /* Parse from string */
+                    int v = 0;
+                    const char *s = inst->sem_value;
+                    for (int i = 0; s[i]; i++) v = v * 10 + (s[i] - '0');
+                    updated.truth.min_consensus_agents = v;
+                }
+            } else if (strcmp(inst->sem_key, "pipeline.min_passing_layers") == 0) {
+                int v = 0;
+                const char *s = inst->sem_value;
+                for (int i = 0; s[i]; i++) v = v * 10 + (s[i] - '0');
+                updated.pipeline.min_passing_layers = v;
+            }
+
+            tardy_vm_set_semantics(vm, current_agent, &updated);
+            break;
+        }
+
+        case OP_COORDINATE: {
+            exec_print("[tardygrada]   coordinate {");
+            exec_print(inst->coord_agents);
+            exec_print("} on(\"");
+            exec_print(inst->coord_task);
+            exec_print("\")\n");
+            /* Coordination sends the task to each named agent's inbox
+             * and waits for responses. For now, log and continue. */
+            /* TODO: dispatch task to agents, collect results, consensus vote */
+            break;
+        }
+
         case OP_HALT:
             exec_print("[tardygrada] program loaded\n");
             return 0;

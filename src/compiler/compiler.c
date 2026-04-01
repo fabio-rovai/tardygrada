@@ -267,6 +267,55 @@ static void parse_agent(tardy_parser_t *p)
 
     emit_inst(p, agent_inst);
 
+    /* Optional @semantics(key: value, ...) block */
+    if (check(p, TOK_AT_SEMANTICS)) {
+        advance_tok(p); /* skip @semantics */
+        if (!expect(p, TOK_LPAREN, "expected '(' after @semantics"))
+            return;
+        while (!check(p, TOK_RPAREN) && !check(p, TOK_EOF) && !p->prog->has_error) {
+            /* Parse key: value pairs */
+            tardy_instruction_t sem_inst = {0};
+            sem_inst.opcode = OP_SET_SEMANTICS;
+
+            /* Key is like truth.min_confidence — idents + dots */
+            char key[64];
+            int klen = 0;
+            while ((check(p, TOK_IDENT) || check(p, TOK_DOT)) &&
+                   klen < 62 && !p->prog->has_error) {
+                const char *t = current(p)->text;
+                int tlen = (int)strlen(t);
+                if (klen + tlen < 63) {
+                    memcpy(key + klen, t, tlen);
+                    klen += tlen;
+                }
+                advance_tok(p);
+            }
+            key[klen] = '\0';
+            strncpy(sem_inst.sem_key, key, sizeof(sem_inst.sem_key) - 1);
+
+            if (!expect(p, TOK_COLON, "expected ':' in @semantics"))
+                return;
+
+            /* Value: number or ident */
+            if (check(p, TOK_INT_LIT) || check(p, TOK_FLOAT_LIT)) {
+                strncpy(sem_inst.sem_value, current(p)->text,
+                        sizeof(sem_inst.sem_value) - 1);
+                advance_tok(p);
+            } else {
+                error(p, "expected number value in @semantics");
+                return;
+            }
+
+            emit_inst(p, sem_inst);
+
+            /* Optional comma */
+            if (check(p, TOK_COMMA))
+                advance_tok(p);
+        }
+        if (!expect(p, TOK_RPAREN, "expected ')' after @semantics"))
+            return;
+    }
+
     /* Body */
     if (!expect(p, TOK_LBRACE, "expected '{'"))
         return;
@@ -297,11 +346,64 @@ static void parse_agent(tardy_parser_t *p)
                 }
             }
             emit_inst(p, finst);
+        } else if (match(p, TOK_COORDINATE)) {
+            /* coordinate [a, b, c] on("task") consensus(ProofWeight) */
+            tardy_instruction_t cinst = {0};
+            cinst.opcode = OP_COORDINATE;
+
+            /* [agent_list] */
+            if (!expect(p, TOK_LBRACE, "expected '[' or '{' after coordinate"))
+                return;
+            char agents[256];
+            int alen = 0;
+            while (!check(p, TOK_RBRACE) && !check(p, TOK_EOF)) {
+                if (check(p, TOK_IDENT)) {
+                    const char *name = current(p)->text;
+                    int nlen = (int)strlen(name);
+                    if (alen > 0 && alen < 254) agents[alen++] = ',';
+                    if (alen + nlen < 255) {
+                        memcpy(agents + alen, name, nlen);
+                        alen += nlen;
+                    }
+                }
+                advance_tok(p);
+                if (check(p, TOK_COMMA)) advance_tok(p);
+            }
+            agents[alen] = '\0';
+            strncpy(cinst.coord_agents, agents, sizeof(cinst.coord_agents) - 1);
+            if (!expect(p, TOK_RBRACE, "expected ']' or '}'"))
+                return;
+
+            /* on("task description") */
+            if (check(p, TOK_ON)) {
+                advance_tok(p);
+                if (!expect(p, TOK_LPAREN, "expected '(' after on"))
+                    return;
+                if (check(p, TOK_STR_LIT)) {
+                    strncpy(cinst.coord_task, current(p)->text,
+                            sizeof(cinst.coord_task) - 1);
+                    advance_tok(p);
+                }
+                if (!expect(p, TOK_RPAREN, "expected ')' after task"))
+                    return;
+            }
+
+            /* Optional: consensus(method) — just consume for now */
+            if (check(p, TOK_CONSENSUS)) {
+                advance_tok(p);
+                if (check(p, TOK_LPAREN)) {
+                    advance_tok(p);
+                    if (check(p, TOK_IDENT)) advance_tok(p);
+                    if (check(p, TOK_RPAREN)) advance_tok(p);
+                }
+            }
+
+            emit_inst(p, cinst);
         } else if (check(p, TOK_IDENT)) {
             /* Mutable binding */
             parse_binding(p, false);
         } else {
-            error(p, "expected 'let', 'fork', or identifier");
+            error(p, "expected 'let', 'fork', 'coordinate', or identifier");
             return;
         }
     }

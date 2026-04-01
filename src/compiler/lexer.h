@@ -34,6 +34,9 @@ typedef enum {
     TOK_RECEIVE,    /* receive */
     TOK_GROUNDED_IN, /* grounded_in */
     TOK_FREEZE,     /* freeze */
+    TOK_COORDINATE, /* coordinate */
+    TOK_ON,         /* on */
+    TOK_CONSENSUS,  /* consensus */
     TOK_IDENT,      /* identifier */
     TOK_INT_LIT,    /* integer literal */
     TOK_FLOAT_LIT,  /* float literal */
