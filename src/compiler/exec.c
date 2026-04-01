@@ -119,9 +119,27 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
                        inst->name[0] ? inst->name : NULL);
             break;
 
-        case OP_FREEZE:
-            /* TODO: runtime freeze of mutable agent */
+        case OP_FREEZE: {
+            exec_print("[tardygrada]   freeze ");
+            exec_print(inst->name);
+            if (inst->trust == TARDY_TRUST_VERIFIED) exec_print(" @verified");
+            else if (inst->trust == TARDY_TRUST_HARDENED) exec_print(" @hardened");
+            else if (inst->trust == TARDY_TRUST_SOVEREIGN) exec_print(" @sovereign");
+            exec_print("\n");
+
+            tardy_agent_t *target = tardy_vm_find_by_name(vm, current_agent, inst->name);
+            if (target) {
+                tardy_uuid_t frozen = tardy_vm_freeze(vm, target->id, inst->trust);
+                if (frozen.hi == 0 && frozen.lo == 0) {
+                    exec_print("[tardygrada]     freeze failed (already immutable?)\n");
+                }
+            } else {
+                exec_print("[tardygrada]     agent not found: ");
+                exec_print(inst->name);
+                exec_print("\n");
+            }
             break;
+        }
 
         case OP_SET_SEMANTICS: {
             exec_print("[tardygrada]   @semantics(");
@@ -224,6 +242,31 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             exec_print(cntstr);
             exec_print(" agents\n");
 
+            break;
+        }
+
+        case OP_ADD_INVARIANT: {
+            exec_print("[tardygrada]   invariant(");
+            /* Print invariant type */
+            switch (inst->invariant_type) {
+            case 0: exec_print("type_check"); break;
+            case 1: exec_print("range"); break;
+            case 2: exec_print("non_empty"); break;
+            case 3: exec_print("trust_min"); break;
+            default: exec_print("unknown"); break;
+            }
+            exec_print(")\n");
+
+            /* Add invariant to current agent's constitution */
+            tardy_agent_t *agent = tardy_vm_find(vm, current_agent);
+            if (agent) {
+                tardy_invariant_t inv = {0};
+                inv.type = (tardy_invariant_type_t)inst->invariant_type;
+                inv.min_val = inst->inv_min;
+                inv.max_val = inst->inv_max;
+                inv.trust_arg = inst->inv_trust;
+                tardy_constitution_add(&agent->constitution, inv);
+            }
             break;
         }
 

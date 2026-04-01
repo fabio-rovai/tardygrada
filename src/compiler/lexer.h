@@ -37,6 +37,7 @@ typedef enum {
     TOK_COORDINATE, /* coordinate */
     TOK_ON,         /* on */
     TOK_CONSENSUS,  /* consensus */
+    TOK_INVARIANT,  /* invariant */
     TOK_IDENT,      /* identifier */
     TOK_INT_LIT,    /* integer literal */
     TOK_FLOAT_LIT,  /* float literal */
