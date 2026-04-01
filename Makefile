@@ -1,5 +1,10 @@
 CC = cc
 CFLAGS = -Wall -Wextra -Werror -pedantic -std=c11 -O2 -Isrc
+# Linux needs _DEFAULT_SOURCE for clock_gettime + MAP_ANONYMOUS
+UNAME := $(shell uname)
+ifeq ($(UNAME),Linux)
+  CFLAGS += -D_DEFAULT_SOURCE
+endif
 LDFLAGS =
 
 SRC = src/main.c \
