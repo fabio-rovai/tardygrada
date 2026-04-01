@@ -8,6 +8,7 @@
 
 #include "server.h"
 #include "../verify/pipeline.h"
+#include "../verify/decompose.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -494,17 +495,7 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         /* Run verification pipeline */
         tardy_decomposition_t decomps[3];
         memset(decomps, 0, sizeof(decomps));
-        for (int d = 0; d < 3; d++) {
-            strncpy(decomps[d].triples[0].subject, "claim",
-                    TARDY_MAX_TRIPLE_LEN);
-            strncpy(decomps[d].triples[0].predicate, "states",
-                    TARDY_MAX_TRIPLE_LEN);
-            int copylen = claim_len < TARDY_MAX_TRIPLE_LEN - 1 ?
-                          claim_len : TARDY_MAX_TRIPLE_LEN - 1;
-            memcpy(decomps[d].triples[0].object, claim_buf, copylen);
-            decomps[d].triples[0].object[copylen] = '\0';
-            decomps[d].count = 1;
-        }
+        tardy_decompose_multi(claim_buf, claim_len, decomps, 3);
 
         tardy_grounding_t grounding = {0};
         grounding.count = 1;
