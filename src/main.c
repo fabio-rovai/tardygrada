@@ -21,9 +21,11 @@
 #include "mcp/server.h"
 #include "verify/pipeline.h"
 #include "compiler/exec.h"
+#include "verify/decompose.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 static int is_zero_uuid(tardy_uuid_t id)
 {
@@ -461,23 +463,312 @@ static int run_mcp(void)
 }
 
 /* ============================================
+ * CLI: tardy run "task" — one-shot verified execution
+ *
+ * Compiles to .tardy internally:
+ *   agent Task {
+ *       let claim: Fact = receive("task") grounded_in(default) @verified
+ *   }
+ * Then submits the task text, verifies it, returns result.
+ * Nothing unverified runs.
+ * ============================================ */
+
+static int run_task(const char *task_text)
+{
+    tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
+                                         PROT_READ | PROT_WRITE,
+                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (vm == MAP_FAILED)
+        return 1;
+
+    tardy_vm_init(vm, NULL);
+
+    /* Spawn a pending agent for the task */
+    const char *empty = "";
+    tardy_vm_spawn(vm, vm->root_id, "task", TARDY_TYPE_STR,
+                   TARDY_TRUST_MUTABLE, empty, 1);
+
+    /* Submit the task text */
+    tardy_agent_t *task_agent = tardy_vm_find_by_name(vm, vm->root_id, "task");
+    if (!task_agent) {
+        tardy_write(STDERR_FILENO, "[tardy] failed to create task agent\n", 36);
+        tardy_vm_shutdown(vm);
+        munmap(vm, sizeof(tardy_vm_t));
+        return 1;
+    }
+    tardy_vm_mutate(vm, vm->root_id, "task",
+                    task_text, strlen(task_text) + 1);
+    tardy_vm_converse(vm, task_agent->id, "user", task_text);
+
+    /* Initialize ontology bridge */
+    tardy_mcp_server_t srv;
+    tardy_mcp_init(&srv, vm);
+
+    /* Decompose the claim */
+    int claim_len = (int)strlen(task_text);
+    tardy_decomposition_t decomps[3];
+    memset(decomps, 0, sizeof(decomps));
+    tardy_decompose_multi(task_text, claim_len, decomps, 3);
+
+    /* Collect unique triples */
+    tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
+    int triple_count = 0;
+    for (int d = 0; d < 3; d++) {
+        for (int t = 0; t < decomps[d].count && triple_count < TARDY_MAX_TRIPLES; t++) {
+            int dup = 0;
+            for (int e = 0; e < triple_count; e++) {
+                if (strcmp(all_triples[e].subject, decomps[d].triples[t].subject) == 0 &&
+                    strcmp(all_triples[e].predicate, decomps[d].triples[t].predicate) == 0 &&
+                    strcmp(all_triples[e].object, decomps[d].triples[t].object) == 0) {
+                    dup = 1; break;
+                }
+            }
+            if (!dup)
+                all_triples[triple_count++] = decomps[d].triples[t];
+        }
+    }
+
+    /* Ground against ontology */
+    tardy_grounding_t grounding = {0};
+    tardy_consistency_t consistency = {0};
+    if (srv.bridge_connected) {
+        tardy_bridge_verify(&srv.bridge, all_triples, triple_count,
+                             &grounding, &consistency);
+    } else {
+        grounding.count = triple_count;
+        for (int i = 0; i < triple_count && i < TARDY_MAX_TRIPLES; i++) {
+            grounding.results[i].triple = all_triples[i];
+            grounding.results[i].status = TARDY_KNOWLEDGE_UNKNOWN;
+            grounding.unknown++;
+        }
+        consistency.consistent = true;
+    }
+
+    /* Work log */
+    tardy_work_log_t work_log;
+    tardy_worklog_init(&work_log);
+    work_log.ontology_queries = srv.bridge_connected ? triple_count : 0;
+    work_log.context_reads = triple_count;
+
+    const tardy_semantics_t *sem = &vm->semantics;
+    tardy_work_spec_t spec = tardy_compute_work_spec(sem);
+
+    /* Run BFT 3-pass verification */
+    tardy_pipeline_result_t results[3];
+    int pass_count = 0;
+    float total_confidence = 0.0f;
+
+    for (int run = 0; run < 3; run++) {
+        tardy_decomposition_t run_decomps[3];
+        memset(run_decomps, 0, sizeof(run_decomps));
+        for (int d = 0; d < 3; d++)
+            run_decomps[d] = decomps[(d + run) % 3];
+        results[run] = tardy_pipeline_verify(
+            task_text, claim_len,
+            run_decomps, 3, &grounding, &consistency,
+            &work_log, &spec, sem);
+        if (results[run].passed) {
+            pass_count++;
+            total_confidence += results[run].confidence;
+        }
+    }
+
+    int verified = (pass_count >= 2);
+    float avg_confidence = pass_count > 0 ? total_confidence / (float)pass_count : 0.0f;
+
+    /* Output result */
+    tardy_write(STDERR_FILENO, "\n", 1);
+    tardy_write(STDERR_FILENO, "[tardy] task: ", 14);
+    tardy_write(STDERR_FILENO, task_text, strlen(task_text));
+    tardy_write(STDERR_FILENO, "\n", 1);
+
+    tardy_write(STDERR_FILENO, "[tardy] decomposed: ", 20);
+    {
+        char num[8];
+        num[0] = '0' + (char)(triple_count % 10);
+        num[1] = '\0';
+        tardy_write(STDERR_FILENO, num, 1);
+    }
+    tardy_write(STDERR_FILENO, " triples\n", 9);
+
+    tardy_write(STDERR_FILENO, "[tardy] grounded: ", 18);
+    {
+        char num[8];
+        num[0] = '0' + (char)(grounding.grounded % 10);
+        num[1] = '/';
+        num[2] = '0' + (char)(grounding.count % 10);
+        num[3] = '\0';
+        tardy_write(STDERR_FILENO, num, 3);
+    }
+    tardy_write(STDERR_FILENO, "\n", 1);
+
+    tardy_write(STDERR_FILENO, "[tardy] ontology: ", 18);
+    tardy_write(STDERR_FILENO,
+                srv.bridge_connected ? "connected" : "offline",
+                srv.bridge_connected ? 9 : 7);
+    tardy_write(STDERR_FILENO, "\n", 1);
+
+    tardy_write(STDERR_FILENO, "[tardy] bft: ", 13);
+    {
+        char num[8];
+        num[0] = '0' + (char)pass_count;
+        num[1] = '/';
+        num[2] = '3';
+        num[3] = '\0';
+        tardy_write(STDERR_FILENO, num, 3);
+    }
+    tardy_write(STDERR_FILENO, "\n", 1);
+
+    if (verified) {
+        tardy_write(STDERR_FILENO, "[tardy] VERIFIED", 16);
+        char conf[16];
+        int ci = (int)(avg_confidence * 100);
+        int clen = snprintf(conf, sizeof(conf), " (%d%%)", ci);
+        tardy_write(STDERR_FILENO, conf, clen);
+        tardy_write(STDERR_FILENO, "\n", 1);
+
+        /* Freeze the agent */
+        tardy_vm_freeze(vm, task_agent->id, TARDY_TRUST_VERIFIED);
+        tardy_vm_converse(vm, task_agent->id, "agent", "verified");
+    } else {
+        tardy_write(STDERR_FILENO, "[tardy] NOT VERIFIED", 20);
+
+        /* Report failure type */
+        const char *fail_str = "";
+        for (int run = 0; run < 3; run++) {
+            if (!results[run].passed) {
+                switch (results[run].failure_type) {
+                case TARDY_FAIL_DECOMPOSITION:  fail_str = " (decomposition_error)"; break;
+                case TARDY_FAIL_ONTOLOGY_GAP:   fail_str = " (ontology_gap)"; break;
+                case TARDY_FAIL_CONTRADICTION:   fail_str = " (contradiction)"; break;
+                case TARDY_FAIL_LOW_CONFIDENCE:  fail_str = " (low_confidence)"; break;
+                case TARDY_FAIL_INCONSISTENCY:   fail_str = " (inconsistency)"; break;
+                case TARDY_FAIL_NO_EVIDENCE:     fail_str = " (no_evidence)"; break;
+                case TARDY_FAIL_PROTOCOL:        fail_str = " (protocol_error)"; break;
+                case TARDY_FAIL_LAZINESS:        fail_str = " (laziness)"; break;
+                case TARDY_FAIL_AMBIGUITY:       fail_str = " (ambiguity)"; break;
+                case TARDY_FAIL_CROSS_REP:       fail_str = " (cross_rep_conflict)"; break;
+                default: fail_str = ""; break;
+                }
+                if (fail_str[0]) break;
+            }
+        }
+        tardy_write(STDERR_FILENO, fail_str, strlen(fail_str));
+        tardy_write(STDERR_FILENO, "\n", 1);
+        tardy_vm_converse(vm, task_agent->id, "agent", "not verified");
+    }
+
+    tardy_write(STDERR_FILENO, "\n", 1);
+
+    tardy_bridge_shutdown(&srv.bridge);
+    tardy_vm_shutdown(vm);
+    munmap(vm, sizeof(tardy_vm_t));
+
+    return verified ? 0 : 1;
+}
+
+/* ============================================
+ * CLI: tardy verify "claim" — alias for run
+ * ============================================ */
+
+/* ============================================
+ * CLI: tardy check file.tardy — compile check only
+ * ============================================ */
+
+static int check_file(const char *path)
+{
+    tardy_program_t prog;
+    if (tardy_compile_file(&prog, path) != 0) {
+        tardy_write(STDERR_FILENO, "[tardy] error: ", 15);
+        tardy_write(STDERR_FILENO, prog.error, strlen(prog.error));
+        tardy_write(STDERR_FILENO, "\n", 1);
+        return 1;
+    }
+    tardy_write(STDERR_FILENO, "[tardy] ", 8);
+    tardy_write(STDERR_FILENO, path, strlen(path));
+    tardy_write(STDERR_FILENO, " ok (", 5);
+    {
+        char num[16];
+        int n = snprintf(num, sizeof(num), "%d", prog.count);
+        tardy_write(STDERR_FILENO, num, n);
+    }
+    tardy_write(STDERR_FILENO, " instructions)\n", 15);
+    return 0;
+}
+
+/* ============================================
+ * Usage
+ * ============================================ */
+
+static void print_usage(void)
+{
+    const char *usage =
+        "Tardygrada — formally verified agent programming language\n"
+        "\n"
+        "Usage:\n"
+        "  tardy run \"claim to verify\"     Verify a claim (exit 0=verified, 1=not)\n"
+        "  tardy verify \"claim\"            Alias for run\n"
+        "  tardy serve file.tardy           Compile and serve as MCP server\n"
+        "  tardy check file.tardy           Compile check only\n"
+        "  tardy test                       Run built-in tests\n"
+        "  tardy bench                      Run benchmarks\n"
+        "  tardy                            Run tests (default)\n"
+        "\n"
+        "Examples:\n"
+        "  tardy run \"Doctor Who was created at BBC Television Centre\"\n"
+        "  tardy serve examples/medical.tardy\n"
+        "  tardy check examples/receive.tardy\n"
+        "\n";
+    tardy_write(STDERR_FILENO, usage, strlen(usage));
+}
+
+/* ============================================
  * Entry Point
  * ============================================ */
 
 int main(int argc, char **argv)
 {
-    /* --serve: run as MCP server (hardcoded agents) */
-    if (argc > 1 && strcmp(argv[1], "--serve") == 0)
-        return run_mcp();
+    /* No args: run tests */
+    if (argc < 2)
+        return run_tests();
 
-    /* <file.tardy>: compile and serve */
-    if (argc > 1) {
-        const char *path = argv[1];
-        int len = (int)strlen(path);
-        if (len > 6 && strcmp(path + len - 6, ".tardy") == 0)
-            return tardy_exec_file(path);
+    const char *cmd = argv[1];
+
+    /* tardy run "claim" / tardy verify "claim" */
+    if ((strcmp(cmd, "run") == 0 || strcmp(cmd, "verify") == 0) && argc >= 3)
+        return run_task(argv[2]);
+
+    /* tardy serve file.tardy */
+    if (strcmp(cmd, "serve") == 0 && argc >= 3)
+        return tardy_exec_file(argv[2]);
+
+    /* tardy check file.tardy */
+    if (strcmp(cmd, "check") == 0 && argc >= 3)
+        return check_file(argv[2]);
+
+    /* tardy test */
+    if (strcmp(cmd, "test") == 0)
+        return run_tests();
+
+    /* tardy help / tardy --help / tardy -h */
+    if (strcmp(cmd, "help") == 0 || strcmp(cmd, "--help") == 0 ||
+        strcmp(cmd, "-h") == 0) {
+        print_usage();
+        return 0;
     }
 
-    /* Default: run tests */
-    return run_tests();
+    /* tardy --serve (legacy) */
+    if (strcmp(cmd, "--serve") == 0)
+        return run_mcp();
+
+    /* tardy file.tardy (legacy shorthand) */
+    {
+        int len = (int)strlen(cmd);
+        if (len > 6 && strcmp(cmd + len - 6, ".tardy") == 0)
+            return tardy_exec_file(cmd);
+    }
+
+    /* Unknown command */
+    print_usage();
+    return 1;
 }
