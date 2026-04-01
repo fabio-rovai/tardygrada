@@ -170,6 +170,25 @@ tardy_agent_t *tardy_vm_find_by_name(tardy_vm_t *vm,
                                       const char *name);
 
 /* ============================================
+ * VM Nesting — child VMs as agents
+ * ============================================ */
+
+/* Spawn a child VM as an agent inside parent_vm.
+ * The child VM is allocated via mmap, initialized with child_semantics
+ * (or parent's semantics if NULL), and inherits the parent's root_key.
+ * Returns agent ID in parent VM (zero UUID on failure).
+ */
+tardy_uuid_t tardy_vm_spawn_child(tardy_vm_t *parent_vm,
+                                   tardy_uuid_t parent_agent,
+                                   const char *name,
+                                   const tardy_semantics_t *child_semantics);
+
+/* Retrieve the child VM pointer from a TARDY_TYPE_AGENT agent.
+ * Returns NULL if agent not found or not a child VM.
+ */
+tardy_vm_t *tardy_vm_get_child(tardy_vm_t *vm, tardy_uuid_t agent_id);
+
+/* ============================================
  * Garbage Collection
  * ============================================ */
 
