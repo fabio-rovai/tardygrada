@@ -200,6 +200,37 @@ tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
 }
 
 /* ============================================
+ * Spawn Error — create an error agent explaining what went wrong
+ * Error agents are immutable (TARDY_TRUST_DEFAULT) so they
+ * cannot be tampered with. They are children of the parent
+ * that caused the error.
+ * ============================================ */
+
+tardy_uuid_t tardy_vm_spawn_error(tardy_vm_t *vm,
+                                   tardy_uuid_t parent_id,
+                                   const char *name,
+                                   const char *message)
+{
+    if (!vm || !message)
+        return ZERO_UUID;
+
+    size_t msg_len = strlen(message) + 1;
+    tardy_uuid_t err_id = tardy_vm_spawn(vm, parent_id, name,
+                                          TARDY_TYPE_ERROR,
+                                          TARDY_TRUST_DEFAULT,
+                                          message, msg_len);
+    if (err_id.hi == 0 && err_id.lo == 0)
+        return ZERO_UUID;
+
+    /* Set provenance reason to "error" */
+    tardy_agent_t *err_agent = tardy_vm_find(vm, err_id);
+    if (err_agent)
+        err_agent->provenance.reason = "error";
+
+    return err_id;
+}
+
+/* ============================================
  * Kill — destroy a mutable agent
  * Immutable agents CANNOT be killed.
  * ============================================ */
@@ -264,8 +295,11 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
         /* Check constitution before returning */
         if (tardy_constitution_check(&agent->constitution,
                                      agent->type_tag, agent->trust,
-                                     out, len) != 0)
+                                     out, len) != 0) {
+            tardy_vm_spawn_error(vm, parent_id, "_error",
+                                  "constitution check failed");
             return TARDY_READ_HASH_MISMATCH;
+        }
         return TARDY_READ_OK;
     }
 
@@ -279,8 +313,11 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
     /* Check constitution before returning */
     if (tardy_constitution_check(&agent->constitution,
                                  agent->type_tag, agent->trust,
-                                 out, read_size) != 0)
+                                 out, read_size) != 0) {
+        tardy_vm_spawn_error(vm, parent_id, "_error",
+                              "constitution check failed");
         return TARDY_READ_HASH_MISMATCH;
+    }
 
     return TARDY_READ_OK;
 }
@@ -341,14 +378,20 @@ int tardy_vm_mutate(tardy_vm_t *vm,
     if (!agent)
         return -1;
 
-    if (agent->trust != TARDY_TRUST_MUTABLE)
+    if (agent->trust != TARDY_TRUST_MUTABLE) {
+        tardy_vm_spawn_error(vm, parent_id, "_error",
+                              "mutation rejected: agent is immutable");
         return -1;
+    }
 
     /* Check constitution BEFORE committing the mutation */
     if (tardy_constitution_check(&agent->constitution,
                                  agent->type_tag, agent->trust,
-                                 data, len) != 0)
+                                 data, len) != 0) {
+        tardy_vm_spawn_error(vm, parent_id, "_error",
+                              "mutation rejected: constitution check failed");
         return -1;
+    }
 
     /* TODO: record mutation in provenance log */
 
