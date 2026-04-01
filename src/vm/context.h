@@ -10,6 +10,7 @@
 #include "types.h"
 #include "memory.h"
 #include "constitution.h"
+#include "message.h"
 
 /* ============================================
  * Context Pointer — the fundamental reference
@@ -71,6 +72,7 @@ typedef struct {
 typedef struct {
     tardy_named_child_t children[TARDY_CTX_MAX_CHILDREN];
     int                 child_count;
+    tardy_message_queue_t inbox;  /* messages from other agents */
     /* TODO: embedding vectors for semantic query */
 } tardy_agent_context_t;
 

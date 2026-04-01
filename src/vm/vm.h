@@ -107,6 +107,23 @@ tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
                               tardy_trust_t new_trust);
 
 /* ============================================
+ * Agent-to-Agent Messaging
+ * ============================================ */
+
+/* Send a message from one agent to another.
+ * Finds the target agent, hashes the payload, pushes to target's inbox.
+ * Returns 0 on success, -1 on failure.
+ */
+int tardy_vm_send(tardy_vm_t *vm, tardy_uuid_t from, tardy_uuid_t to,
+                   const void *payload, size_t len, tardy_type_t type);
+
+/* Receive the next message from an agent's inbox.
+ * Returns 0 on success, -1 if inbox is empty.
+ */
+int tardy_vm_recv(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                   tardy_message_t *out);
+
+/* ============================================
  * Agent Lookup
  * ============================================ */
 

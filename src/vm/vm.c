@@ -53,6 +53,9 @@ int tardy_vm_init(tardy_vm_t *vm, const tardy_semantics_t *semantics)
     tardy_constitution_init(&root->constitution);
     vm->agent_count = 1;
 
+    /* Initialize root agent's inbox */
+    tardy_mq_init(&root->context.inbox);
+
     vm->boot_time = now_ns_vm();
     vm->running   = true;
 
@@ -176,6 +179,9 @@ tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
     /* Allocate and initialize memory */
     agent->memory = tardy_mem_alloc(len, trust, replicas);
     tardy_mem_init(&agent->memory, data, len, &vm->root_key);
+
+    /* Initialize inbox */
+    tardy_mq_init(&agent->context.inbox);
 
     /* Inherit parent's constitution */
     agent->constitution = parent->constitution;
@@ -570,4 +576,61 @@ int tardy_vm_promote(tardy_vm_t *vm, tardy_uuid_t agent_id)
     a->last_accessed = now_ns_vm();
 
     return 0;
+}
+
+/* ============================================
+ * Send — deliver a message to another agent's inbox
+ * ============================================ */
+
+int tardy_vm_send(tardy_vm_t *vm, tardy_uuid_t from, tardy_uuid_t to,
+                   const void *payload, size_t len, tardy_type_t type)
+{
+    if (!vm || !payload)
+        return -1;
+
+    if (len > TARDY_MAX_PAYLOAD)
+        return -1;
+
+    /* Verify sender exists */
+    tardy_agent_t *sender = tardy_vm_find(vm, from);
+    if (!sender)
+        return -1;
+
+    /* Find target agent */
+    tardy_agent_t *target = tardy_vm_find(vm, to);
+    if (!target)
+        return -1;
+
+    /* Build the message */
+    tardy_message_t msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.from         = from;
+    msg.to           = to;
+    msg.payload_type = type;
+    memcpy(msg.payload, payload, len);
+    msg.payload_len  = len;
+    msg.sent_at      = now_ns_vm();
+
+    /* Hash the payload for integrity */
+    tardy_sha256(payload, len, &msg.hash);
+
+    /* Push to target's inbox */
+    return tardy_mq_push(&target->context.inbox, &msg);
+}
+
+/* ============================================
+ * Recv — pop the next message from an agent's inbox
+ * ============================================ */
+
+int tardy_vm_recv(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                   tardy_message_t *out)
+{
+    if (!vm || !out)
+        return -1;
+
+    tardy_agent_t *agent = tardy_vm_find(vm, agent_id);
+    if (!agent)
+        return -1;
+
+    return tardy_mq_pop(&agent->context.inbox, out);
 }
