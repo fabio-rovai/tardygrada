@@ -5,13 +5,14 @@
  */
 
 #include "terraform.h"
+#include "vm/util.h"
 #include "exec.h"
 #include <string.h>
 #include <unistd.h>
 
 static void tf_print(const char *s)
 {
-(void)write(STDERR_FILENO, s, strlen(s));
+tardy_write(STDERR_FILENO, s, strlen(s));
 }
 
 int tardy_fork(tardy_vm_t *vm, tardy_uuid_t parent_id,
