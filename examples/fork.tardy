@@ -1,0 +1,4 @@
+agent Main {
+    fork "examples/module.tardy" as Utils
+    let version: int = 1
+}
