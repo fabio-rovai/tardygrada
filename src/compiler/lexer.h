@@ -30,6 +30,7 @@ typedef enum {
     TOK_BOOL,       /* bool */
     TOK_FACT,       /* Fact */
 
+    TOK_FORK,       /* fork */
     TOK_RECEIVE,    /* receive */
     TOK_GROUNDED_IN, /* grounded_in */
     TOK_FREEZE,     /* freeze */

@@ -275,11 +275,33 @@ static void parse_agent(tardy_parser_t *p)
         if (match(p, TOK_LET)) {
             /* Immutable binding */
             parse_binding(p, true);
+        } else if (match(p, TOK_FORK)) {
+            /* fork "path/to/module.tardy" as ModuleName */
+            tardy_instruction_t finst = {0};
+            finst.opcode = OP_FORK;
+            if (!check(p, TOK_STR_LIT)) {
+                error(p, "expected file path string after fork");
+                return;
+            }
+            strncpy(finst.str_val, current(p)->text,
+                    sizeof(finst.str_val) - 1);
+            advance_tok(p);
+            /* Optional: as Name */
+            if (check(p, TOK_IDENT) &&
+                strcmp(current(p)->text, "as") == 0) {
+                advance_tok(p);
+                if (check(p, TOK_IDENT)) {
+                    strncpy(finst.name, current(p)->text,
+                            sizeof(finst.name) - 1);
+                    advance_tok(p);
+                }
+            }
+            emit_inst(p, finst);
         } else if (check(p, TOK_IDENT)) {
             /* Mutable binding */
             parse_binding(p, false);
         } else {
-            error(p, "expected 'let' or identifier");
+            error(p, "expected 'let', 'fork', or identifier");
             return;
         }
     }
