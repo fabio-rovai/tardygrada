@@ -170,6 +170,18 @@ tardy_agent_t *tardy_vm_find_by_name(tardy_vm_t *vm,
                                       const char *name);
 
 /* ============================================
+ * Agent Conversation
+ * ============================================ */
+
+/* Append a turn to an agent's conversation */
+int tardy_vm_converse(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                       const char *role, const char *content);
+
+/* Read an agent's conversation history */
+int tardy_vm_get_conversation(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                               tardy_conversation_turn_t *out, int max_turns);
+
+/* ============================================
  * VM Nesting — child VMs as agents
  * ============================================ */
 

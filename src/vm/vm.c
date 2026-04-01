@@ -710,6 +710,35 @@ int tardy_vm_recv(tardy_vm_t *vm, tardy_uuid_t agent_id,
 }
 
 /* ============================================
+ * Agent Conversation
+ * ============================================ */
+
+int tardy_vm_converse(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                       const char *role, const char *content)
+{
+    tardy_agent_t *a = tardy_vm_find(vm, agent_id);
+    if (!a || a->conversation_count >= TARDY_MAX_CONVERSATION)
+        return -1;
+    tardy_conversation_turn_t *turn = &a->conversation[a->conversation_count++];
+    strncpy(turn->role, role, sizeof(turn->role) - 1);
+    turn->role[sizeof(turn->role) - 1] = '\0';
+    strncpy(turn->content, content, sizeof(turn->content) - 1);
+    turn->content[sizeof(turn->content) - 1] = '\0';
+    turn->at = now_ns_vm();
+    return 0;
+}
+
+int tardy_vm_get_conversation(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                               tardy_conversation_turn_t *out, int max_turns)
+{
+    tardy_agent_t *a = tardy_vm_find(vm, agent_id);
+    if (!a) return 0;
+    int count = a->conversation_count < max_turns ? a->conversation_count : max_turns;
+    memcpy(out, a->conversation, (size_t)count * sizeof(tardy_conversation_turn_t));
+    return count;
+}
+
+/* ============================================
  * VM Nesting — child VMs as agents
  * ============================================ */
 
