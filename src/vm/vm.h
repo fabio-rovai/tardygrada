@@ -148,6 +148,16 @@ tardy_read_result_t tardy_vm_read_full(tardy_vm_t *vm,
                                         void *out, size_t len);
 
 /* ============================================
+ * Per-Agent Semantics
+ * ============================================ */
+
+const tardy_semantics_t *tardy_vm_get_semantics(tardy_vm_t *vm,
+                                                  tardy_uuid_t agent_id);
+
+int tardy_vm_set_semantics(tardy_vm_t *vm, tardy_uuid_t agent_id,
+                            const tardy_semantics_t *sem);
+
+/* ============================================
  * Agent Lookup
  * ============================================ */
 

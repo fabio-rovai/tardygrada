@@ -395,6 +395,23 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen += rilen;
         }
     }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *ss =
+            "{\"name\":\"set_semantics\","
+            "\"description\":\"Set per-agent verification thresholds\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent\":{\"type\":\"string\"},"
+            "\"key\":{\"type\":\"string\"},"
+            "\"value\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent\",\"key\",\"value\"]}}";
+        int sslen = (int)strlen(ss);
+        if (tlen + sslen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, ss, sslen);
+            tlen += sslen;
+        }
+    }
     (void)first;
 
     tools[tlen++] = ']';
@@ -550,12 +567,13 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         work_log.agents_spawned = 1;
         work_log.compute_ns = 10000000;
 
-        tardy_work_spec_t spec = tardy_compute_work_spec(&srv->vm->semantics);
+        const tardy_semantics_t *sem = tardy_vm_get_semantics(srv->vm, target->id);
+        tardy_work_spec_t spec = tardy_compute_work_spec(sem);
 
         tardy_pipeline_result_t result = tardy_pipeline_verify(
             claim_buf, claim_len,
             decomps, 3, &grounding, &consistency,
-            &work_log, &spec, &srv->vm->semantics);
+            &work_log, &spec, sem);
 
         /* If passed, freeze agent to @verified */
         if (result.passed) {
@@ -711,6 +729,79 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                                        id, empty_result);
             if (rlen > 0) mcp_write(srv->write_buf, rlen);
         }
+        return 0;
+    }
+
+    /* ---- Built-in: set_semantics ---- */
+    if (strcmp(tool_name, "set_semantics") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char aname[64], key[64], val_str[64];
+        int at = tardy_json_find(parser, args_tok, "agent");
+        int kt = tardy_json_find(parser, args_tok, "key");
+        int vt = tardy_json_find(parser, args_tok, "value");
+        if (at < 0 || kt < 0 || vt < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing agent, key, or value");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        tardy_json_str(parser, at, aname, sizeof(aname));
+        tardy_json_str(parser, kt, key, sizeof(key));
+        tardy_json_str(parser, vt, val_str, sizeof(val_str));
+
+        /* Find agent */
+        tardy_agent_t *target = NULL;
+        for (int i = 0; i < srv->vm->agent_count; i++) {
+            target = tardy_vm_find_by_name(srv->vm, srv->vm->agents[i].id, aname);
+            if (target) break;
+        }
+        if (!target) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "agent not found");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        /* Clone from global if needed, then set key */
+        const tardy_semantics_t *current = tardy_vm_get_semantics(srv->vm, target->id);
+        tardy_semantics_t updated = *current;
+
+        if (strcmp(key, "truth.min_confidence") == 0) {
+            /* Simple float parse */
+            float f = 0.0f;
+            const char *s = val_str;
+            int neg = 0, i = 0;
+            if (s[0] == '-') { neg = 1; i = 1; }
+            for (; s[i] && s[i] != '.'; i++) f = f * 10.0f + (s[i] - '0');
+            if (s[i] == '.') { i++; float frac = 0.1f; for (; s[i]; i++) { f += (s[i] - '0') * frac; frac *= 0.1f; } }
+            if (neg) f = -f;
+            updated.truth.min_confidence = f;
+        } else if (strcmp(key, "truth.min_consensus_agents") == 0) {
+            updated.truth.min_consensus_agents = (int)tardy_json_int(parser, vt);
+        } else if (strcmp(key, "truth.min_evidence_triples") == 0) {
+            updated.truth.min_evidence_triples = (int)tardy_json_int(parser, vt);
+        } else if (strcmp(key, "pipeline.min_passing_layers") == 0) {
+            updated.pipeline.min_passing_layers = (int)tardy_json_int(parser, vt);
+        } else {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "unknown semantics key");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        tardy_vm_set_semantics(srv->vm, target->id, &updated);
+
+        const char *ok_result =
+            "{\"content\":[{\"type\":\"text\","
+            "\"text\":\"semantics updated\"}]}";
+        int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE, id, ok_result);
+        if (rlen > 0) mcp_write(srv->write_buf, rlen);
         return 0;
     }
 
