@@ -251,6 +251,49 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
 }
 
 /* ============================================
+ * Read Full — read value + provenance + proof
+ * ============================================ */
+
+tardy_read_result_t tardy_vm_read_full(tardy_vm_t *vm,
+                                        tardy_uuid_t parent_id,
+                                        const char *name,
+                                        void *out, size_t len)
+{
+    tardy_read_result_t result;
+    memset(&result, 0, sizeof(result));
+
+    tardy_agent_t *agent = tardy_vm_find_by_name(vm, parent_id, name);
+    if (!agent) {
+        result.status = TARDY_READ_HASH_MISMATCH;
+        return result;
+    }
+
+    /* Perform the normal read */
+    result.status = tardy_vm_read(vm, parent_id, name, out, len);
+
+    /* Copy provenance and metadata from the agent */
+    result.provenance = agent->provenance;
+    result.trust      = agent->trust;
+    result.state      = agent->state;
+    result.type_tag   = agent->type_tag;
+    result.data_size  = agent->data_size;
+
+    /* Determine truth strength from trust level */
+    if (agent->trust >= TARDY_TRUST_SOVEREIGN)
+        result.strength = TARDY_TRUTH_AXIOMATIC;
+    else if (agent->trust >= TARDY_TRUST_HARDENED)
+        result.strength = TARDY_TRUTH_PROVEN;
+    else if (agent->trust >= TARDY_TRUST_VERIFIED)
+        result.strength = TARDY_TRUTH_EVIDENCED;
+    else if (agent->trust >= TARDY_TRUST_DEFAULT)
+        result.strength = TARDY_TRUTH_ATTESTED;
+    else
+        result.strength = TARDY_TRUTH_HYPOTHETICAL;
+
+    return result;
+}
+
+/* ============================================
  * Mutate — change a mutable agent's value
  * ============================================ */
 
