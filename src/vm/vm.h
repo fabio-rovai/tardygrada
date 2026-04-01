@@ -75,6 +75,17 @@ tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
                              tardy_trust_t trust,
                              const void *data, size_t len);
 
+/* Spawn an error agent — queryable explanation of what went wrong
+ * parent: agent context where the error occurred
+ * name: error agent name (e.g. "_error")
+ * message: human-readable error description
+ * Returns error agent ID or zero UUID on failure
+ */
+tardy_uuid_t tardy_vm_spawn_error(tardy_vm_t *vm,
+                                   tardy_uuid_t parent_id,
+                                   const char *name,
+                                   const char *message);
+
 /* Kill a mutable agent — immutable agents cannot be killed */
 int tardy_vm_kill(tardy_vm_t *vm, tardy_uuid_t agent_id);
 
