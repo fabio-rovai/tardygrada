@@ -6,6 +6,7 @@
  */
 
 #include "exec.h"
+#include "vm/util.h"
 #include "terraform.h"
 #include "../verify/pipeline.h"
 #include <sys/mman.h>
@@ -14,7 +15,7 @@
 
 static void exec_print(const char *s)
 {
-(void)write(STDERR_FILENO, s, strlen(s));
+tardy_write(STDERR_FILENO, s, strlen(s));
 }
 
 int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)

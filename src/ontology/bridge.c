@@ -159,7 +159,8 @@ static int ontology_rpc(tardy_ontology_conn_t *conn,
         return -1;
 
     /* Send newline delimiter */
-    write(conn->fd, "\n", 1);
+    sent = write(conn->fd, "\n", 1);
+    (void)sent;
 
     /* Receive (read until newline) */
     int total = 0;
