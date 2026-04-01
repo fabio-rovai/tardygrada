@@ -31,6 +31,7 @@ typedef enum {
     TARDY_TYPE_UNIT    = 0x05,
     TARDY_TYPE_FACT    = 0x06,  /* grounded claim with evidence */
     TARDY_TYPE_AGENT   = 0x07,  /* composite: agent holding agents */
+    TARDY_TYPE_ERROR   = 0x08,  /* error: queryable agent explaining what went wrong */
 } tardy_type_t;
 
 /* ============================================

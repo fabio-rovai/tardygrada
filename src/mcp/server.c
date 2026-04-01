@@ -177,6 +177,7 @@ static const char *type_str(tardy_type_t t)
     case TARDY_TYPE_FACT:  return "fact";
     case TARDY_TYPE_AGENT: return "agent";
     case TARDY_TYPE_UNIT:  return "unit";
+    case TARDY_TYPE_ERROR: return "error";
     }
     return "unknown";
 }
@@ -265,7 +266,9 @@ static int emit_tool(char *buf, int buf_size, int pos, const char *name,
     tlen += nlen;
 
     const char *mid_desc;
-    if (agent && agent->trust >= TARDY_TRUST_SOVEREIGN)
+    if (agent && agent->type_tag == TARDY_TYPE_ERROR)
+        mid_desc = "\",\"description\":\"error agent\",";
+    else if (agent && agent->trust >= TARDY_TRUST_SOVEREIGN)
         mid_desc = "\",\"description\":\"sovereign agent\",";
     else if (agent && agent->trust >= TARDY_TRUST_VERIFIED)
         mid_desc = "\",\"description\":\"verified agent\",";
@@ -579,7 +582,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         rlen += prelen;
 
         /* Format value based on type */
-        if (found_agent->type_tag == TARDY_TYPE_STR) {
+        if (found_agent->type_tag == TARDY_TYPE_STR ||
+            found_agent->type_tag == TARDY_TYPE_ERROR) {
             /* String: copy directly (escape quotes) */
             const char *s = read_buf;
             while (*s && rlen < (int)sizeof(result) - 10) {
