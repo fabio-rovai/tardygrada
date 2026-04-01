@@ -141,6 +141,94 @@ static int build_error(char *buf, int buf_size, const char *id,
 }
 
 /* ============================================
+ * Provenance Helpers
+ * ============================================ */
+
+static const char *trust_str(tardy_trust_t t)
+{
+    switch (t) {
+    case TARDY_TRUST_MUTABLE:   return "mutable";
+    case TARDY_TRUST_DEFAULT:   return "immutable";
+    case TARDY_TRUST_VERIFIED:  return "verified";
+    case TARDY_TRUST_HARDENED:  return "hardened";
+    case TARDY_TRUST_SOVEREIGN: return "sovereign";
+    }
+    return "unknown";
+}
+
+static const char *state_str(tardy_state_t s)
+{
+    switch (s) {
+    case TARDY_STATE_LIVE:   return "live";
+    case TARDY_STATE_STATIC: return "static";
+    case TARDY_STATE_TEMP:   return "temp";
+    case TARDY_STATE_DEAD:   return "dead";
+    }
+    return "unknown";
+}
+
+static const char *type_str(tardy_type_t t)
+{
+    switch (t) {
+    case TARDY_TYPE_INT:   return "int";
+    case TARDY_TYPE_FLOAT: return "float";
+    case TARDY_TYPE_STR:   return "str";
+    case TARDY_TYPE_BOOL:  return "bool";
+    case TARDY_TYPE_FACT:  return "fact";
+    case TARDY_TYPE_AGENT: return "agent";
+    case TARDY_TYPE_UNIT:  return "unit";
+    }
+    return "unknown";
+}
+
+/* Append _tardy provenance JSON to a result buffer.
+ * buf: buffer with existing JSON (without closing '}')
+ * pos: current write position in buf
+ * buf_size: total buffer size
+ * r: the read result with provenance data
+ * Returns new position, or -1 on overflow.
+ */
+static int append_provenance(char *buf, int pos, int buf_size,
+                              const tardy_read_result_t *r)
+{
+    /* Build the birth_hash hex string (first 16 bytes = 32 hex chars) */
+    char hash_hex[65];
+    int hbytes = 16;
+    for (int i = 0; i < hbytes; i++) {
+        uint8_t b = r->provenance.birth_hash.bytes[i];
+        hash_hex[i * 2]     = "0123456789abcdef"[b >> 4];
+        hash_hex[i * 2 + 1] = "0123456789abcdef"[b & 0x0f];
+    }
+    hash_hex[hbytes * 2] = '\0';
+
+    const char *reason = r->provenance.reason ? r->provenance.reason : "unknown";
+
+    /* Format the _tardy object */
+    char tardy_json[512];
+    int tlen = snprintf(tardy_json, sizeof(tardy_json),
+        ",\"_tardy\":{"
+        "\"trust\":\"%s\","
+        "\"state\":\"%s\","
+        "\"type\":\"%s\","
+        "\"created_at\":%llu,"
+        "\"reason\":\"%s\","
+        "\"birth_hash\":\"%s\""
+        "}",
+        trust_str(r->trust),
+        state_str(r->state),
+        type_str(r->type_tag),
+        (unsigned long long)r->provenance.created_at,
+        reason,
+        hash_hex);
+
+    if (tlen < 0 || pos + tlen >= buf_size)
+        return -1;
+    memcpy(buf + pos, tardy_json, tlen);
+    pos += tlen;
+    return pos;
+}
+
+/* ============================================
  * MCP Method Handlers
  * ============================================ */
 
@@ -464,7 +552,9 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
 
     /* Find agent by name anywhere in the tree */
     tardy_agent_t *found_agent = NULL;
-    tardy_read_status_t status = TARDY_READ_HASH_MISMATCH;
+    tardy_read_result_t full_result;
+    memset(&full_result, 0, sizeof(full_result));
+    full_result.status = TARDY_READ_HASH_MISMATCH;
     char read_buf[512];
     memset(read_buf, 0, sizeof(read_buf));
 
@@ -473,14 +563,15 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             srv->vm, srv->vm->agents[i].id, tool_name);
         if (candidate) {
             found_agent = candidate;
-            status = tardy_vm_read(srv->vm, srv->vm->agents[i].id,
-                                    tool_name, read_buf, sizeof(read_buf));
+            full_result = tardy_vm_read_full(srv->vm, srv->vm->agents[i].id,
+                                              tool_name, read_buf,
+                                              sizeof(read_buf));
             break;
         }
     }
 
-    if (status == TARDY_READ_OK && found_agent) {
-        char result[1024];
+    if (full_result.status == TARDY_READ_OK && found_agent) {
+        char result[2048];
         int rlen = 0;
         const char *pre = "{\"content\":[{\"type\":\"text\",\"text\":\"";
         int prelen = (int)strlen(pre);
@@ -524,10 +615,26 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             rlen += nlen;
         }
 
-        const char *suf = "\"}]}";
-        int suflen = (int)strlen(suf);
-        memcpy(result + rlen, suf, suflen);
-        rlen += suflen;
+        /* Close content array, then append _tardy, then close object.
+         * Current result so far: {"content":[{"type":"text","text":"VALUE
+         * We need: ...VALUE"}], "_tardy":{...}}
+         */
+        const char *arr_close = "\"}]";
+        int aclen = (int)strlen(arr_close);
+        if (rlen + aclen < (int)sizeof(result)) {
+            memcpy(result + rlen, arr_close, aclen);
+            rlen += aclen;
+        }
+
+        /* Append provenance */
+        int new_rlen = append_provenance(result, rlen, (int)sizeof(result),
+                                          &full_result);
+        if (new_rlen > 0)
+            rlen = new_rlen;
+
+        /* Close outer object */
+        if (rlen < (int)sizeof(result) - 1)
+            result[rlen++] = '}';
         result[rlen] = '\0';
 
         int len = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
@@ -535,6 +642,7 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         if (len > 0)
             mcp_write(srv->write_buf, len);
     } else {
+        tardy_read_status_t status = full_result.status;
         const char *err;
         switch (status) {
         case TARDY_READ_HASH_MISMATCH:  err = "hash verification failed"; break;

@@ -99,6 +99,30 @@ tardy_uuid_t tardy_vm_freeze(tardy_vm_t *vm,
  * Agent Lookup
  * ============================================ */
 
+/* ============================================
+ * Full Read Result — value + provenance + proof
+ * ============================================ */
+
+typedef struct {
+    tardy_read_status_t    status;
+    tardy_provenance_t     provenance;
+    tardy_trust_t          trust;
+    tardy_truth_strength_t strength;
+    tardy_state_t          state;
+    tardy_type_t           type_tag;
+    size_t                 data_size;
+} tardy_read_result_t;
+
+/* Read an agent's value and full provenance by name */
+tardy_read_result_t tardy_vm_read_full(tardy_vm_t *vm,
+                                        tardy_uuid_t parent_id,
+                                        const char *name,
+                                        void *out, size_t len);
+
+/* ============================================
+ * Agent Lookup
+ * ============================================ */
+
 /* Find agent by ID */
 tardy_agent_t *tardy_vm_find(tardy_vm_t *vm, tardy_uuid_t id);
 
