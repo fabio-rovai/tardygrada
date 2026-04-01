@@ -52,8 +52,8 @@ static void mcp_write(const char *data, int len)
     header[hlen++] = '\r';
     header[hlen++] = '\n';
 
-    write(STDOUT_FILENO, header, hlen);
-    write(STDOUT_FILENO, data, len);
+(void)write(STDOUT_FILENO, header, hlen);
+(void)write(STDOUT_FILENO, data, len);
 }
 
 /* Build a JSON-RPC response */
@@ -1236,19 +1236,19 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
     if (srv->bridge.dual_mode) {
         /* both sketch and complete connected */
         const char *msg = "[tardygrada] ontology: dual mode (sketch+complete)\n";
-        write(STDERR_FILENO, msg, strlen(msg));
+    (void)write(STDERR_FILENO, msg, strlen(msg));
     } else if (srv->bridge.sketch.connected) {
         /* sketch only */
         const char *msg = "[tardygrada] ontology: sketch only\n";
-        write(STDERR_FILENO, msg, strlen(msg));
+    (void)write(STDERR_FILENO, msg, strlen(msg));
     } else if (srv->bridge.complete.connected) {
         /* complete only */
         const char *msg = "[tardygrada] ontology: complete only\n";
-        write(STDERR_FILENO, msg, strlen(msg));
+    (void)write(STDERR_FILENO, msg, strlen(msg));
     } else {
         /* no ontology — fallback to UNKNOWN */
         const char *msg = "[tardygrada] ontology: none (fallback to UNKNOWN)\n";
-        write(STDERR_FILENO, msg, strlen(msg));
+    (void)write(STDERR_FILENO, msg, strlen(msg));
     }
 
     return 0;

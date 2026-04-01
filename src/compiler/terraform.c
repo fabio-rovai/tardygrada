@@ -11,7 +11,7 @@
 
 static void tf_print(const char *s)
 {
-    write(STDERR_FILENO, s, strlen(s));
+(void)write(STDERR_FILENO, s, strlen(s));
 }
 
 int tardy_fork(tardy_vm_t *vm, tardy_uuid_t parent_id,
