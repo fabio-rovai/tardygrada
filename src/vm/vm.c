@@ -4,6 +4,7 @@
  */
 
 #include "vm.h"
+#include "constitution.h"
 #include <string.h>
 #include <time.h>
 
@@ -49,6 +50,7 @@ int tardy_vm_init(tardy_vm_t *vm, const tardy_semantics_t *semantics)
     root->trust     = TARDY_TRUST_SOVEREIGN;
     root->ref_count = 1; /* self-reference, never GC'd */
     root->last_accessed = now_ns_vm();
+    tardy_constitution_init(&root->constitution);
     vm->agent_count = 1;
 
     vm->boot_time = now_ns_vm();
@@ -160,6 +162,9 @@ tardy_uuid_t tardy_vm_spawn(tardy_vm_t *vm,
     agent->memory = tardy_mem_alloc(len, trust, replicas);
     tardy_mem_init(&agent->memory, data, len, &vm->root_key);
 
+    /* Inherit parent's constitution */
+    agent->constitution = parent->constitution;
+
     /* Set provenance */
     agent->provenance.created_by = parent_id;
     agent->provenance.created_at = now_ns_vm();
@@ -241,13 +246,28 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
             memcpy(out, &agent->static_value,
                    len < sizeof(int64_t) ? len : sizeof(int64_t));
         }
+        /* Check constitution before returning */
+        if (tardy_constitution_check(&agent->constitution,
+                                     agent->type_tag, agent->trust,
+                                     out, len) != 0)
+            return TARDY_READ_HASH_MISMATCH;
         return TARDY_READ_OK;
     }
 
     /* Live/Temp: read using the original data size for correct hash verification */
     size_t read_size = agent->data_size > 0 ? agent->data_size : len;
     if (read_size > len) read_size = len;
-    return tardy_mem_read(&agent->memory, out, read_size);
+    tardy_read_status_t status = tardy_mem_read(&agent->memory, out, read_size);
+    if (status != TARDY_READ_OK)
+        return status;
+
+    /* Check constitution before returning */
+    if (tardy_constitution_check(&agent->constitution,
+                                 agent->type_tag, agent->trust,
+                                 out, read_size) != 0)
+        return TARDY_READ_HASH_MISMATCH;
+
+    return TARDY_READ_OK;
 }
 
 /* ============================================
@@ -307,6 +327,12 @@ int tardy_vm_mutate(tardy_vm_t *vm,
         return -1;
 
     if (agent->trust != TARDY_TRUST_MUTABLE)
+        return -1;
+
+    /* Check constitution BEFORE committing the mutation */
+    if (tardy_constitution_check(&agent->constitution,
+                                 agent->type_tag, agent->trust,
+                                 data, len) != 0)
         return -1;
 
     /* TODO: record mutation in provenance log */

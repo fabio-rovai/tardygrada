@@ -9,6 +9,7 @@
 
 #include "types.h"
 #include "memory.h"
+#include "constitution.h"
 
 /* ============================================
  * Context Pointer — the fundamental reference
@@ -133,8 +134,7 @@ typedef struct tardy_agent {
     tardy_timestamp_t      last_accessed;
 
     /* Constitution — invariants checked every operation */
-    tardy_uuid_t          *constitution;  /* array of invariant agent IDs */
-    int                    constitution_count;
+    tardy_constitution_t   constitution;
 
     /* Temp state */
     uint64_t               temp_ttl_ms;
