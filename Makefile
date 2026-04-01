@@ -45,5 +45,14 @@ size: $(BIN)
 	@echo "\nSection sizes:"
 	@size $(BIN)
 
+bench: tardygrada
+	$(CC) $(CFLAGS) $(LDFLAGS) -o bench tests/benchmark.c \
+		src/vm/memory.c src/vm/context.c src/vm/vm.c src/vm/crypto.c \
+		src/vm/message.c src/vm/constitution.c src/vm/heal.c src/vm/persist.c \
+		src/vm/semantic.c src/verify/pipeline.c src/verify/decompose.c \
+		src/mcp/json.c src/ontology/bridge.c
+	./bench
+	rm -f bench
+
 clean:
 	rm -f $(OBJ) $(BIN)
