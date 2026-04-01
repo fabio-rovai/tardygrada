@@ -6,6 +6,7 @@
 #include "vm.h"
 #include "heal.h"
 #include "constitution.h"
+#include "persist.h"
 #include <string.h>
 #include <time.h>
 #include <sys/mman.h>
@@ -521,9 +522,18 @@ int tardy_vm_gc(tardy_vm_t *vm)
         if (a->state == TARDY_STATE_DEAD)
             continue;
 
-        /* @sovereign: never collect, never demote */
-        if (a->trust == TARDY_TRUST_SOVEREIGN)
+        /* @sovereign: never collect, never demote — dump to disk when idle */
+        if (a->trust == TARDY_TRUST_SOVEREIGN) {
+            uint64_t idle = now - a->last_accessed;
+            uint64_t sov_threshold =
+                (uint64_t)vm->semantics.lifecycle.sovereign_dump_idle_ms
+                * 1000000ULL;
+            if (idle > sov_threshold) {
+                tardy_persist_dump(a, TARDY_PERSIST_DIR);
+                /* Don't demote — just persist for recovery */
+            }
             continue;
+        }
 
         uint64_t idle = now - a->last_accessed;
 
