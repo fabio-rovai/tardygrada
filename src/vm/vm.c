@@ -4,6 +4,7 @@
  */
 
 #include "vm.h"
+#include "heal.h"
 #include "constitution.h"
 #include <string.h>
 #include <time.h>
@@ -318,6 +319,14 @@ tardy_read_status_t tardy_vm_read(tardy_vm_t *vm,
     size_t read_size = agent->data_size > 0 ? agent->data_size : len;
     if (read_size > len) read_size = len;
     tardy_read_status_t status = tardy_mem_read(&agent->memory, out, read_size);
+    if (status != TARDY_READ_OK) {
+        /* Try self-heal before giving up */
+        if (tardy_heal(vm, agent->id, TARDY_HEAL_REVERIFY) == 0 ||
+            tardy_heal(vm, agent->id, TARDY_HEAL_RECONSTRUCT) == 0) {
+            /* Retry the read */
+            status = tardy_mem_read(&agent->memory, out, read_size);
+        }
+    }
     if (status != TARDY_READ_OK)
         return status;
 
