@@ -10,10 +10,10 @@
  * - If majority matches birth_hash, return the value
  *)
 
-Require Import Coq.Arith.Arith.
-Require Import Coq.Lists.List.
-Require Import Coq.Bool.Bool.
-Require Import Lia.
+From Stdlib Require Import Arith.
+From Stdlib Require Import List.
+From Stdlib Require Import Bool.
+From Stdlib Require Import Lia.
 Import ListNotations.
 
 (* A replica is either honest (holds original value) or corrupted *)
@@ -73,7 +73,7 @@ Lemma honest_corrupt_total :
 Proof.
   induction replicas as [| r rest IH].
   - reflexivity.
-  - destruct r; simpl; rewrite IH; reflexivity.
+  - destruct r; simpl; lia.
 Qed.
 
 (* Key lemma: honest replicas all vote for the original value *)
@@ -83,16 +83,17 @@ Lemma honest_votes_for_original :
   count_value v replicas >= count_honest replicas.
 Proof.
   intros v replicas. induction replicas as [| r rest IH].
-  - simpl. auto.
+  - simpl. lia.
   - destruct r as [v' | v'].
     + simpl. intros [Heq Hrest].
       subst v'.
       rewrite Nat.eqb_refl.
       apply le_n_S. apply IH. exact Hrest.
-    + simpl. intros Hrest.
-      destruct (Nat.eqb (replica_value (Corrupt v')) v) eqn:E.
-      * apply le_S. apply IH. exact Hrest.
-      * apply IH. exact Hrest.
+    + simpl. unfold replica_value. intros Hrest.
+      specialize (IH Hrest).
+      destruct (Nat.eqb v' v).
+      * apply le_S. exact IH.
+      * exact IH.
 Qed.
 
 (* ============================================
@@ -114,10 +115,8 @@ Theorem bft_safety :
 Proof.
   intros v replicas Hagree Hcorrupt.
   unfold has_majority.
-  assert (Hhonest: count_value v replicas >= count_honest replicas)
-    by (apply honest_votes_for_original; exact Hagree).
-  assert (Htotal: count_honest replicas + count_corrupt replicas = length replicas)
-    by (apply honest_corrupt_total).
+  pose proof (honest_votes_for_original v replicas Hagree) as Hhonest.
+  pose proof (honest_corrupt_total replicas) as Htotal.
   lia.
 Qed.
 
@@ -128,7 +127,9 @@ Corollary bft_3_replicas :
   count_corrupt [r1; r2; r3] <= 1 ->
   has_majority v [r1; r2; r3].
 Proof.
-  intros. apply bft_safety; auto. simpl. lia.
+  intros v r1 r2 r3 Hagree Hcorrupt.
+  apply bft_safety; auto.
+  simpl in *. destruct r1, r2, r3; simpl in *; lia.
 Qed.
 
 (* Corollary: 5 replicas, at most 2 corrupt (@sovereign default) *)
@@ -138,7 +139,9 @@ Corollary bft_5_replicas :
   count_corrupt [r1; r2; r3; r4; r5] <= 2 ->
   has_majority v [r1; r2; r3; r4; r5].
 Proof.
-  intros. apply bft_safety; auto. simpl. lia.
+  intros v r1 r2 r3 r4 r5 Hagree Hcorrupt.
+  apply bft_safety; auto.
+  simpl in *. destruct r1, r2, r3, r4, r5; simpl in *; lia.
 Qed.
 
 (* Uniqueness: at most one value can have majority *)
@@ -151,8 +154,6 @@ Theorem majority_unique :
 Proof.
   intros v1 v2 replicas Hmaj1 Hmaj2 Hneq.
   unfold has_majority in *.
-  (* Two different values can't both have > N/2 votes
-     because that would require > N total votes *)
   assert (Hbound: count_value v1 replicas + count_value v2 replicas <= length replicas).
   { clear Hmaj1 Hmaj2.
     induction replicas as [| r rest IH].
@@ -160,12 +161,11 @@ Proof.
     - simpl.
       destruct (Nat.eqb (replica_value r) v1) eqn:E1;
       destruct (Nat.eqb (replica_value r) v2) eqn:E2.
-      + (* Both match — impossible since v1 <> v2 *)
-        apply Nat.eqb_eq in E1. apply Nat.eqb_eq in E2.
+      + apply Nat.eqb_eq in E1. apply Nat.eqb_eq in E2.
         exfalso. apply Hneq. lia.
-      + simpl. specialize (IH). lia.
-      + simpl. specialize (IH). lia.
-      + simpl. specialize (IH). lia.
+      + specialize (IH). lia.
+      + specialize (IH). lia.
+      + specialize (IH). lia.
   }
   lia.
 Qed.
