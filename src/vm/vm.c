@@ -95,15 +95,30 @@ tardy_agent_t *tardy_vm_find_by_name(tardy_vm_t *vm,
                                       tardy_uuid_t parent_id,
                                       const char *name)
 {
-    tardy_agent_t *parent = tardy_vm_find(vm, parent_id);
-    if (!parent)
-        return NULL;
+    tardy_uuid_t current = parent_id;
+    int depth = 0;
+    while (depth < 32) { /* max scope depth to prevent infinite loops */
+        tardy_agent_t *parent = tardy_vm_find(vm, current);
+        if (!parent)
+            break;
 
-    for (int i = 0; i < parent->context.child_count; i++) {
-        if (strncmp(parent->context.children[i].name, name,
-                    TARDY_CTX_MAX_NAME) == 0) {
-            return tardy_vm_find(vm, parent->context.children[i].agent_id);
+        /* Check children of current scope */
+        for (int i = 0; i < parent->context.child_count; i++) {
+            if (strncmp(parent->context.children[i].name, name,
+                        TARDY_CTX_MAX_NAME) == 0) {
+                return tardy_vm_find(vm,
+                                     parent->context.children[i].agent_id);
+            }
         }
+
+        /* Walk up to parent's parent */
+        tardy_uuid_t grandparent = parent->provenance.created_by;
+        if (tardy_uuid_eq(&grandparent, &current))
+            break; /* root agent points to itself — stop */
+        if (grandparent.hi == 0 && grandparent.lo == 0)
+            break; /* no parent */
+        current = grandparent;
+        depth++;
     }
     return NULL;
 }
