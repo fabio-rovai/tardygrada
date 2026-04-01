@@ -1,0 +1,4 @@
+agent Utils {
+    let pi: float = 3
+    let greeting: str = "hello from module"
+}

@@ -29,6 +29,7 @@ typedef enum {
     OP_SPAWN_VALUE,    /* create a value agent in current agent */
     OP_RECEIVE,        /* receive() — spawn pending agent, filled via MCP */
     OP_FREEZE,         /* freeze mutable agent to immutable with trust level */
+    OP_FORK,           /* fork a .tardy file into current context */
     OP_HALT,           /* end of program */
 } tardy_opcode_t;
 
