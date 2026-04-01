@@ -10,6 +10,7 @@ SRC = src/main.c \
       src/vm/message.c \
       src/vm/constitution.c \
       src/vm/heal.c \
+      src/vm/persist.c \
       src/mcp/json.c \
       src/mcp/server.c \
       src/verify/pipeline.c \
