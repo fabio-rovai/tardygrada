@@ -105,6 +105,18 @@ typedef struct {
 } tardy_tombstone_t;
 
 /* ============================================
+ * Conversation History — agent body is a conversation
+ * ============================================ */
+
+#define TARDY_MAX_CONVERSATION 32
+
+typedef struct {
+    char              role[16];     /* "system", "user", "agent" */
+    char              content[512];
+    tardy_timestamp_t at;
+} tardy_conversation_turn_t;
+
+/* ============================================
  * The Agent — the fundamental unit of everything
  * ============================================ */
 
@@ -144,6 +156,10 @@ typedef struct tardy_agent {
 
     /* Temp state */
     uint64_t               temp_ttl_ms;
+
+    /* Conversation history — agent body is a conversation */
+    tardy_conversation_turn_t conversation[TARDY_MAX_CONVERSATION];
+    int                       conversation_count;
 } tardy_agent_t;
 
 /* ============================================

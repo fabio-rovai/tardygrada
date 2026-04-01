@@ -436,6 +436,21 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen += qalen;
         }
     }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *gc =
+            "{\"name\":\"get_conversation\","
+            "\"description\":\"Read agent conversation history\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"agent\":{\"type\":\"string\"}},"
+            "\"required\":[\"agent\"]}}";
+        int gclen = (int)strlen(gc);
+        if (tlen + gclen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, gc, gclen);
+            tlen += gclen;
+        }
+    }
     (void)first;
 
     tools[tlen++] = ']';
@@ -509,6 +524,17 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         }
 
         if (mutated == 0) {
+            /* Record in agent's conversation */
+            for (int i = 0; i < srv->vm->agent_count; i++) {
+                tardy_agent_t *candidate = tardy_vm_find_by_name(
+                    srv->vm, srv->vm->agents[i].id, agent_name);
+                if (candidate) {
+                    tardy_vm_converse(srv->vm, candidate->id,
+                                       "user", claim_text);
+                    break;
+                }
+            }
+
             const char *ok_result =
                 "{\"content\":[{\"type\":\"text\","
                 "\"text\":\"claim submitted\"}]}";
@@ -677,19 +703,38 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         work_log.agents_spawned = 3; /* 3 independent verification runs */
         work_log.compute_ns = mcp_now_ns() - verify_start;
 
-        /* If passed, freeze agent to @verified */
+        /* If passed, record provenance and freeze agent to @verified */
         if (verified) {
+            /* Record verification results in provenance before freezing */
+            target->provenance.reason = "verified_claim";
+
+            /* Also record the number of grounded triples */
+            target->provenance.causality_count = grounding.grounded;
+
             tardy_vm_freeze(srv->vm, target->id, TARDY_TRUST_VERIFIED);
+
+            char turn_msg[256];
+            snprintf(turn_msg, sizeof(turn_msg),
+                     "verified: strength=%d confidence=%d%%",
+                     (int)final_strength, (int)(avg_confidence * 100));
+            tardy_vm_converse(srv->vm, target->id, "agent", turn_msg);
+        } else {
+            tardy_vm_converse(srv->vm, target->id, "agent",
+                               "verification failed");
         }
 
         /* Build result message */
-        char result_text[256];
+        char result_text[512];
         snprintf(result_text, sizeof(result_text),
                  "{\"content\":[{\"type\":\"text\","
-                 "\"text\":\"verified=%s strength=%d confidence=%d%%\"}]}",
+                 "\"text\":\"verified=%s strength=%d confidence=%d%% "
+                 "bft=%d/3 triples_grounded=%d/%d\"}]}",
                  verified ? "true" : "false",
                  (int)final_strength,
-                 (int)(avg_confidence * 100));
+                 (int)(avg_confidence * 100),
+                 pass_count,
+                 grounding.grounded,
+                 grounding.count);
 
         int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
                                    id, result_text);
@@ -983,6 +1028,83 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         return 0;
     }
 
+    /* ---- Built-in: get_conversation ---- */
+    if (strcmp(tool_name, "get_conversation") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int agent_tok = tardy_json_find(parser, args_tok, "agent");
+        if (agent_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing agent");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char agent_name[64];
+        tardy_json_str(parser, agent_tok, agent_name, sizeof(agent_name));
+
+        /* Find the agent */
+        tardy_agent_t *conv_target = NULL;
+        for (int i = 0; i < srv->vm->agent_count; i++) {
+            tardy_agent_t *c = tardy_vm_find_by_name(
+                srv->vm, srv->vm->agents[i].id, agent_name);
+            if (c) { conv_target = c; break; }
+        }
+
+        if (!conv_target) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32000, "agent not found");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+
+        tardy_conversation_turn_t turns[TARDY_MAX_CONVERSATION];
+        int count = tardy_vm_get_conversation(srv->vm, conv_target->id,
+                                               turns, TARDY_MAX_CONVERSATION);
+
+        /* Build JSON array of turns */
+        char result_buf[4096];
+        int rpos = 0;
+        const char *rpre = "{\"content\":[{\"type\":\"text\",\"text\":\"[";
+        int rplen = (int)strlen(rpre);
+        memcpy(result_buf + rpos, rpre, rplen);
+        rpos += rplen;
+
+        for (int ci = 0; ci < count; ci++) {
+            if (ci > 0 && rpos < (int)sizeof(result_buf) - 1)
+                result_buf[rpos++] = ',';
+            char entry[640];
+            int elen = snprintf(entry, sizeof(entry),
+                "{\\\"role\\\":\\\"%s\\\","
+                "\\\"content\\\":\\\"%s\\\","
+                "\\\"at\\\":%llu}",
+                turns[ci].role,
+                turns[ci].content,
+                (unsigned long long)turns[ci].at);
+            if (elen > 0 && rpos + elen < (int)sizeof(result_buf)) {
+                memcpy(result_buf + rpos, entry, elen);
+                rpos += elen;
+            }
+        }
+
+        const char *rsuf = "]\"}]}";
+        int rslen = (int)strlen(rsuf);
+        if (rpos + rslen < (int)sizeof(result_buf)) {
+            memcpy(result_buf + rpos, rsuf, rslen);
+            rpos += rslen;
+        }
+        result_buf[rpos] = '\0';
+
+        int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                   id, result_buf);
+        if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        return 0;
+    }
+
     /* Find agent by name anywhere in the tree */
     tardy_agent_t *found_agent = NULL;
     tardy_read_result_t full_result;
@@ -1109,6 +1231,25 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
         "/tmp/tardygrada-ontology-sketch.sock",
         "/tmp/tardygrada-ontology-complete.sock");
     srv->bridge_connected = (bridge_ok == 0);
+
+    /* Log which ontology mode is active (stderr to avoid corrupting MCP) */
+    if (srv->bridge.dual_mode) {
+        /* both sketch and complete connected */
+        const char *msg = "[tardygrada] ontology: dual mode (sketch+complete)\n";
+        write(STDERR_FILENO, msg, strlen(msg));
+    } else if (srv->bridge.sketch.connected) {
+        /* sketch only */
+        const char *msg = "[tardygrada] ontology: sketch only\n";
+        write(STDERR_FILENO, msg, strlen(msg));
+    } else if (srv->bridge.complete.connected) {
+        /* complete only */
+        const char *msg = "[tardygrada] ontology: complete only\n";
+        write(STDERR_FILENO, msg, strlen(msg));
+    } else {
+        /* no ontology — fallback to UNKNOWN */
+        const char *msg = "[tardygrada] ontology: none (fallback to UNKNOWN)\n";
+        write(STDERR_FILENO, msg, strlen(msg));
+    }
 
     return 0;
 }
