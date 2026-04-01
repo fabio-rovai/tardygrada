@@ -128,6 +128,24 @@ typedef struct {
 } tardy_laziness_verdict_t;
 
 /* ============================================
+ * Failure Intelligence — structured error types
+ * ============================================ */
+
+typedef enum {
+    TARDY_FAIL_NONE = 0,
+    TARDY_FAIL_DECOMPOSITION,     /* text couldn't be broken into meaningful triples */
+    TARDY_FAIL_ONTOLOGY_GAP,      /* ontology has no data (UNKNOWN, not contradicted) */
+    TARDY_FAIL_CONTRADICTION,     /* ontology contradicts the claim */
+    TARDY_FAIL_LOW_CONFIDENCE,    /* evidence exists but below threshold */
+    TARDY_FAIL_INCONSISTENCY,     /* triples contradict each other */
+    TARDY_FAIL_NO_EVIDENCE,       /* grounding found zero supporting triples */
+    TARDY_FAIL_PROTOCOL,          /* claim structure invalid */
+    TARDY_FAIL_LAZINESS,          /* agent didn't do enough work */
+    TARDY_FAIL_AMBIGUITY,         /* multiple interpretations, can't resolve */
+    TARDY_FAIL_CROSS_REP,         /* layers disagree with each other */
+} tardy_failure_type_t;
+
+/* ============================================
  * Pipeline Result — the full output
  * ============================================ */
 
@@ -140,6 +158,8 @@ typedef struct {
     tardy_layer_result_t    layers[TARDY_LAYER_COUNT];
     tardy_truth_strength_t  strength;       /* computed truth strength */
     tardy_laziness_verdict_t laziness;      /* work verification result */
+    tardy_failure_type_t    failure_type;    /* structured failure reason */
+    char                    failure_detail[256]; /* human-readable failure detail */
 } tardy_pipeline_result_t;
 
 /* ============================================
