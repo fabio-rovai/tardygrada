@@ -399,11 +399,89 @@ static void parse_agent(tardy_parser_t *p)
             }
 
             emit_inst(p, cinst);
+        } else if (check(p, TOK_INVARIANT)) {
+            advance_tok(p);
+            tardy_instruction_t iinst = {0};
+            iinst.opcode = OP_ADD_INVARIANT;
+
+            if (!expect(p, TOK_LPAREN, "expected '(' after invariant"))
+                return;
+
+            /* Parse invariant type */
+            if (check(p, TOK_IDENT)) {
+                const char *itype = current(p)->text;
+                if (strcmp(itype, "trust_min") == 0) {
+                    iinst.invariant_type = 3; /* TARDY_INVARIANT_TRUST_MIN */
+                    advance_tok(p);
+                    if (!expect(p, TOK_COLON, "expected ':'"))
+                        return;
+                    /* Parse trust level */
+                    if (check(p, TOK_AT_VERIFIED)) {
+                        iinst.inv_trust = TARDY_TRUST_VERIFIED;
+                        advance_tok(p);
+                    } else if (check(p, TOK_AT_HARDENED)) {
+                        iinst.inv_trust = TARDY_TRUST_HARDENED;
+                        advance_tok(p);
+                    } else if (check(p, TOK_AT_SOVEREIGN)) {
+                        iinst.inv_trust = TARDY_TRUST_SOVEREIGN;
+                        advance_tok(p);
+                    } else {
+                        error(p, "expected trust level (@verified, @hardened, @sovereign)");
+                        return;
+                    }
+                } else if (strcmp(itype, "non_empty") == 0) {
+                    iinst.invariant_type = 2; /* TARDY_INVARIANT_NON_EMPTY */
+                    advance_tok(p);
+                } else if (strcmp(itype, "range") == 0) {
+                    iinst.invariant_type = 1; /* TARDY_INVARIANT_RANGE */
+                    advance_tok(p);
+                    if (!expect(p, TOK_COLON, "expected ':'"))
+                        return;
+                    if (check(p, TOK_INT_LIT)) {
+                        /* parse min */
+                        iinst.inv_min = 0;
+                        const char *s = current(p)->text;
+                        for (int ii = 0; s[ii]; ii++)
+                            iinst.inv_min = iinst.inv_min * 10 + (s[ii] - '0');
+                        advance_tok(p);
+                    }
+                    if (check(p, TOK_COMMA)) advance_tok(p);
+                    if (check(p, TOK_INT_LIT)) {
+                        /* parse max */
+                        iinst.inv_max = 0;
+                        const char *s = current(p)->text;
+                        for (int ii = 0; s[ii]; ii++)
+                            iinst.inv_max = iinst.inv_max * 10 + (s[ii] - '0');
+                        advance_tok(p);
+                    }
+                } else {
+                    error(p, "unknown invariant type");
+                    return;
+                }
+            }
+
+            if (!expect(p, TOK_RPAREN, "expected ')'"))
+                return;
+
+            emit_inst(p, iinst);
+        } else if (match(p, TOK_FREEZE)) {
+            tardy_instruction_t finst = {0};
+            finst.opcode = OP_FREEZE;
+            if (!check(p, TOK_IDENT)) {
+                error(p, "expected agent name after freeze");
+                return;
+            }
+            strncpy(finst.name, current(p)->text, sizeof(finst.name) - 1);
+            advance_tok(p);
+            finst.trust = parse_trust(p);
+            if (finst.trust < TARDY_TRUST_DEFAULT)
+                finst.trust = TARDY_TRUST_VERIFIED; /* default freeze to @verified */
+            emit_inst(p, finst);
         } else if (check(p, TOK_IDENT)) {
             /* Mutable binding */
             parse_binding(p, false);
         } else {
-            error(p, "expected 'let', 'fork', 'coordinate', or identifier");
+            error(p, "expected 'let', 'fork', 'coordinate', 'invariant', 'freeze', or identifier");
             return;
         }
     }

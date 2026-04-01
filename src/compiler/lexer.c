@@ -100,6 +100,7 @@ static tardy_tok_type_t keyword_type(const char *word)
     if (strcmp(word, "coordinate") == 0)  return TOK_COORDINATE;
     if (strcmp(word, "on") == 0)          return TOK_ON;
     if (strcmp(word, "consensus") == 0)   return TOK_CONSENSUS;
+    if (strcmp(word, "invariant") == 0)  return TOK_INVARIANT;
     return TOK_IDENT;
 }
 

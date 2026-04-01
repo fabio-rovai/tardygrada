@@ -32,6 +32,7 @@ typedef enum {
     OP_FORK,           /* fork a .tardy file into current context */
     OP_SET_SEMANTICS,  /* set per-agent semantics override */
     OP_COORDINATE,     /* coordinate [agents] on(task) consensus(method) */
+    OP_ADD_INVARIANT,  /* add invariant to agent's constitution */
     OP_HALT,           /* end of program */
 } tardy_opcode_t;
 
@@ -52,6 +53,11 @@ typedef struct {
     /* coordinate */
     char           coord_agents[256]; /* comma-separated agent names */
     char           coord_task[256];   /* task description */
+    /* invariant */
+    int            invariant_type;    /* 0=type_check, 1=range, 2=non_empty, 3=trust_min */
+    int64_t        inv_min;
+    int64_t        inv_max;
+    tardy_trust_t  inv_trust;
 } tardy_instruction_t;
 
 typedef struct {

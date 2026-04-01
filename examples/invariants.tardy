@@ -1,0 +1,11 @@
+// Tardygrada — Constitution & Freeze Example
+
+agent Secure {
+    invariant(trust_min: @verified)
+    invariant(non_empty)
+
+    data: str = "initial value"
+    freeze data @verified
+
+    let locked: int = 42 @verified
+}
