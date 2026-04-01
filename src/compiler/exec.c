@@ -14,7 +14,7 @@
 
 static void exec_print(const char *s)
 {
-    write(STDERR_FILENO, s, strlen(s));
+(void)write(STDERR_FILENO, s, strlen(s));
 }
 
 int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)

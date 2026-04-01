@@ -32,7 +32,7 @@ static int is_zero_uuid(tardy_uuid_t id)
 /* We don't use printf. We write directly. */
 static void print(const char *s)
 {
-    write(STDOUT_FILENO, s, strlen(s));
+(void)write(STDOUT_FILENO, s, strlen(s));
 }
 
 static void print_int(int64_t v)
@@ -47,7 +47,7 @@ static void print_int(int64_t v)
         v /= 10;
     }
     if (neg) buf[i--] = '-';
-    write(STDOUT_FILENO, buf + i + 1, 30 - i);
+(void)write(STDOUT_FILENO, buf + i + 1, 30 - i);
 }
 
 static void ok(const char *test)
