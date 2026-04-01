@@ -8,6 +8,7 @@
 #include "constitution.h"
 #include "persist.h"
 #include <string.h>
+#include <stdint.h>
 #include <time.h>
 #include <sys/mman.h>
 
@@ -75,6 +76,21 @@ void tardy_vm_shutdown(tardy_vm_t *vm)
     /* Free all agent memory (skip root at index 0) */
     for (int i = 1; i < vm->agent_count; i++) {
         tardy_agent_t *a = &vm->agents[i];
+
+        /* If this is a TARDY_TYPE_AGENT with a non-zero int64 value,
+         * it holds a child VM pointer — shut it down and munmap it */
+        if (a->type_tag == TARDY_TYPE_AGENT &&
+            a->state == TARDY_STATE_LIVE) {
+            int64_t child_ptr = 0;
+            tardy_page_read(&a->memory.primary, &child_ptr,
+                            sizeof(int64_t));
+            if (child_ptr != 0) {
+                tardy_vm_t *child = (tardy_vm_t *)(intptr_t)child_ptr;
+                tardy_vm_shutdown(child);
+                munmap(child, sizeof(tardy_vm_t));
+            }
+        }
+
         if (a->state == TARDY_STATE_LIVE)
             tardy_mem_free(&a->memory);
         if (a->mutations)
@@ -691,4 +707,77 @@ int tardy_vm_recv(tardy_vm_t *vm, tardy_uuid_t agent_id,
         return -1;
 
     return tardy_mq_pop(&agent->context.inbox, out);
+}
+
+/* ============================================
+ * VM Nesting — child VMs as agents
+ * ============================================ */
+
+tardy_uuid_t tardy_vm_spawn_child(tardy_vm_t *parent_vm,
+                                   tardy_uuid_t parent_agent,
+                                   const char *name,
+                                   const tardy_semantics_t *child_semantics)
+{
+    if (!parent_vm || !parent_vm->running || !name)
+        return ZERO_UUID;
+
+    /* Allocate child VM via mmap */
+    tardy_vm_t *child = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
+                                            PROT_READ | PROT_WRITE,
+                                            MAP_PRIVATE | MAP_ANONYMOUS,
+                                            -1, 0);
+    if (child == MAP_FAILED)
+        return ZERO_UUID;
+
+    /* Initialize with child_semantics or inherit parent's */
+    const tardy_semantics_t *sem = child_semantics
+        ? child_semantics
+        : &parent_vm->semantics;
+
+    if (tardy_vm_init(child, sem) != 0) {
+        munmap(child, sizeof(tardy_vm_t));
+        return ZERO_UUID;
+    }
+
+    /* Inherit parent's root key */
+    child->root_key = parent_vm->root_key;
+
+    /* Store child VM pointer as int64 in parent agent */
+    int64_t ptr_val = (int64_t)(intptr_t)child;
+    tardy_uuid_t agent_id = tardy_vm_spawn(parent_vm, parent_agent, name,
+                                            TARDY_TYPE_AGENT,
+                                            TARDY_TRUST_DEFAULT,
+                                            &ptr_val, sizeof(int64_t));
+
+    if (agent_id.hi == 0 && agent_id.lo == 0) {
+        tardy_vm_shutdown(child);
+        munmap(child, sizeof(tardy_vm_t));
+        return ZERO_UUID;
+    }
+
+    return agent_id;
+}
+
+tardy_vm_t *tardy_vm_get_child(tardy_vm_t *vm, tardy_uuid_t agent_id)
+{
+    if (!vm)
+        return NULL;
+
+    tardy_agent_t *agent = tardy_vm_find(vm, agent_id);
+    if (!agent)
+        return NULL;
+
+    if (agent->type_tag != TARDY_TYPE_AGENT)
+        return NULL;
+
+    if (agent->state != TARDY_STATE_LIVE)
+        return NULL;
+
+    int64_t ptr_val = 0;
+    tardy_page_read(&agent->memory.primary, &ptr_val, sizeof(int64_t));
+
+    if (ptr_val == 0)
+        return NULL;
+
+    return (tardy_vm_t *)(intptr_t)ptr_val;
 }

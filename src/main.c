@@ -350,6 +350,49 @@ static int run_tests(void)
             fail("laziness should have been caught");
     }
 
+    /* ============================================
+     * VM Nesting Tests
+     * ============================================ */
+
+    print("\n--- VM Nesting ---\n");
+
+    /* Spawn a child VM as an agent */
+    tardy_uuid_t child_id = tardy_vm_spawn_child(vm, root, "child_vm", NULL);
+    if (!is_zero_uuid(child_id))
+        ok("child VM spawned as agent");
+    else
+        fail("child VM spawn failed");
+
+    /* Retrieve the child VM */
+    tardy_vm_t *child_vm = tardy_vm_get_child(vm, child_id);
+    if (child_vm && child_vm->running)
+        ok("child VM retrieved and running");
+    else
+        fail("child VM retrieval failed");
+
+    /* Spawn an agent inside the child VM */
+    if (child_vm) {
+        int64_t ninety = 90;
+        tardy_uuid_t inner = tardy_vm_spawn(child_vm, child_vm->root_id,
+                                             "inner", TARDY_TYPE_INT,
+                                             TARDY_TRUST_VERIFIED,
+                                             &ninety, sizeof(int64_t));
+        if (!is_zero_uuid(inner)) {
+            val = 0;
+            status = tardy_vm_read(child_vm, child_vm->root_id,
+                                    "inner", &val, sizeof(int64_t));
+            if (status == TARDY_READ_OK && val == 90) {
+                print("  [OK] child VM inner agent = ");
+                print_int(val);
+                print("\n");
+            } else {
+                fail("child VM inner agent read failed");
+            }
+        } else {
+            fail("child VM inner agent spawn failed");
+        }
+    }
+
     /* ---- Stats ---- */
     print("\n--- Stats ---\n");
     print("  Agents alive: ");
