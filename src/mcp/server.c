@@ -846,7 +846,7 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         int got = tardy_vm_recv(srv->vm, target->id, &msg);
         if (got == 0) {
             /* Build result with payload and sender info */
-            char result_text[1024];
+            char result_text[2048];
             /* Escape payload for JSON */
             char escaped[TARDY_MAX_PAYLOAD * 2];
             int ei = 0;
