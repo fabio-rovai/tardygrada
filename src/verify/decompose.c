@@ -161,15 +161,59 @@ typedef struct {
 
 /* Ordered from most specific to least specific */
 static const pattern_t patterns[] = {
-    { " was created at ",  "created_at"  },
-    { " was created by ",  "created_by"  },
-    { " was created in ",  "created_in"  },
-    { " is the ",          NULL          },  /* special: "X is the Y of Z" */
-    { " is ",              "is"          },
-    { " has ",             "has"         },
-    { " are ",             "are"         },
-    { " was ",             "was"         },
-    { " in ",              "located_in"  },
+    /* Creation / origin */
+    { " was created at ",       "created_at"       },
+    { " was created by ",       "created_by"       },
+    { " was created in ",       "created_in"       },
+    { " was founded by ",       "founded_by"       },
+    { " was founded in ",       "founded_in"       },
+    { " was invented by ",      "invented_by"      },
+    { " was discovered by ",    "discovered_by"    },
+    { " was built by ",         "built_by"         },
+    { " was built in ",         "built_in"         },
+    { " was born in ",          "born_in"          },
+    { " was born on ",          "born_on"          },
+    { " died in ",              "died_in"          },
+    { " died on ",              "died_on"          },
+    /* Location / containment */
+    { " is located in ",        "located_in"       },
+    { " is part of ",           "part_of"          },
+    { " belongs to ",           "belongs_to"       },
+    { " contains ",             "contains"         },
+    /* Properties / attributes */
+    { " is known as ",          "known_as"         },
+    { " is also known as ",     "also_known_as"    },
+    { " is a type of ",         "type_of"          },
+    { " is a kind of ",         "kind_of"          },
+    { " is an example of ",     "example_of"       },
+    { " is a ",                 "is_a"             },
+    { " is an ",                "is_an"            },
+    /* Relationships */
+    { " works for ",            "works_for"        },
+    { " works at ",             "works_at"         },
+    { " wrote ",                "wrote"            },
+    { " directed ",             "directed"         },
+    { " produced ",             "produced"         },
+    { " starred in ",           "starred_in"       },
+    { " invented ",             "invented"         },
+    { " discovered ",           "discovered"       },
+    { " leads ",                "leads"            },
+    { " owns ",                 "owns"             },
+    /* Temporal */
+    { " started in ",           "started_in"       },
+    { " ended in ",             "ended_in"         },
+    { " occurred in ",          "occurred_in"      },
+    { " happened in ",          "happened_in"      },
+    /* Special: "X is the Y of Z" handled separately */
+    { " is the ",               NULL               },
+    /* Generic fallbacks (least specific) */
+    { " is ",                   "is"               },
+    { " has ",                  "has"              },
+    { " are ",                  "are"              },
+    { " was ",                  "was"              },
+    { " were ",                 "were"             },
+    { " in ",                   "located_in"       },
+    { " of ",                   "of"               },
 };
 
 #define PATTERN_COUNT ((int)(sizeof(patterns) / sizeof(patterns[0])))
