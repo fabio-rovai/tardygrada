@@ -22,11 +22,33 @@ If at least N/2 + 1 replicas are honest, consensus always terminates.
 
 ## Verification
 
+Coq has been renamed to the **Rocq Prover** (as of 2024). Both `coqc` and `rocq`
+work to compile proof files.
+
+### Install via Homebrew (macOS)
+
+```bash
+brew install rocq
 ```
+
+This pulls in OCaml, GMP, and other dependencies (~500 MB). Once installed:
+
+```bash
+coqc proofs/consensus.v
+```
+
+A successful compilation produces `proofs/consensus.vo` with no output — silence
+means all proofs check.
+
+### Install via opam (Linux / other)
+
+```bash
+opam install rocq-prover
+eval $(opam env)
 coqc proofs/consensus.v
 ```
 
 ## Dependencies
 
-- Coq 8.18+ (for the `lia` tactic)
+- Rocq (Coq) 8.18+ (for the `lia` tactic)
 - No external libraries required for the core proof

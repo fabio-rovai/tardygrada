@@ -1,0 +1,20 @@
+// Tardygrada — Medical Fact Checker
+//
+// High-trust medical advisor. Claims require near-certainty.
+// Uses @semantics() to override default thresholds.
+// Demonstrates: receive, grounded_in, @semantics, @sovereign
+
+agent MedicalAdvisor @sovereign @semantics(
+    truth.min_confidence: 0.99,
+    truth.min_consensus_agents: 5,
+    pipeline.min_passing_layers: 7,
+) {
+    // Pending claims — external agents submit via MCP
+    let diagnosis: Fact = receive("Patient symptom analysis") grounded_in(medical) @verified
+    let treatment: Fact = receive("Recommended treatment plan") grounded_in(medical) @verified
+
+    // Static reference data
+    let advisor_name: str = "Tardygrada Medical" @sovereign
+    let version: int = 1
+    let confidence_threshold: float = 0.99
+}

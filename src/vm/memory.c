@@ -163,6 +163,7 @@ void tardy_mem_init(tardy_agent_memory_t *mem, const void *data, size_t len,
         tardy_sign(parent_key, &mem->birth_hash, sizeof(tardy_hash_t),
                    &mem->signature);
         mem->has_signature = true;
+        memcpy(mem->signer_pub, parent_key->public, 32);
 
         if (mem->hash_replicas) {
             for (int i = 0; i < mem->hash_replica_count; i++)
@@ -270,7 +271,12 @@ tardy_read_status_t tardy_mem_read(const tardy_agent_memory_t *mem,
         }
 
         if (mem->has_signature) {
-            /* TODO: full ed25519 verify against parent public key */
+            /* Verify signature against stored signer public key.
+             * The signature was made over the birth_hash at init time. */
+            if (!tardy_verify(mem->signer_pub,
+                              &mem->birth_hash, sizeof(tardy_hash_t),
+                              &mem->signature))
+                return TARDY_READ_SIG_INVALID;
         }
 
         return TARDY_READ_OK;

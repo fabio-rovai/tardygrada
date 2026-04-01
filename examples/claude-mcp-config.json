@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tardygrada": {
+      "command": "/Users/fabio/projects/tardygrada/tardygrada",
+      "args": ["examples/receive.tardy"]
+    }
+  }
+}

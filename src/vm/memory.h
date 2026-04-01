@@ -48,6 +48,7 @@ typedef struct {
     /* @sovereign */
     tardy_signature_t signature;      /* ed25519 from parent */
     bool              has_signature;
+    uint8_t           signer_pub[32]; /* public key of signer for verify */
     tardy_hash_t     *hash_replicas;  /* replicated hashes */
     int               hash_replica_count;
 } tardy_agent_memory_t;
