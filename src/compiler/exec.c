@@ -6,6 +6,7 @@
  */
 
 #include "exec.h"
+#include "terraform.h"
 #include "../verify/pipeline.h"
 #include <sys/mman.h>
 #include <string.h>
@@ -112,6 +113,11 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
                           empty, 1);
             break;
         }
+
+        case OP_FORK:
+            tardy_fork(vm, current_agent, inst->str_val,
+                       inst->name[0] ? inst->name : NULL);
+            break;
 
         case OP_FREEZE:
             /* TODO: runtime freeze of mutable agent */

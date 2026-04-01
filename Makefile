@@ -19,7 +19,8 @@ SRC = src/main.c \
       src/compiler/lexer.c \
       src/compiler/compiler.c \
       src/compiler/exec.c \
-      src/vm/semantic.c
+      src/vm/semantic.c \
+      src/compiler/terraform.c
 
 OBJ = $(SRC:.c=.o)
 BIN = tardygrada
