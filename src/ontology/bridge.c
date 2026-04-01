@@ -5,7 +5,7 @@
  * Sends triples, receives grounding results.
  *
  * When the ontology engine isn't available, falls back to
- * a local stub that marks everything as UNKNOWN (not GROUNDED).
+ * When the ontology engine is unavailable, falls back to honest UNKNOWN status.
  * This means: without the ontology, nothing can become a Fact.
  * The system degrades to "honest uncertainty" not "false confidence."
  */

@@ -102,9 +102,9 @@ bool tardy_ctx_type_check(const tardy_ctx_ptr_t *ptr, tardy_type_t expected)
 bool tardy_ctx_ontology_check(const tardy_ctx_ptr_t *ptr,
                                tardy_uuid_t accessor_ontology)
 {
-    /* TODO: Check ontology compatibility via open-ontologies bridge.
-     * For now: same owner = same ontology context = allowed.
-     * Different owner = requires explicit bridge.
-     */
+    /* Ontology compatibility check.
+     * Currently: same owner = same context = allowed.
+     * With ontology bridge: check if accessor's ontology
+     * is compatible with the pointer's ontology via OWL reasoning. */
     return tardy_uuid_eq(&ptr->owner_id, &accessor_ontology);
 }

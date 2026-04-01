@@ -74,7 +74,8 @@ typedef struct {
     tardy_named_child_t children[TARDY_CTX_MAX_CHILDREN];
     int                 child_count;
     tardy_message_queue_t inbox;  /* messages from other agents */
-    /* TODO: embedding vectors for semantic query */
+    /* Semantic query uses keyword matching (see semantic.c).
+     * Vector embeddings can be added here for O(log n) lookups. */
 } tardy_agent_context_t;
 
 /* ============================================
