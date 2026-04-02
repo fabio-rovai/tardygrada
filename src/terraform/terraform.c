@@ -431,11 +431,40 @@ int tardy_tf_generate(const tardy_tf_analysis_t *analysis,
             "    // Agents (%d found in original repo)\n",
             analysis->agent_count);
 
+        /* Track used names to avoid duplicates */
+        char used_names[TARDY_TF_MAX_AGENTS][TARDY_TF_MAX_NAME];
+        int used_count = 0;
+
         for (int i = 0; i < analysis->agent_count; i++) {
             const tardy_tf_agent_t *a = &analysis->agents[i];
-            const char *name = a->name[0] ? a->name : "agent";
-            const char *desc = a->role[0] ? a->role : a->goal;
+            char name[TARDY_TF_MAX_NAME];
+            const char *src = a->name[0] ? a->name : "worker";
+            strncpy(name, src, TARDY_TF_MAX_NAME - 4);
+            name[TARDY_TF_MAX_NAME - 4] = '\0';
 
+            /* Avoid Tardygrada reserved keywords */
+            if (strcmp(name, "agent") == 0 || strcmp(name, "let") == 0 ||
+                strcmp(name, "fn") == 0 || strcmp(name, "fork") == 0 ||
+                strcmp(name, "freeze") == 0 || strcmp(name, "receive") == 0 ||
+                strcmp(name, "coordinate") == 0 || strcmp(name, "invariant") == 0) {
+                char prefixed[TARDY_TF_MAX_NAME];
+                snprintf(prefixed, sizeof(prefixed), "_%s", name);
+                strncpy(name, prefixed, TARDY_TF_MAX_NAME - 1);
+            }
+
+            /* Check for duplicate and add suffix */
+            int dup = 0;
+            for (int j = 0; j < used_count; j++) {
+                if (strcmp(used_names[j], name) == 0) { dup = 1; break; }
+            }
+            if (dup) {
+                char suffixed[TARDY_TF_MAX_NAME];
+                snprintf(suffixed, sizeof(suffixed), "%s_%d", name, i);
+                strncpy(name, suffixed, TARDY_TF_MAX_NAME - 1);
+            }
+            strncpy(used_names[used_count++], name, TARDY_TF_MAX_NAME);
+
+            const char *desc = a->role[0] ? a->role : a->goal;
             w += snprintf(output + w, max_len - w,
                 "    let %s: Fact = receive(\"%.80s\") grounded_in(domain) @verified\n",
                 name, desc[0] ? desc : name);
