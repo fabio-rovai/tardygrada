@@ -28,6 +28,7 @@ typedef enum {
     OP_SPAWN_AGENT,    /* create a named agent (parent context) */
     OP_SPAWN_VALUE,    /* create a value agent in current agent */
     OP_RECEIVE,        /* receive() — spawn pending agent, filled via MCP */
+    OP_EXEC,           /* exec() — fork/exec shell command, capture stdout */
     OP_FREEZE,         /* freeze mutable agent to immutable with trust level */
     OP_FORK,           /* fork a .tardy file into current context */
     OP_SET_SEMANTICS,  /* set per-agent semantics override */

@@ -222,8 +222,38 @@ static void parse_binding(tardy_parser_t *p, bool immutable)
         }
         break;
 
+    case TOK_EXEC:
+        /* exec("command") — fork/exec shell command, capture stdout */
+        inst.opcode = OP_EXEC;
+        advance_tok(p); /* skip 'exec' */
+        if (!expect(p, TOK_LPAREN, "expected '(' after exec"))
+            return;
+        if (!check(p, TOK_STR_LIT)) {
+            error(p, "expected command string for exec()");
+            return;
+        }
+        strncpy(inst.str_val, current(p)->text, sizeof(inst.str_val) - 1);
+        advance_tok(p);
+        if (!expect(p, TOK_RPAREN, "expected ')' after command"))
+            return;
+        /* Optional: grounded_in(ontology) */
+        if (check(p, TOK_GROUNDED_IN)) {
+            advance_tok(p);
+            if (!expect(p, TOK_LPAREN, "expected '(' after grounded_in"))
+                return;
+            if (check(p, TOK_IDENT) || check(p, TOK_STR_LIT)) {
+                strncpy(inst.ontology, current(p)->text,
+                        sizeof(inst.ontology) - 1);
+                advance_tok(p);
+            }
+            if (!expect(p, TOK_RPAREN, "expected ')' after ontology"))
+                return;
+            inst.grounded = true;
+        }
+        break;
+
     default:
-        error(p, "expected value (int, float, string, bool, receive())");
+        error(p, "expected value (int, float, string, bool, receive(), exec())");
         return;
     }
 

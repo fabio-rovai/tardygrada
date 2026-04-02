@@ -10,6 +10,9 @@
 #include "terraform.h"
 #include "../verify/pipeline.h"
 #include <sys/mman.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -112,6 +115,116 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             tardy_vm_spawn(vm, current_agent, inst->name,
                           TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
                           empty, 1);
+            break;
+        }
+
+        case OP_EXEC: {
+            exec_print("[tardygrada]   exec(\"");
+            exec_print(inst->str_val);
+            exec_print("\")\n");
+
+            /* Fork and exec the command, capture stdout */
+            int pipefd[2];
+            if (pipe(pipefd) < 0) {
+                exec_print("[tardygrada]     pipe failed\n");
+                const char *err = "exec: pipe failed";
+                tardy_vm_spawn(vm, current_agent, inst->name,
+                              TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
+                              err, strlen(err) + 1);
+                break;
+            }
+
+            pid_t pid = fork();
+            if (pid < 0) {
+                close(pipefd[0]);
+                close(pipefd[1]);
+                const char *err = "exec: fork failed";
+                tardy_vm_spawn(vm, current_agent, inst->name,
+                              TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
+                              err, strlen(err) + 1);
+                break;
+            }
+
+            if (pid == 0) {
+                /* Child: redirect stdout to pipe, exec shell */
+                close(pipefd[0]);
+                dup2(pipefd[1], STDOUT_FILENO);
+                close(pipefd[1]);
+                /* Redirect stderr to /dev/null */
+                int devnull = open("/dev/null", O_WRONLY);
+                if (devnull >= 0) { dup2(devnull, STDERR_FILENO); close(devnull); }
+                execl("/bin/sh", "sh", "-c", inst->str_val, (char *)NULL);
+                _exit(127);
+            }
+
+            /* Parent: read output from pipe */
+            close(pipefd[1]);
+            char output[4096];
+            int total = 0;
+            ssize_t n;
+            while ((n = read(pipefd[0], output + total,
+                             sizeof(output) - (size_t)total - 1)) > 0)
+                total += (int)n;
+            output[total] = '\0';
+            close(pipefd[0]);
+
+            int wstatus;
+            waitpid(pid, &wstatus, 0);
+            int exit_code = WIFEXITED(wstatus) ? WEXITSTATUS(wstatus) : -1;
+
+            /* Trim trailing newline */
+            while (total > 0 && (output[total - 1] == '\n' ||
+                                 output[total - 1] == '\r'))
+                output[--total] = '\0';
+
+            /* Log output preview */
+            exec_print("[tardygrada]     -> \"");
+            {
+                int preview_len = total < 80 ? total : 80;
+                char preview[81];
+                memcpy(preview, output, (size_t)preview_len);
+                preview[preview_len] = '\0';
+                exec_print(preview);
+                if (total > 80) exec_print("...");
+            }
+            exec_print("\" (exit ");
+            {
+                char ec[8];
+                ec[0] = '0' + (char)(exit_code % 10);
+                ec[1] = '\0';
+                exec_print(ec);
+            }
+            exec_print(")\n");
+
+            if (exit_code != 0 || total == 0) {
+                /* Command failed — spawn as mutable with error info */
+                char err_msg[256];
+                int elen = snprintf(err_msg, sizeof(err_msg),
+                                    "exec failed (exit %d): %.200s",
+                                    exit_code, output);
+                tardy_vm_spawn(vm, current_agent, inst->name,
+                              TARDY_TYPE_STR, TARDY_TRUST_MUTABLE,
+                              err_msg, (size_t)elen + 1);
+            } else {
+                /* Command succeeded — spawn with output */
+                tardy_trust_t trust = inst->grounded ?
+                    (inst->trust >= TARDY_TRUST_DEFAULT ?
+                     inst->trust : TARDY_TRUST_MUTABLE) :
+                    TARDY_TRUST_MUTABLE;
+                tardy_vm_spawn(vm, current_agent, inst->name,
+                              TARDY_TYPE_STR, trust,
+                              output, (size_t)total + 1);
+            }
+
+            /* Record in conversation */
+            tardy_agent_t *spawned = tardy_vm_find_by_name(
+                vm, current_agent, inst->name);
+            if (spawned) {
+                char conv[512];
+                snprintf(conv, sizeof(conv), "exec: %.400s", inst->str_val);
+                tardy_vm_converse(vm, spawned->id, "system", conv);
+            }
+
             break;
         }
 

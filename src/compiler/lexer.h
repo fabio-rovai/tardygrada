@@ -32,6 +32,7 @@ typedef enum {
 
     TOK_FORK,       /* fork */
     TOK_RECEIVE,    /* receive */
+    TOK_EXEC,       /* exec */
     TOK_GROUNDED_IN, /* grounded_in */
     TOK_FREEZE,     /* freeze */
     TOK_COORDINATE, /* coordinate */
