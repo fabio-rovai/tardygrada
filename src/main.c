@@ -22,10 +22,12 @@
 #include "verify/pipeline.h"
 #include "compiler/exec.h"
 #include "verify/decompose.h"
+#include "terraform/terraform.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 static int is_zero_uuid(tardy_uuid_t id)
 {
@@ -710,6 +712,7 @@ static void print_usage(void)
         "  tardy verify \"claim\"            Alias for run\n"
         "  tardy serve file.tardy           Compile and serve as MCP server\n"
         "  tardy check file.tardy           Compile check only\n"
+        "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
         "  tardy test                       Run built-in tests\n"
         "  tardy bench                      Run benchmarks\n"
         "  tardy                            Run tests (default)\n"
@@ -718,6 +721,7 @@ static void print_usage(void)
         "  tardy run \"Doctor Who was created at BBC Television Centre\"\n"
         "  tardy serve examples/medical.tardy\n"
         "  tardy check examples/receive.tardy\n"
+        "  tardy terraform ~/projects/crewai-example\n"
         "\n";
     tardy_write(STDERR_FILENO, usage, strlen(usage));
 }
@@ -745,6 +749,66 @@ int main(int argc, char **argv)
     /* tardy check file.tardy */
     if (strcmp(cmd, "check") == 0 && argc >= 3)
         return check_file(argv[2]);
+
+    /* tardy terraform path/to/repo */
+    if (strcmp(cmd, "terraform") == 0 && argc >= 3) {
+        char output[16384];
+        int len = tardy_tf_terraform(argv[2], output, sizeof(output));
+        if (len <= 0) {
+            tardy_write(STDERR_FILENO, "[tardy] terraform failed\n", 25);
+            return 1;
+        }
+        /* Write to stdout */
+        tardy_write(STDOUT_FILENO, output, len);
+
+        /* Also write to file: <repo_name>.tardy */
+        tardy_tf_analysis_t analysis;
+        tardy_tf_analyze(argv[2], &analysis);
+
+        char outpath[512];
+        snprintf(outpath, sizeof(outpath), "%s.tardy", analysis.repo_name);
+        int fd = open(outpath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd >= 0) {
+            ssize_t wn = write(fd, output, len);
+            (void)wn;
+            close(fd);
+            tardy_write(STDERR_FILENO, "\n[tardy] wrote: ", 16);
+            tardy_write(STDERR_FILENO, outpath, strlen(outpath));
+            tardy_write(STDERR_FILENO, "\n", 1);
+        }
+
+        /* Verify the generated file compiles */
+        tardy_program_t prog;
+        if (tardy_compile(&prog, output, len) == 0) {
+            tardy_write(STDERR_FILENO, "[tardy] compile check: ok (", 27);
+            char num[16];
+            int nlen = snprintf(num, sizeof(num), "%d", prog.count);
+            tardy_write(STDERR_FILENO, num, nlen);
+            tardy_write(STDERR_FILENO, " instructions)\n", 15);
+        } else {
+            tardy_write(STDERR_FILENO, "[tardy] compile check: FAILED (", 31);
+            tardy_write(STDERR_FILENO, prog.error, strlen(prog.error));
+            tardy_write(STDERR_FILENO, ")\n", 2);
+        }
+
+        /* Print stats */
+        tardy_write(STDERR_FILENO, "[tardy] original: ", 18);
+        {
+            char stats[256];
+            int slen = snprintf(stats, sizeof(stats),
+                "%d files, %d lines, %d deps\n",
+                analysis.total_files, analysis.total_lines, analysis.total_deps);
+            tardy_write(STDERR_FILENO, stats, slen);
+        }
+        tardy_write(STDERR_FILENO, "[tardy] tardygrada: 1 file, ", 28);
+        {
+            char stats[64];
+            int slen = snprintf(stats, sizeof(stats), "%d lines\n", len / 40);
+            tardy_write(STDERR_FILENO, stats, slen);
+        }
+
+        return 0;
+    }
 
     /* tardy test */
     if (strcmp(cmd, "test") == 0)
