@@ -456,6 +456,21 @@ static int handle_tools_list(tardy_mcp_server_t *srv, const char *id)
             tlen += gclen;
         }
     }
+    {
+        if (!first && tlen < (int)sizeof(tools)) tools[tlen++] = ',';
+        first = 0;
+        const char *lo =
+            "{\"name\":\"load_ontology\","
+            "\"description\":\"Load a TTL file into the self-hosted ontology\","
+            "\"inputSchema\":{\"type\":\"object\","
+            "\"properties\":{\"path\":{\"type\":\"string\"}},"
+            "\"required\":[\"path\"]}}";
+        int lolen = (int)strlen(lo);
+        if (tlen + lolen < (int)sizeof(tools)) {
+            memcpy(tools + tlen, lo, lolen);
+            tlen += lolen;
+        }
+    }
     (void)first;
 
     tools[tlen++] = ']';
@@ -637,11 +652,17 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         tardy_consistency_t consistency = {0};
 
         if (srv->bridge_connected) {
-            /* REAL: use ontology bridge */
+            /* External ontology engine via unix socket */
             tardy_bridge_verify(&srv->bridge, all_triples, triple_count,
                                  &grounding, &consistency);
+        } else if (srv->self_ontology_loaded &&
+                   srv->self_ontology.triple_count > 0) {
+            /* Self-hosted ontology: triples as agents, no external process */
+            tardy_self_ontology_verify(&srv->self_ontology,
+                                        all_triples, triple_count,
+                                        &grounding, &consistency);
         } else {
-            /* FALLBACK: no ontology — everything UNKNOWN (honest) */
+            /* No ontology available: honest UNKNOWN fallback */
             grounding.count = triple_count;
             for (int i = 0; i < triple_count &&
                  i < TARDY_MAX_TRIPLES; i++) {
@@ -657,7 +678,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         /* Step 4: Real work log — record actual operations */
         tardy_work_log_t work_log;
         tardy_worklog_init(&work_log);
-        work_log.ontology_queries = srv->bridge_connected ? triple_count : 0;
+        work_log.ontology_queries = (srv->bridge_connected ||
+            srv->self_ontology.triple_count > 0) ? triple_count : 0;
         work_log.context_reads = triple_count;
         work_log.agents_spawned = 0;
 
@@ -809,7 +831,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         }
 
         /* Ontology status */
-        const char *ont_status = srv->bridge_connected ? "connected" : "offline";
+        const char *ont_status = srv->bridge_connected ? "connected" :
+                                  (srv->self_ontology.triple_count > 0 ? "self-hosted" : "offline");
 
         /* Build result message */
         char result_text[512];
@@ -1197,6 +1220,46 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         return 0;
     }
 
+    /* ---- Built-in: load_ontology ---- */
+    if (strcmp(tool_name, "load_ontology") == 0) {
+        int args_tok = tardy_json_find(parser, params_tok, "arguments");
+        if (args_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing arguments");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        int path_tok = tardy_json_find(parser, args_tok, "path");
+        if (path_tok < 0) {
+            int elen = build_error(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                    id, -32602, "missing path");
+            if (elen > 0) mcp_write(srv->write_buf, elen);
+            return -1;
+        }
+        char ttl_path[256];
+        tardy_json_str(parser, path_tok, ttl_path, sizeof(ttl_path));
+
+        int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
+                                                    ttl_path);
+        char result_text[256];
+        if (loaded >= 0) {
+            srv->self_ontology_loaded = true;
+            snprintf(result_text, sizeof(result_text),
+                     "{\"content\":[{\"type\":\"text\","
+                     "\"text\":\"loaded %d triples from %s\"}]}",
+                     loaded, ttl_path);
+        } else {
+            snprintf(result_text, sizeof(result_text),
+                     "{\"content\":[{\"type\":\"text\","
+                     "\"text\":\"failed to load %s\"}]}",
+                     ttl_path);
+        }
+        int rlen = build_response(srv->write_buf, TARDY_MCP_BUF_SIZE,
+                                   id, result_text);
+        if (rlen > 0) mcp_write(srv->write_buf, rlen);
+        return 0;
+    }
+
     /* Find agent by name anywhere in the tree */
     tardy_agent_t *found_agent = NULL;
     tardy_read_result_t full_result;
@@ -1275,7 +1338,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         }
 
         /* Append provenance */
-        const char *prov_ont = srv->bridge_connected ? "connected" : "offline";
+        const char *prov_ont = srv->bridge_connected ? "connected" :
+                                (srv->self_ontology.triple_count > 0 ? "self-hosted" : "offline");
         int new_rlen = append_provenance(result, rlen, (int)sizeof(result),
                                           &full_result, prov_ont);
         if (new_rlen > 0)
@@ -1343,6 +1407,10 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
         const char *msg = "[tardygrada] ontology: none (fallback to UNKNOWN)\n";
     tardy_write(STDERR_FILENO, msg, strlen(msg));
     }
+
+    /* Initialize self-hosted ontology (always available as fallback) */
+    tardy_self_ontology_init(&srv->self_ontology, vm);
+    srv->self_ontology_loaded = srv->self_ontology.initialized;
 
     return 0;
 }
