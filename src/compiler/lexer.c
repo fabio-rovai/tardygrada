@@ -95,6 +95,7 @@ static tardy_tok_type_t keyword_type(const char *word)
     if (strcmp(word, "false") == 0)      return TOK_BOOL_LIT;
     if (strcmp(word, "fork") == 0)        return TOK_FORK;
     if (strcmp(word, "receive") == 0)     return TOK_RECEIVE;
+    if (strcmp(word, "exec") == 0)       return TOK_EXEC;
     if (strcmp(word, "grounded_in") == 0) return TOK_GROUNDED_IN;
     if (strcmp(word, "freeze") == 0)      return TOK_FREEZE;
     if (strcmp(word, "coordinate") == 0)  return TOK_COORDINATE;

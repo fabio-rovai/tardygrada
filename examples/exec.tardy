@@ -1,0 +1,11 @@
+// Tardygrada — exec() Example
+// Agent bodies are shell command pipelines.
+// Output is captured, verified, and frozen.
+
+agent SysInfo {
+    let hostname: str = exec("hostname")
+    let kernel: str = exec("uname -sr")
+    let date: str = exec("date -u +%Y-%m-%dT%H:%M:%SZ")
+    let files: str = exec("ls examples/ | head -5")
+    let name: str = "tardygrada" @sovereign
+}

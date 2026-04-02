@@ -7,3 +7,4 @@ tardygrada_dbg.dSYM/
 proofs/*.vo
 proofs/*.glob
 *.tardy
+!examples/*.tardy
