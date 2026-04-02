@@ -1,0 +1,581 @@
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2004/02/skos/core#prefLabel> "Four Seasons" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Vegetable Topping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CaperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CaperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SlicedTomatoTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasSpiciness> <http://www.w3.org/2000/01/rdf-schema#comment> "A property created to be used with the ValuePartition - Spiciness." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RocketTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#InterestingPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Interesting Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2004/02/skos/core#prefLabel> "Parmense" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> <http://www.w3.org/2000/01/rdf-schema#comment> "The inverse property tree to hasIngredient - all subproperties and attributes of the properties should reflect those under hasIngredient." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotGreenPepperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isToppingOf> <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Medium> <http://www.w3.org/2000/01/rdf-schema#label> "Media" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#TransitiveProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> <http://www.w3.org/2000/01/rdf-schema#label> "Country" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> <http://www.w3.org/2000/01/rdf-schema#label> "VegetableTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TobascoPepperSauce> <http://www.w3.org/2000/01/rdf-schema#label> "MolhoTobascoPepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCajun" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GorgonzolaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "GorgonzolaTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeErvas" .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/license> "Creative Commons Attribution 3.0 (CC BY 3.0)" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2004/02/skos/core#prefLabel> "La Reine" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasSpiciness> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2004/02/skos/core#altLabel> "Siciliana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DomainConcept> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2004/02/skos/core#altLabel> "Giardiniera" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#JalapenoPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeJalapeno" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2004/02/skos/core#altLabel> "Sloppy Giuseppe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotSpicedBeefTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeTomateFatiado" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sliced Tomato" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotGreenPepperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Hot Green Pepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperoniSausageTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PeperoniSausageTopping" .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/contributor> "Robert Stevens" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2004/02/skos/core#prefLabel> "Giardiniera" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2004/02/skos/core#altLabel> "Napoletana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaComQueijo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CaperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LeekTopping> <http://www.w3.org/2000/01/rdf-schema#label> "LeekTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sloppy Giuseppe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MozzarellaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeMozzarella" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrawnsTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCamarao" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/2002/07/owl#disjointWith> <http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> <http://www.w3.org/2000/01/rdf-schema#comment> "A ValuePartition is a pattern that describes a restricted set of classes from which a property can be associated. The parent class is used in restrictions, and the covering axiom means that only members of the subclasses may be used as values. The possible subclasses cannot be extended without updating the ValuePartition class." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourCheesesTopping> <http://www.w3.org/2000/01/rdf-schema#label> "FourCheesesTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PetitPoisTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MushroomTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCogumelo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2004/02/skos/core#prefLabel> "Siciliana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#England> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2000/01/rdf-schema#label> "Parmense" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2004/02/skos/core#altLabel> "Frutti Di Mare Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCarne" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/contributor> "Nick Drummond" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePimentao" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2000/01/rdf-schema#label> "Napoletana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RocketTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OliveTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#JalapenoPepperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Jalapeno Pepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MixedSeafoodTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AsparagusTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Asparagus" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "NonVegetarianPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PetitPoisTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaPetitPois" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MixedSeafoodTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeFrutosDoMarMistos" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Ham" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2000/01/rdf-schema#label> "FrutosDoMar" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperoniSausageTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2004/02/skos/core#altLabel> "Veneziana Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pizza Base" .
+<http://purl.org/dc/terms/license> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePeixe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Medium> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RedOnionTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2000/01/rdf-schema#label> "Giardiniera" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2004/02/skos/core#altLabel> "Pollo Ad Astra" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2004/02/skos/core#altLabel> "Caprina Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeFrutas" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ChickenTopping> <http://www.w3.org/2000/01/rdf-schema#label> "ChickenTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Green Pepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Nut" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2004/02/skos/core#altLabel> "Siciliana Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> <http://www.w3.org/2004/02/skos/core#prefLabel> "Food" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GorgonzolaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeGorgonzola" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2004/02/skos/core#altLabel> "Margherita Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotSpicedBeefTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Hot Spiced Beef" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2000/01/rdf-schema#label> "Siciliana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpinachTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> <http://www.w3.org/2000/01/rdf-schema#label> "BaseFinaEQuebradica" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> <http://www.w3.org/2000/01/rdf-schema#label> "NutTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DomainConcept> <http://www.w3.org/2002/07/owl#disjointWith> <http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> <http://www.w3.org/2000/01/rdf-schema#label> "ValorDaParticao" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2000/01/rdf-schema#label> "QuatroQueijos" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2004/02/skos/core#prefLabel> "American Hot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mild> <http://www.w3.org/2004/02/skos/core#prefLabel> "Mild" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PineKernels> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaPineKernels" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasSpiciness> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperoniSausageTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Peperoni Sausage" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrawnsTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Prawns" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/2002/07/owl#disjointWith> <http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DomainConcept> <http://www.w3.org/2004/02/skos/core#prefLabel> "Domain Thing" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CaperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/contributor> "Alan Rector" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GorgonzolaTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Gorgonzola" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaEmMolho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ArtichokeTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeArtichoke" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Rosemary" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaVegetariana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "HerbSpiceTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isToppingOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> <http://www.w3.org/2000/01/rdf-schema#label> "OnionTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Fruit" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ChickenTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Chicken" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2004/02/skos/core#altLabel> "Four Seasons Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GoatsCheeseTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SweetPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SweetPepperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/2000/01/rdf-schema#label> "Tempero" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotSpicedBeefTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeBifePicante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#InverseFunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourCheesesTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Four Cheeses" .
+<http://purl.org/dc/terms/provenance> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> <http://www.w3.org/2004/02/skos/core#prefLabel> "Value Partition" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> <http://www.w3.org/2000/01/rdf-schema#label> "BaseDaPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CajunSpiceTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Thin And Crispy Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TobascoPepperSauce> <http://www.w3.org/2000/01/rdf-schema#label> "TobascoPepperSauceTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#isToppingOf> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2004/02/skos/core#altLabel> "Prince Carlo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2004/02/skos/core#altLabel> "Caprina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Medium> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#InterestingPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GoatsCheeseTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> .
+<http://purl.org/dc/terms/contributor> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SundriedTomatoTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2004/02/skos/core#altLabel> "Cajun Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RocketTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaRocket" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#America> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#NamedIndividual> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Hot> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Vegetarian Topping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PineKernels> <http://www.w3.org/2000/01/rdf-schema#label> "PineKernelTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2004/02/skos/core#altLabel> "American Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatyPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza that has at least one meat topping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/2000/01/rdf-schema#label> "DeepPanBase" .
+<http://www.w3.org/2004/02/skos/core#prefLabel> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RealItalianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaItalianaReal" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> <http://www.w3.org/2000/01/rdf-schema#label> "ThinAndCrispyBase" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PineKernels> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2004/02/skos/core#altLabel> "Frutti Di Mare" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2000/01/rdf-schema#label> "Caprina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperonataTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Peperonata" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2004/02/skos/core#prefLabel> "Prince Carlo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2004/02/skos/core#prefLabel> "Caprina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2004/02/skos/core#prefLabel> "American" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#InterestingPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaInteressante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> <http://www.w3.org/2004/02/skos/core#prefLabel> "Thin And Crispy Base" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PetitPoisTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2004/02/skos/core#altLabel> "Four Seasons" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrawnsTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpinachTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Spinach" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmesanTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Parmezan" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MushroomTopping> <http://www.w3.org/2000/01/rdf-schema#label> "MushroomTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Tomato" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SultanaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaSultana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> <http://www.w3.org/2000/01/rdf-schema#label> "Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2000/01/rdf-schema#label> "Fiorentina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2004/02/skos/core#altLabel> "Soho Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2000/01/rdf-schema#label> "Margherita" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AnchoviesTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Anchovies" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LeekTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeLeek" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LeekTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseyPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Cheesy Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/contributor> "Chris Wroe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpinachTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SpinachTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RocketTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Rocket" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2004/02/skos/core#altLabel> "La Reine" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeQueijo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmaHamTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Medium> <http://www.w3.org/2004/02/skos/core#prefLabel> "Medium" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AnchoviesTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PepperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2004/02/skos/core#prefLabel> "Capricciosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CaperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCaper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PetitPoisTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PetitPoisTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianTopping> <http://www.w3.org/2000/01/rdf-schema#comment> "An example of a covering axiom. VegetarianTopping is equivalent to the union of all toppings in the given axiom. VegetarianToppings can only be Cheese or Vegetable or....etc." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isToppingOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GorgonzolaTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Italy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RocketTopping> <http://www.w3.org/2000/01/rdf-schema#label> "RocketTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2000/01/rdf-schema#label> "LaReine" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PetitPoisTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Petit Pois" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Spicy" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Caprina> <http://www.w3.org/2000/01/rdf-schema#label> "Caprina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotGreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePimentaoVerdePicante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RedOnionTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Red Onion" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2000/01/rdf-schema#label> "SloppyGiuseppe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Germany> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaRosemary" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Hot> <http://www.w3.org/2000/01/rdf-schema#label> "Picante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2004/02/skos/core#altLabel> "Prince Carlo Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseyPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaPrinceCarlo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePresunto" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/2000/01/rdf-schema#comment> "A ValuePartition that describes only values from Hot, Medium or Mild. NB Subclasses can themselves be divided up into further partitions." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "CheesyPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SeafoodTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/2000/01/rdf-schema#domain> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2004/02/skos/core#altLabel> "La Reine Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#JalapenoPepperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#JalapenoPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "JalapenoPepperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2000/01/rdf-schema#label> "FruttiDiMare" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RedOnionTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCebolaVermelha" .
+<http://www.w3.org/2004/02/skos/core#definition> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza that has a spicy topping is a SpicyPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatyPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GoatsCheeseTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Goats Cheese" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ChickenTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/elements/1.1/description> "An ontology about pizzas and their toppings.\r\n\r\nThis is an example ontology that contains all constructs required for the various versions of the Pizza Tutorial run by Manchester University (see http://owl.cs.manchester.ac.uk/publications/talks-and-tutorials/protg-owl-tutorial)." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#France> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeTomate" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Medium> <http://www.w3.org/2000/01/rdf-schema#label> "Medium" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SpicyTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2000/01/rdf-schema#label> "Capricciosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Cajun Spice" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LeekTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> <http://www.w3.org/2000/01/rdf-schema#label> "Pais" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2004/02/skos/core#altLabel> "Rosa Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LeekTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Leek" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OliveTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2000/01/rdf-schema#label> "Giardiniera" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/2000/01/rdf-schema#comment> "NB Transitive - the ingredients of ingredients are ingredients of the whole" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2004/02/skos/core#altLabel> "Margherita" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Spicy Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> <http://www.w3.org/2000/01/rdf-schema#label> "MeatTopping" .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/contributor> "Matthew Horridge" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianTopping> <http://www.w3.org/2000/01/rdf-schema#label> "VegetarianTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#England> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2004/02/skos/core#altLabel> "Parmese" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyTopping> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza topping that has spiciness Hot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> <http://www.w3.org/2000/01/rdf-schema#comment> "A pizza that can be found on a pizza menu" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MixedSeafoodTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Mixed Seafood" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/2000/01/rdf-schema#label> "Siciliana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2004/02/skos/core#prefLabel> "Margherita" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#America> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RealItalianPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any Pizza that has the country of origin, Italy.  RealItalianPizzas must also only have ThinAndCrispy bases." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MixedSeafoodTopping> <http://www.w3.org/2000/01/rdf-schema#label> "MixedSeafoodTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RealItalianPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaBase" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2004/02/skos/core#altLabel> "American Hot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RealItalianPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Real Italian Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaNaoVegetariana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeTomateRessecadoAoSol" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "ThinAndCrispyPizza" .
+<http://purl.org/dc/elements/1.1/title> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpinachTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeVegetais" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AnchoviesTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeAnchovies" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MozzarellaTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DomainConcept> <http://www.w3.org/2000/01/rdf-schema#label> "DomainThing" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#LaReine> <http://www.w3.org/2000/01/rdf-schema#label> "LaReine" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2000/01/rdf-schema#label> "Cogumelo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AsparagusTopping> <http://www.w3.org/2000/01/rdf-schema#label> "AsparagusTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#TransitiveProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperonataTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#InverseFunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SweetPepperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmesanTopping> <http://www.w3.org/2000/01/rdf-schema#label> "ParmezanTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2004/02/skos/core#altLabel> "Rosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CheeseTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/2002/07/owl#disjointWith> <http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2000/01/rdf-schema#label> "Fiorentina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "GreenPepperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2004/02/skos/core#altLabel> "Mushroom Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HamTopping> <http://www.w3.org/2000/01/rdf-schema#label> "HamTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#InterestingPizza> <http://www.w3.org/2000/01/rdf-schema#label> "InterestingPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TobascoPepperSauce> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmesanTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeParmesao" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Margherita> <http://www.w3.org/2000/01/rdf-schema#label> "Margherita" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2004/02/skos/core#altLabel> "Fiorentina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2000/01/rdf-schema#label> "American" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourCheesesTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SweetPepperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sweet Pepper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MushroomTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2004/02/skos/core#prefLabel> "Fiorentina" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Vegetarian Pizza" .
+<http://www.w3.org/2004/02/skos/core#altLabel> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2004/02/skos/core#prefLabel> "Rosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza that does not have fish topping and does not have meat topping is a VegetarianPizza. Note that instances of this class do not need to have any toppings at all." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OliveTopping> <http://www.w3.org/2000/01/rdf-schema#label> "OliveTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#England> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#NamedIndividual> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourCheesesTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaQuatroQueijos" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ThinAndCrispyBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2000/01/rdf-schema#label> "QuattroFormaggi" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2000/01/rdf-schema#label> "AmericanaPicante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Herb Spice" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/2004/02/skos/core#prefLabel> "Spiciness" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmaHamTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourCheesesTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperonataTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaPeperonata" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#France> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#NamedIndividual> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/2004/02/skos/core#prefLabel> "Deep Pan Base" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sauce" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AsparagusTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/2002/07/owl#disjointWith> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmesanTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mild> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperonataTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PeperonataTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo> <http://www.w3.org/2000/01/rdf-schema#label> "PrinceCarlo" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SultanaTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmesanTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ChickenTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2004/02/skos/core#altLabel> "Capricciosa Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmaHamTopping> <http://www.w3.org/2000/01/rdf-schema#label> "ParmaHamTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmaHamTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Parma Ham" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaVegetariana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#DomainConcept> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperonataTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2004/02/skos/core#altLabel> "Soho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mild> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isToppingOf> <http://www.w3.org/2000/01/rdf-schema#comment> "Any given instance of topping should only be added to a single pizza (no cheap half-measures on our pizzas)" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2004/02/skos/core#altLabel> "American Hot Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePimentaoVerde" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OliveTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeAzeitona" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pizza Topping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SweetPepperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PepperTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ArtichokeTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2004/02/skos/core#prefLabel> "Soho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2004/02/skos/core#altLabel> "Cajun" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDaPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MushroomTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Mushroom" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#JalapenoPepperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2000/01/rdf-schema#label> "Rosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GorgonzolaTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ArtichokeTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Artichoke" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2004/02/skos/core#altLabel> "Napoletana Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2000/01/rdf-schema#label> "SloppyGiuseppe" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2004/02/skos/core#altLabel> "Capricciosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/2000/01/rdf-schema#label> "Spiciness" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2004/02/skos/core#altLabel> "Pollo Ad Astra Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2000/01/rdf-schema#label> "Cajun" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaComUmNome" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseyPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza that has at least 1 cheese topping." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PineKernels> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pine Kernel" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SultanaTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sultana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2004/02/skos/core#prefLabel> "Cajun" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AnchoviesTopping> <http://www.w3.org/2000/01/rdf-schema#label> "AnchoviesTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2000/01/rdf-schema#label> "Parmense" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Meat" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaTemperada" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza> <http://www.w3.org/2000/01/rdf-schema#seeAlso> <https://en.wikipedia.org/wiki/Pizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MushroomTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> <http://www.w3.org/2000/01/rdf-schema#label> "ValuePartition" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "SpicyPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ChickenTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeFrango" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MozzarellaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "MozzarellaTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isBaseOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#FunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2000/01/rdf-schema#label> "PolloAdAstra" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SloppyGiuseppe> <http://www.w3.org/2004/02/skos/core#altLabel> "Sloppy Giuseppe Pizza" .
+<http://www.co-ode.org/ontologies/pizza> <http://www.w3.org/2002/07/owl#versionInfo> "2.0" .
+<http://purl.org/dc/elements/1.1/description> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#AnnotationProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotGreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Onion" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "VegetarianPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MozzarellaTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Mozzarella" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasTopping> <http://www.w3.org/2000/01/rdf-schema#comment> "Note that hasTopping is inverse functional because isToppingOf is functional" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#America> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Thing> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> <http://www.w3.org/2000/01/rdf-schema#comment> "A class that is equivalent to the set of individuals that are described in the enumeration - ie Countries can only be either America, England, France, Germany or Italy and nothing else. Note that these individuals have been asserted to be allDifferent from each other." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RosemaryTopping> <http://www.w3.org/2000/01/rdf-schema#label> "RosemaryTopping" .
+<http://www.co-ode.org/ontologies/pizza> <http://www.w3.org/2002/07/owl#versionIRI> <http://www.co-ode.org/ontologies/pizza/2.0.0> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2000/01/rdf-schema#label> "Soho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2004/02/skos/core#prefLabel> "Napoletana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mild> <http://www.w3.org/2000/01/rdf-schema#label> "NaoPicante" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CajunSpiceTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#HerbSpiceTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Giardiniera> <http://www.w3.org/2004/02/skos/core#altLabel> "Giardiniera Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatyPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Meaty Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Italy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> <http://www.w3.org/2000/01/rdf-schema#label> "Food" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ArtichokeTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GoatsCheeseTopping> <http://www.w3.org/2000/01/rdf-schema#label> "GoatsCheeseTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2000/01/rdf-schema#label> "PolloAdAstra" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Germany> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "MeatyPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AsparagusTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeAspargos" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasIngredient> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotSpicedBeefTopping> <http://www.w3.org/2000/01/rdf-schema#label> "HotSpicedBeefTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2004/02/skos/core#altLabel> "American" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruttiDiMare> <http://www.w3.org/2004/02/skos/core#prefLabel> "Frutti Di Mare" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> <http://www.w3.org/2000/01/rdf-schema#label> "TomatoTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2004/02/skos/core#altLabel> "Quattro Formaggi Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Hot> <http://www.w3.org/2004/02/skos/core#prefLabel> "Hot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CaperTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Caper" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/2000/01/rdf-schema#label> "Cajun" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mild> <http://www.w3.org/2000/01/rdf-schema#label> "Mild" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FourSeasons> <http://www.w3.org/2000/01/rdf-schema#label> "FourSeasons" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrawnsTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PrawnsTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TobascoPepperSauce> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SultanaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SultanaTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PolloAdAstra> <http://www.w3.org/2004/02/skos/core#prefLabel> "Pollo Ad Astra" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Cajun> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2000/01/rdf-schema#label> "Rosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasBase> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#isBaseOf> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Capricciosa> <http://www.w3.org/2000/01/rdf-schema#label> "Capricciosa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotGreenPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "HotGreenPepperTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AmericanHot> <http://www.w3.org/2000/01/rdf-schema#label> "AmericanHot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Soho> <http://www.w3.org/2000/01/rdf-schema#label> "Soho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MozzarellaTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any Pizza that is not a VegetarianPizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ArtichokeTopping> <http://www.w3.org/2000/01/rdf-schema#label> "ArtichokeTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/2000/01/rdf-schema#label> "Napoletana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#France> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasSpiciness> <http://www.w3.org/2000/01/rdf-schema#range> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GoatsCheeseTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeQueijoDeCabra" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isBaseOf> <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#isIngredientOf> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#TomatoTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2004/02/skos/core#altLabel> "Quattro Formaggi" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#HotSpicedBeefTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AsparagusTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FruitTopping> <http://www.w3.org/2000/01/rdf-schema#label> "FruitTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCebola" .
+<http://www.co-ode.org/ontologies/pizza> <http://www.w3.org/2000/01/rdf-schema#label> "pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2004/02/skos/core#altLabel> "Veneziana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#OliveTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Olive" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MixedSeafoodTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SultanaTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpicyTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaTemperada" .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/elements/1.1/title> "pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#ParmaHamTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePrezuntoParma" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2004/02/skos/core#altLabel> "Mushroom" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GarlicTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GarlicTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Garlic" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2004/02/skos/core#prefLabel> "Veneziana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#DeepPanBase> <http://www.w3.org/2000/01/rdf-schema#label> "BaseEspessa" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetarianPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SweetPepperTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDePimentaoDoce" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Hot> <http://www.w3.org/2000/01/rdf-schema#label> "Hot" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GarlicTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeAlho" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2004/02/skos/core#prefLabel> "Mushroom" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RedOnionTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#OnionTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#CheeseTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Cheese" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Siciliana> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Fiorentina> <http://www.w3.org/2004/02/skos/core#altLabel> "Fiorentina Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isBaseOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GreenPepperTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Italy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#NamedIndividual> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SauceTopping> <http://www.w3.org/2000/01/rdf-schema#label> "SauceTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2004/02/skos/core#prefLabel> "Quattro Formaggi" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NonVegetarianPizza> <http://www.w3.org/2004/02/skos/core#prefLabel> "Non Vegetarian Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperoniSausageTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCalabreza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Germany> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#NamedIndividual> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PrawnsTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#MeatyPizza> <http://www.w3.org/2000/01/rdf-schema#label> "PizzaDeCarne" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2000/01/rdf-schema#label> "Veneziana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#QuattroFormaggi> <http://www.w3.org/2000/01/rdf-schema#label> "QuatroQueijos" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RedOnionTopping> <http://www.w3.org/2000/01/rdf-schema#label> "RedOnionTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Hot> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PeperoniSausageTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Country> <http://www.w3.org/2004/02/skos/core#prefLabel> "Country" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GarlicTopping> <http://www.w3.org/2000/01/rdf-schema#label> "GarlicTopping" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#InterestingPizza> <http://www.w3.org/2004/02/skos/core#definition> "Any pizza that has at least 3 toppings. Note that this is a cardinality constraint on the hasTopping property and NOT a qualified cardinality constraint (QCR). A QCR would specify from which class the members in this relationship must be. eg has at least 3 toppings from PizzaTopping. This is currently not supported in OWL." .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#Food> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SundriedTomatoTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Sundried Tomato" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SlicedTomatoTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#SpinachTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeEspinafre" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#hasCountryOfOrigin> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#ObjectProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Napoletana> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#American> <http://www.w3.org/2000/01/rdf-schema#label> "Americana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Veneziana> <http://www.w3.org/2000/01/rdf-schema#label> "Veneziana" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> <http://www.w3.org/2000/01/rdf-schema#label> "CoberturaDeCastanha" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Rosa> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NamedPizza> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom> <http://www.w3.org/2000/01/rdf-schema#label> "Mushroom" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#AnchoviesTopping> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#isBaseOf> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#InverseFunctionalProperty> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#PineKernels> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#NutTopping> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Parmense> <http://www.w3.org/2004/02/skos/core#altLabel> "Parmese Pizza" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#Spiciness> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#ValuePartition> .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#FishTopping> <http://www.w3.org/2004/02/skos/core#prefLabel> "Seafood" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#RealItalianPizza> <http://www.w3.org/2000/01/rdf-schema#label> "RealItalianPizza" .
+<http://www.co-ode.org/ontologies/pizza> <http://purl.org/dc/terms/provenance> "v2.0 Added new annotations to the ontology using standard/well-know annotation properties\r\n\r\nv1.5. Removed protege.owl import and references. Made ontology URI date-independent\r\n\r\nv1.4. Added Food class (used in domain/range of hasIngredient), Added several hasCountryOfOrigin restrictions on pizzas, Made hasTopping invers functional" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#TobascoPepperSauce> <http://www.w3.org/2004/02/skos/core#prefLabel> "Tobasco Pepper Sauce" .
+<http://www.co-ode.org/ontologies/pizza/pizza.owl#GarlicTopping> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://www.co-ode.org/ontologies/pizza/pizza.owl#VegetableTopping> .
