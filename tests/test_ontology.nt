@@ -1,0 +1,6 @@
+<http://example.org/DoctorWho> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/TVSeries> .
+<http://example.org/DoctorWho> <http://schema.org/locationCreated> <http://example.org/BBCTelevisionCentre> .
+<http://example.org/DoctorWho> <http://schema.org/dateCreated> "1963" .
+<http://example.org/DoctorWho> <http://schema.org/creator> <http://example.org/SydneyNewman> .
+<http://example.org/BBCTelevisionCentre> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Place> .
+<http://example.org/BBCTelevisionCentre> <http://schema.org/address> "London" .
