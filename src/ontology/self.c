@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 /* Forward declarations */
 extern tardy_uuid_t tardy_uuid_gen(void);
@@ -175,10 +176,14 @@ int tardy_self_ontology_load_ttl(tardy_self_ontology_t *ont,
         return -1;
     }
 
-    char *buf = (char *)__builtin_alloca(st.st_size + 1);
+    /* Use mmap for the file buffer (avoid alloca/VLA warnings on GCC) */
+    char *buf = (char *)mmap(NULL, (size_t)st.st_size + 1,
+                              PROT_READ | PROT_WRITE,
+                              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (buf == MAP_FAILED) { close(fd); return -1; }
     ssize_t n = read(fd, buf, st.st_size);
     close(fd);
-    if (n <= 0) return -1;
+    if (n <= 0) { munmap(buf, (size_t)st.st_size + 1); return -1; }
     buf[n] = '\0';
 
     int loaded = 0;
@@ -269,6 +274,7 @@ int tardy_self_ontology_load_ttl(tardy_self_ontology_t *ont,
         while (*line && *line != '\n') line++;
     }
 
+    munmap(buf, (size_t)st.st_size + 1);
     return loaded;
 }
 
