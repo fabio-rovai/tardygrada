@@ -6,3 +6,4 @@ tardygrada_dbg.dSYM/
 .claude/worktrees/
 proofs/*.vo
 proofs/*.glob
+*.tardy
