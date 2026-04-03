@@ -33,7 +33,8 @@ SRC = src/main.c \
       src/compiler/exec.c \
       src/vm/semantic.c \
       src/compiler/terraform.c \
-      src/terraform/terraform.c
+      src/terraform/terraform.c \
+      src/coordinate/bridge.c
 
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
