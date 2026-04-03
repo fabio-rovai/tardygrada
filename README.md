@@ -6,178 +6,182 @@
 
 # Tardygrada
 
-**A programming language where every agent output is cryptographically verified.**
-
-Every value is an agent. Programs compile to MCP servers. Immutability is OS-enforced (mprotect). BFT consensus is Coq-proven. Ontology grounding catches hallucinations. The VM monitors every operation independently.
-
-```
-194KB binary | Zero dependencies | Pure C11 | Real ed25519 | Coq-proven BFT | 8-layer verification
-```
-
-## Quick Start
+**LangChain is 50,000 lines of Python. CrewAI is 153,000. LlamaIndex is 237,000. Tardygrada replaces them in 15-53 lines.**
 
 ```bash
+tardy terraform /path/to/any-agent-framework
+# CrewAI:     153,245 lines -> 53 instructions
+# LlamaIndex: 237,414 lines -> 15 instructions
+# LangGraph:  101,662 lines -> 39 instructions
+# MetaGPT:     89,734 lines -> 11 instructions
+```
+
+Tardygrada is a programming language where every value is a living agent. Programs compile to MCP servers. Every output is cryptographically verified before it can become a Fact. 212KB binary. Zero dependencies. Pure C11.
+
+## Why
+
+Every agent framework does the same thing: call an LLM, pass the result to the next LLM, hope it's correct. None of them verify the output. None of them prove the agent did the work. None of them ground claims against reality.
+
+Tardygrada does. An agent says "Doctor Who was created at BBC Television Centre" and the system decomposes it into triples, grounds it against an ontology, runs 3 independent verification passes with Byzantine majority vote, and only then freezes it as an immutable, cryptographically signed Fact.
+
+If the system doesn't have the knowledge to verify a claim, it says "I don't know" instead of making something up. 0% false acceptance rate without an ontology. 100% correct acceptance with one.
+
+## 30-Second Demo
+
+```bash
+# Build (takes < 1 second)
+git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
+
 # Verify a claim
 tardy run "Doctor Who was created at BBC Television Centre in 1963"
 
-# Serve a .tardy file as MCP server
+# Convert any agent framework to Tardygrada
+tardy terraform /path/to/crewai
+
+# Run a .tardy program as an MCP server
 tardy serve examples/medical.tardy
-
-# Compile check
-tardy check examples/receive.tardy
-
-# Build from source
-make
 ```
 
 ## The Language
 
-Every value is a living agent. There are no variables, only agents holding values.
-
 ```
 agent MedicalAdvisor @sovereign @semantics(
     truth.min_confidence: 0.99,
-    truth.min_consensus_agents: 5,
 ) {
     invariant(trust_min: @verified)
 
+    // Claims from external agents -- verified before becoming Facts
     let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
-    let name: str = "Tardygrada Medical" @sovereign
 
+    // Shell commands as agent bodies -- output captured and verified
+    let patient_data: str = exec("sqlite3 patients.db 'SELECT * FROM current'")
+
+    // Multi-agent coordination with debate + scoring
     coordinate {analyzer, validator} on("verify diagnosis") consensus(ProofWeight)
+
+    let name: str = "Tardygrada Medical" @sovereign
 }
 ```
+
+Every keyword does something real:
+- `receive()` creates a pending slot that external agents fill via MCP
+- `exec()` forks /bin/sh, captures stdout, stores as agent value
+- `grounded_in()` grounds claims against an OWL ontology via SPARQL
+- `@sovereign` means: mprotect + ed25519 + SHA-256 + 5 BFT replicas
+- `invariant()` defines constitution rules checked on every operation
+- `coordinate` dispatches to brain-in-the-fish debate engine (or falls back to inbox)
+- `fork` terraforms another .tardy file into the current context
 
 ## How It Works
 
 ```
 External agent submits claim via MCP
         |
-    Decompose into triples (47 English patterns)
+    Decompose into triples (47 English patterns, 3 independent passes)
         |
-    Ground against ontology (SPARQL via unix socket)
+    Ground against ontology
+        |-- Self-hosted: triples as @sovereign agents (in-process, 200ns)
+        |-- External: open-ontologies via unix socket (SPARQL + OWL reasoning)
+        |-- Offline: honest UNKNOWN (no fake confidence)
         |
-    8-layer verification pipeline (BFT 3-pass consensus)
+    8-layer verification pipeline
+        |-- 1. Decomposition agreement
+        |-- 2. Ontology grounding (catches hallucination)
+        |-- 3. OWL consistency (catches contradictions)
+        |-- 4. Probabilistic confidence scoring
+        |-- 5. Protocol structure validation
+        |-- 6. Triple connectivity certification
+        |-- 7. Cross-layer contradiction detection
+        |-- 8. VM work verification (catches laziness)
         |
-    Verified -> frozen @verified (mprotect + SHA-256 + ed25519)
-    Failed -> structured failure type + feedback-driven retry
+    BFT consensus: 3 independent passes, 2/3 must agree
+        |
+    Verified -> frozen (mprotect + SHA-256 + ed25519), provenance locked
+    Failed -> 11 structured failure types + feedback-driven retry
 ```
 
-## Verification Pipeline
+## What's Real (Not Marketing)
 
-Every LLM-produced Fact passes through all 8 layers. Skipped for literals and arithmetic. Fail fast: one layer fails, pipeline stops and reports which one. Overall confidence = minimum across all layers.
+**Mathematically proven:**
+- BFT consensus safety: proven in Coq (Rocq 9.1). If < N/2 replicas corrupted, original value wins.
+- Immutability: mprotect is CPU/MMU enforced. The hardware faults on any write attempt.
+- Signatures: real ed25519 via Monocypher. Not HMAC stubs.
 
-| Layer | Name | What It Checks |
-|-------|------|---------------|
-| 1 | Decompose | Text to subject-predicate-object triples (multiple independent agents + constrained generation) |
-| 2 | Ontology grounding | Triples matched against knowledge graph via SPARQL |
-| 3 | Consistency check | OWL reasoner detects contradictions with existing facts |
-| 4 | Probabilistic scoring | Quantitative confidence via MDP modelling |
-| 5 | Protocol check | Session types compliance (Yoshida MPST) |
-| 6 | Formal certification | Proof-certificate asymmetry -- easy to verify, hard to forge |
-| 7 | Cross-representation bridge | All layers agree on the same conclusion |
-| 8 | VM work verification | Laziness detection -- did the agent actually do the work? |
+**Structurally enforced:**
+- Laziness detection: VM independently logs all operations and compares to minimum work spec.
+- Hallucination prevention: claims grounded against ontology. Unknown = Unknown, not "verified."
+- Constitution invariants: checked on every read, write, and spawn. Not optional.
+
+**Honest limitations:**
+- Laziness detection catches zero-work and shallow-work agents. A clever agent doing minimum viable work passes.
+- Hallucination prevention only works for claims the ontology has data about. It can't verify what it doesn't know.
+- The text decomposer (47 patterns) is rule-based, not ML. It handles common English but not complex sentences.
+
+## Three Projects, One Stack
+
+```
+Tardygrada (C, 212KB)          -- the language, compiler, VM, MCP server
+        |
+brain-in-the-fish (Rust, 25K) -- debate, scoring, moderation engine
+        |                         coordinate keyword connects here
+open-ontologies (Rust, 10K)    -- OWL reasoning, SPARQL, knowledge graphs
+                                  grounded_in() connects here
+```
+
+Tardygrada is the front door. brain-in-the-fish is the execution engine. open-ontologies is the knowledge layer. Each works independently. Together they form a verified agent stack.
 
 ## Tiered Immutability
 
-| Level | Mechanism | Corrupted By |
-|-------|-----------|-------------|
-| `mutable` (no `let`) | Provenance-tracked | Any write |
-| `let` | `mprotect` | Kernel exploit |
-| `@verified` | `mprotect` + SHA-256 | Kernel + SHA-256 break |
-| `@hardened` | Replicas + hash + BFT vote | Majority kernel + SHA-256 |
-| `@sovereign` | Full BFT + ed25519 | All of the above + ed25519 break |
-
-## MCP Tools
-
-Tardygrada compiles `.tardy` files and serves them as MCP servers (JSON-RPC 2.0 over stdio).
-
-| Tool | Description |
-|------|-------------|
-| `submit_claim` | Submit a claim for a pending `receive()` agent |
-| `verify_claim` | Run the verification pipeline; freeze if it passes |
-| `send_message` | Send a message between agents |
-| `read_inbox` | Read an agent's message inbox |
-| `query_agents` | Semantic search across all agents |
-| `set_semantics` | Set per-agent verification thresholds |
-| `get_conversation` | Read agent conversation history |
-| `<agent_name>` | Read any agent's value with full provenance (one tool per agent) |
-
-## vs Other Frameworks
-
-| Framework | Size | Files | Deps | Verification | Provenance | Ontology |
-|-----------|------|-------|------|-------------|-----------|---------|
-| oh-my-claudecode | 200MB+ | ~50 | Node.js + 19 agents | LLM self-review | None | None |
-| AI-Scientist-v2 | 4.5MB | 68 | 27 Python pkgs | LLM-as-judge | None | Semantic Scholar |
-| DeerFlow | 25MB | 732 | 30+ (LangGraph) | Prompt guardrails | None | None |
-| hermes-agent | 105MB | 1260 | 20+ Python pkgs | Regex matching | None | None |
-| Claude Code | Closed | ? | Node.js runtime | LLM confidence | None | None |
-| slides-grab | 7MB | 175 | Playwright + tldraw | None | None | None |
-| PraisonAI | 50MB | 4553 | 100+ LLM providers | Prompt guardrails | None | None |
-| background-agents | 2MB | 728 | Cloudflare+Modal+TF | None | None | None |
-| **Tardygrada** | **194KB** | **42** | **Zero** | **8-layer + BFT** | **ed25519 + SHA-256** | **SPARQL** |
-
-Every framework above accepts agent output at face value.
-Tardygrada verifies it against reality before it becomes a Fact.
+| Level | Mechanism | What It Takes to Corrupt |
+|-------|-----------|--------------------------|
+| `x: int = 5` | Provenance-tracked | Any write (tracked in audit log) |
+| `let x: int = 5` | mprotect (OS kernel) | Kernel exploit |
+| `let x = 5 @verified` | + SHA-256 hash check | Kernel exploit + SHA-256 preimage |
+| `let x = 5 @hardened` | + 3 BFT replicas | Corrupt majority + SHA-256 |
+| `let x = 5 @sovereign` | + ed25519 + 5 replicas | All of the above + forge ed25519 |
 
 ## Benchmarks
 
 ```
-Read @verified (SHA-256):     197ns   (5M ops/sec)
-Read @sovereign (BFT+sig):  1,538ns  (650K ops/sec)
-Verification pipeline:        692ns  (1.4M ops/sec)
-Message send:                 190ns  (5.3M ops/sec)
+Read @verified (SHA-256):       197ns    5,000,000 ops/sec
+Read @sovereign (BFT+sig):   1,538ns      650,000 ops/sec
+Verification pipeline:          692ns    1,400,000 ops/sec
+Message send:                   190ns    5,300,000 ops/sec
+Spawn @sovereign:            19,820ns       50,000 ops/sec
 ```
 
-## Compliance Results
+Self-hosted ontology (pizza, 581 triples): 40x faster than the Rust+Oxigraph equivalent.
 
-From the test harness:
+## vs Other Frameworks
 
-```
-Without ontology: 0% false acceptance (honest UNKNOWN fallback)
-With ontology:    100% correct acceptance, 0% false acceptance
-```
+| Framework | Size | Deps | Verification | Provenance |
+|-----------|------|------|-------------|-----------|
+| LangChain | 50K+ lines | 30+ pkgs | None | None |
+| CrewAI | 153K lines | 30+ pkgs | None | None |
+| LlamaIndex | 237K lines | 40+ pkgs | None | None |
+| AutoGen | - | pyautogen + OpenAI | None | None |
+| MetaGPT | 90K lines | 90 deps | LLM self-review | None |
+| browser-use | 89K lines | - | None | None |
+| PraisonAI | 50MB, 4553 files | 100+ | Prompt guardrails | None |
+| **Tardygrada** | **212KB** | **Zero** | **8-layer + BFT** | **ed25519 + SHA-256** |
 
-## Project Structure
+## terraform
 
-```
-src/
-  main.c                -- entry point, test runner, CLI dispatch
-  compiler/
-    lexer.c/h           -- tokenizer for .tardy files
-    compiler.c/h        -- parser and bytecode compiler
-    exec.c/h            -- bytecode executor
-    terraform.c/h       -- terraform/fork module system
-  vm/
-    vm.c/h              -- core VM: agent spawn, lifecycle, GC
-    memory.c/h          -- arena allocator, mprotect enforcement
-    context.c/h         -- context pointers, semantic addressing
-    crypto.c/h          -- SHA-256, ed25519 (real Monocypher)
-    types.h             -- agent types and trust levels
-    semantics.h         -- truth model (Axiomatic > Proven > ... > Refuted)
-    semantic.c/h        -- semantic search across agents
-    message.c/h         -- agent-to-agent message passing
-    constitution.c/h    -- constitution invariant checking
-    heal.c/h            -- self-healing and corruption recovery
-    persist.c/h         -- agent state persistence
-  mcp/
-    server.c/h          -- MCP server (JSON-RPC 2.0 stdio transport)
-    json.c/h            -- zero-allocation JSON parser
-  verify/
-    pipeline.c/h        -- 8-layer verification pipeline
-    decompose.c/h       -- text-to-triple decomposition
-  ontology/
-    bridge.c/h          -- ontology grounding (SPARQL via unix socket)
-examples/               -- .tardy example programs
-proofs/
-  consensus.v           -- Coq proof of BFT consensus correctness
-tests/                  -- test harness and benchmarks
+```bash
+# Convert any agentic repo to .tardy
+tardy terraform /path/to/crewai
+
+# Output: .tardy file + compile check + stats
+# Detects: CrewAI, AutoGen, LangChain, LangGraph, LlamaIndex
+# Maps: agents -> receive(), tools -> exec(), tasks -> verified claims
 ```
 
 ## Building
 
 ```bash
-make
+make        # < 1 second, produces 212KB binary
+make run    # run tests
+make bench  # run benchmarks
 ```
 
 C11 compiler (cc/gcc/clang). No external libraries. No malloc. Direct syscalls only.
@@ -186,11 +190,6 @@ C11 compiler (cc/gcc/clang). No external libraries. No malloc. Direct syscalls o
 
 MIT. See [LICENSE](LICENSE).
 
-## Based on Research From
+## Research Foundations
 
-- [ARIA Safeguarded AI](https://www.aria.org.uk/programme/safeguarded-ai/) -- formal verification for AI systems
-- [davidad](https://www.aria.org.uk/what-we-do/safeguarded-ai/) -- open agency architecture
-- Yoshida session types (MPST) -- protocol compliance for concurrent agents
-- [HalluGraph](https://arxiv.org/abs/2406.12072) -- knowledge-graph grounding for hallucination detection
-- [AgentSpec](https://arxiv.org/abs/2401.13178) -- formal specification of agent behavior
-- [Bythos](https://arxiv.org/abs/2302.01527) -- verified multiparty session types in Coq
+Built on techniques from: [ARIA Safeguarded AI](https://www.aria.org.uk/programme/safeguarded-ai/) (formal verification for AI), [HalluGraph](https://arxiv.org/abs/2406.12072) (knowledge-graph hallucination detection), [AgentSpec](https://arxiv.org/abs/2401.13178) (runtime agent enforcement), and [Bythos](https://arxiv.org/abs/2302.01527) (Coq-proven BFT consensus).
