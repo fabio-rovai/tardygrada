@@ -9,6 +9,7 @@
 #include "vm/util.h"
 #include "terraform.h"
 #include "../verify/pipeline.h"
+#include "../coordinate/bridge.h"
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -342,20 +343,61 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
                 break;
             }
 
-            /* Send the task to each agent's inbox */
-            for (int ci = 0; ci < agent_count; ci++) {
-                tardy_vm_send(vm, current_agent, agent_ids[ci],
-                               inst->coord_task, strlen(inst->coord_task) + 1,
-                               TARDY_TYPE_STR);
-            }
+            /* Try brain-in-the-fish coordination engine first */
+            tardy_bitf_conn_t bitf;
+            int bitf_ok = tardy_bitf_connect(&bitf, TARDY_BITF_SOCKET_PATH);
 
-            exec_print("[tardygrada]     dispatched to ");
-            /* print count */
-            char cntstr[8];
-            cntstr[0] = '0' + (char)agent_count;
-            cntstr[1] = '\0';
-            exec_print(cntstr);
-            exec_print(" agents\n");
+            if (bitf_ok == 0) {
+                exec_print("[tardygrada]     brain-in-the-fish connected\n");
+
+                /* Collect agent name strings */
+                char names2[256];
+                strncpy(names2, inst->coord_agents, sizeof(names2) - 1);
+                names2[sizeof(names2) - 1] = '\0';
+                const char *agent_strs[16];
+                int asc = 0;
+                char *t2 = names2;
+                char *n2;
+                while (t2 && asc < 16) {
+                    n2 = strchr(t2, ',');
+                    if (n2) *n2 = '\0';
+                    while (*t2 == ' ') t2++;
+                    if (*t2) agent_strs[asc++] = t2;
+                    t2 = n2 ? n2 + 1 : NULL;
+                }
+
+                tardy_bitf_result_t result;
+                tardy_bitf_coordinate(&bitf, inst->coord_task,
+                                       agent_strs, asc, &result);
+                tardy_bitf_disconnect(&bitf);
+
+                if (result.success) {
+                    char msg[128];
+                    snprintf(msg, sizeof(msg),
+                             "[tardygrada]     consensus: confidence=%.0f%% rounds=%d\n",
+                             result.confidence * 100, result.rounds);
+                    exec_print(msg);
+                } else {
+                    exec_print("[tardygrada]     coordination failed: ");
+                    exec_print(result.error);
+                    exec_print("\n");
+                }
+            } else {
+                /* Fallback: send task to agent inboxes */
+                for (int ci = 0; ci < agent_count; ci++) {
+                    tardy_vm_send(vm, current_agent, agent_ids[ci],
+                                   inst->coord_task,
+                                   strlen(inst->coord_task) + 1,
+                                   TARDY_TYPE_STR);
+                }
+
+                exec_print("[tardygrada]     dispatched to ");
+                char cntstr[8];
+                cntstr[0] = '0' + (char)agent_count;
+                cntstr[1] = '\0';
+                exec_print(cntstr);
+                exec_print(" agents (bitf offline)\n");
+            }
 
             break;
         }
