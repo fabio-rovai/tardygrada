@@ -285,6 +285,22 @@ static void scan_dir(const char *dir_path, tardy_tf_analysis_t *out, int depth)
             if (nlen > 3 && strcmp(entry->d_name + nlen - 3, ".py") == 0) {
                 scan_py_file(path, out);
             }
+            /* Count lines for non-Python files too (TS, JS, etc.) */
+            if ((nlen > 3 && strcmp(entry->d_name + nlen - 3, ".ts") == 0) ||
+                (nlen > 3 && strcmp(entry->d_name + nlen - 3, ".js") == 0) ||
+                (nlen > 4 && strcmp(entry->d_name + nlen - 4, ".tsx") == 0) ||
+                (nlen > 4 && strcmp(entry->d_name + nlen - 4, ".jsx") == 0)) {
+                int fd = open(path, O_RDONLY);
+                if (fd >= 0) {
+                    char buf[8192];
+                    ssize_t n;
+                    while ((n = read(fd, buf, sizeof(buf))) > 0) {
+                        for (ssize_t bi = 0; bi < n; bi++)
+                            if (buf[bi] == '\n') out->total_lines++;
+                    }
+                    close(fd);
+                }
+            }
         }
     }
     closedir(dir);
@@ -307,6 +323,14 @@ int tardy_tf_analyze(const char *repo_path, tardy_tf_analysis_t *out)
     const char *slash = strrchr(repo_path, '/');
     if (slash) name = slash + 1;
     strncpy(out->repo_name, name, TARDY_TF_MAX_NAME - 1);
+    /* Strip common suffixes like -test, _test */
+    {
+        int rlen = (int)strlen(out->repo_name);
+        if (rlen > 5 && strcmp(out->repo_name + rlen - 5, "_test") == 0)
+            out->repo_name[rlen - 5] = '\0';
+        if (rlen > 5 && strcmp(out->repo_name + rlen - 5, "-test") == 0)
+            out->repo_name[rlen - 5] = '\0';
+    }
     /* Replace non-alphanumeric chars with underscore */
     for (int i = 0; out->repo_name[i]; i++) {
         char c = out->repo_name[i];
@@ -532,24 +556,65 @@ int tardy_tf_generate(const tardy_tf_analysis_t *analysis,
                     tname[j] = '_';
             }
 
-            /* Map tool name to a plausible shell command */
-            const char *cmd = "echo 'tool output'";
+            /* Map tool name to a real shell command */
+            const char *cmd = NULL;
+            /* Web / HTTP */
             if (strstr(t->name, "search") || strstr(t->name, "Search"))
-                cmd = "curl -s 'https://api.duckduckgo.com/?q=query&format=json' | head -c 500";
-            else if (strstr(t->name, "read") || strstr(t->name, "Read") ||
-                     strstr(t->name, "file") || strstr(t->name, "File"))
-                cmd = "cat input.txt 2>/dev/null || echo 'no input'";
-            else if (strstr(t->name, "write") || strstr(t->name, "Write"))
-                cmd = "echo 'output written'";
+                cmd = "curl -s 'https://api.duckduckgo.com/?q=${QUERY:-test}&format=json' | head -c 2000";
             else if (strstr(t->name, "scrape") || strstr(t->name, "Scrape") ||
-                     strstr(t->name, "crawl") || strstr(t->name, "Crawl"))
-                cmd = "curl -s 'https://example.com' | head -c 1000";
+                     strstr(t->name, "crawl") || strstr(t->name, "Crawl") ||
+                     strstr(t->name, "go_to") || strstr(t->name, "webpage"))
+                cmd = "curl -s '${URL:-https://example.com}' | head -c 4000";
+            else if (strstr(t->name, "get_text") || strstr(t->name, "extract"))
+                cmd = "curl -s '${URL:-https://example.com}' | sed 's/<[^>]*>//g' | head -c 2000";
+            /* Screenshot / visual */
+            else if (strstr(t->name, "screenshot") || strstr(t->name, "Screenshot"))
+                cmd = "which screencapture >/dev/null && screencapture -x /tmp/tardy_screenshot.png && echo '/tmp/tardy_screenshot.png' || echo 'screenshot not available'";
+            else if (strstr(t->name, "blur") || strstr(t->name, "unblur"))
+                cmd = "echo 'visual operation: ${TOOL_NAME}'";
+            /* File I/O */
+            else if (strstr(t->name, "read") || strstr(t->name, "Read") ||
+                     strstr(t->name, "upload") || strstr(t->name, "Upload"))
+                cmd = "cat '${FILE:-input.txt}' 2>/dev/null || echo 'file not found'";
+            else if (strstr(t->name, "write") || strstr(t->name, "Write") ||
+                     strstr(t->name, "save") || strstr(t->name, "Save"))
+                cmd = "echo '${CONTENT:-data}' > '${FILE:-output.txt}' && echo 'written to ${FILE:-output.txt}'";
+            /* Database / query */
             else if (strstr(t->name, "query") || strstr(t->name, "Query"))
-                cmd = "sqlite3 knowledge.db 'SELECT * FROM facts LIMIT 10' 2>/dev/null || echo 'no db'";
+                cmd = "sqlite3 '${DB:-knowledge.db}' '${SQL:-SELECT * FROM facts LIMIT 10}' 2>/dev/null || echo 'no db'";
+            /* Form / input */
+            else if (strstr(t->name, "fill") || strstr(t->name, "click") ||
+                     strstr(t->name, "submit"))
+                cmd = "echo 'form action: ${ACTION:-submit} field=${FIELD:-input} value=${VALUE:-data}'";
+            /* Email */
+            else if (strstr(t->name, "email") || strstr(t->name, "Email") ||
+                     strstr(t->name, "mail"))
+                cmd = "echo 'email interface: use msmtp or sendmail for real delivery'";
+            /* List / directory */
             else if (strstr(t->name, "list") || strstr(t->name, "List"))
-                cmd = "ls -la 2>/dev/null | head -10";
+                cmd = "ls -la '${DIR:-.}' 2>/dev/null | head -20";
+            /* Parse / transform */
             else if (strstr(t->name, "parse") || strstr(t->name, "Parse"))
-                cmd = "cat input.json 2>/dev/null | head -20 || echo '{}'";
+                cmd = "cat '${FILE:-input.json}' 2>/dev/null | python3 -m json.tool 2>/dev/null || cat '${FILE:-input.json}'";
+            /* 2FA / auth */
+            else if (strstr(t->name, "2fa") || strstr(t->name, "otp") ||
+                     strstr(t->name, "auth"))
+                cmd = "echo 'auth/2fa: requires manual intervention or op CLI (1Password)'";
+            /* Custom / action */
+            else if (strstr(t->name, "custom") || strstr(t->name, "action") ||
+                     strstr(t->name, "execute") || strstr(t->name, "run"))
+                cmd = "sh -c '${COMMAND:-echo no command specified}'";
+            /* Done / completion */
+            else if (strstr(t->name, "done") || strstr(t->name, "complete") ||
+                     strstr(t->name, "finish"))
+                cmd = "echo 'task completed at '$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)";
+            /* Fallback: receive() instead of fake exec() */
+            if (!cmd) {
+                w += snprintf(output + w, max_len - w,
+                    "    let %s: Fact = receive(\"output of %s\") @verified\n",
+                    tname, tname);
+                continue;
+            }
 
             w += snprintf(output + w, max_len - w,
                 "    let %s: str = exec(\"%.120s\")\n",
