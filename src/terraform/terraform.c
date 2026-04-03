@@ -369,6 +369,30 @@ int tardy_tf_analyze(const char *repo_path, tardy_tf_analysis_t *out)
                 }
             }
         }
+
+        /* Deduplicate tools by name */
+        for (int i = 0; i < out->tool_count; i++) {
+            for (int j = i + 1; j < out->tool_count; j++) {
+                if (strcmp(out->tools[i].name, out->tools[j].name) == 0) {
+                    memmove(&out->tools[j], &out->tools[j + 1],
+                            sizeof(tardy_tf_tool_t) * (out->tool_count - j - 1));
+                    out->tool_count--;
+                    j--;
+                }
+            }
+        }
+
+        /* Deduplicate tasks by description */
+        for (int i = 0; i < out->task_count; i++) {
+            for (int j = i + 1; j < out->task_count; j++) {
+                if (strcmp(out->tasks[i].description, out->tasks[j].description) == 0) {
+                    memmove(&out->tasks[j], &out->tasks[j + 1],
+                            sizeof(tardy_tf_task_t) * (out->task_count - j - 1));
+                    out->task_count--;
+                    j--;
+                }
+            }
+        }
     }
 
     return 0;
@@ -483,6 +507,53 @@ int tardy_tf_generate(const tardy_tf_analysis_t *analysis,
             w += snprintf(output + w, max_len - w,
                 "    let task_%d: Fact = receive(\"%.80s\") grounded_in(spec) @verified\n",
                 i, t->description);
+        }
+        w += snprintf(output + w, max_len - w, "\n");
+    }
+
+    /* Tools become exec() agents */
+    if (analysis->tool_count > 0) {
+        w += snprintf(output + w, max_len - w,
+            "    // Tools (%d found in original repo)\n",
+            analysis->tool_count);
+
+        for (int i = 0; i < analysis->tool_count; i++) {
+            const tardy_tf_tool_t *t = &analysis->tools[i];
+            if (!t->name[0]) continue;
+
+            /* Sanitize tool name */
+            char tname[TARDY_TF_MAX_NAME];
+            strncpy(tname, t->name, TARDY_TF_MAX_NAME - 1);
+            tname[TARDY_TF_MAX_NAME - 1] = '\0';
+            for (int j = 0; tname[j]; j++) {
+                char c = tname[j];
+                if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                      (c >= '0' && c <= '9') || c == '_'))
+                    tname[j] = '_';
+            }
+
+            /* Map tool name to a plausible shell command */
+            const char *cmd = "echo 'tool output'";
+            if (strstr(t->name, "search") || strstr(t->name, "Search"))
+                cmd = "curl -s 'https://api.duckduckgo.com/?q=query&format=json' | head -c 500";
+            else if (strstr(t->name, "read") || strstr(t->name, "Read") ||
+                     strstr(t->name, "file") || strstr(t->name, "File"))
+                cmd = "cat input.txt 2>/dev/null || echo 'no input'";
+            else if (strstr(t->name, "write") || strstr(t->name, "Write"))
+                cmd = "echo 'output written'";
+            else if (strstr(t->name, "scrape") || strstr(t->name, "Scrape") ||
+                     strstr(t->name, "crawl") || strstr(t->name, "Crawl"))
+                cmd = "curl -s 'https://example.com' | head -c 1000";
+            else if (strstr(t->name, "query") || strstr(t->name, "Query"))
+                cmd = "sqlite3 knowledge.db 'SELECT * FROM facts LIMIT 10' 2>/dev/null || echo 'no db'";
+            else if (strstr(t->name, "list") || strstr(t->name, "List"))
+                cmd = "ls -la 2>/dev/null | head -10";
+            else if (strstr(t->name, "parse") || strstr(t->name, "Parse"))
+                cmd = "cat input.json 2>/dev/null | head -20 || echo '{}'";
+
+            w += snprintf(output + w, max_len - w,
+                "    let %s: str = exec(\"%.120s\")\n",
+                tname, cmd);
         }
         w += snprintf(output + w, max_len - w, "\n");
     }
