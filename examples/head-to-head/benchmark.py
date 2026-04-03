@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
-Head-to-head: CrewAI-style (3 LLM calls) vs Tardygrada (1 LLM call + verification)
+Head-to-head: 4 frameworks on 10 factual questions. All run for real.
 
-10 diverse factual questions. Both pipelines run for real.
+  1. CrewAI-style:     3 LLM calls (research + verify + report)
+  2. LlamaIndex-style: 2 LLM calls (retrieve context + generate answer)
+  3. LangGraph-style:  4 LLM calls (plan + execute + check + summarize)
+  4. Tardygrada:       1 LLM call + 8-layer verification pipeline
+
 Reproducible: set ANTHROPIC_API_KEY and run.
 
 Usage:
@@ -85,78 +89,121 @@ def run_tardygrada_verify(claim):
     return "no result"
 
 print("=" * 80)
-print("HEAD-TO-HEAD: CrewAI-style (3 LLM calls) vs Tardygrada (1 call + verify)")
+print("HEAD-TO-HEAD: 4 Frameworks x 10 Questions (all real LLM calls)")
 print(f"Questions: {len(QUESTIONS)}")
 print("=" * 80)
 print()
 
-crew_total_time = 0
-crew_total_calls = 0
-tardy_total_time = 0
-tardy_total_calls = 0
-tardy_verified = 0
+stats = {
+    "CrewAI":     {"calls": 0, "time": 0.0, "calls_per_q": 3},
+    "LlamaIndex": {"calls": 0, "time": 0.0, "calls_per_q": 2},
+    "LangGraph":  {"calls": 0, "time": 0.0, "calls_per_q": 4},
+    "Tardygrada": {"calls": 0, "time": 0.0, "calls_per_q": 1},
+}
 tardy_grounded = 0
 
 for i, q in enumerate(QUESTIONS):
     print(f"--- Q{i+1}: {q} ---")
 
-    # CrewAI-style: 3 calls (research + verify + report)
-    t1 = time.perf_counter()
-    answer = call_claude("Answer with specific facts. Be concise.", q)
-    check = call_claude("Verify each fact. Say VERIFIED or DISPUTED.", f"Verify: {answer}")
-    report = call_claude("One sentence summary.", f"Summarize: {check}")
-    crew_time = time.perf_counter() - t1
-    crew_total_time += crew_time
-    crew_total_calls += 3
+    # === CrewAI-style: 3 calls (research + verify + report) ===
+    t = time.perf_counter()
+    a1 = call_claude("Answer with specific facts. Be concise.", q)
+    a2 = call_claude("Verify each fact. Say VERIFIED or DISPUTED.", f"Verify: {a1}")
+    a3 = call_claude("One sentence summary.", f"Summarize: {a2}")
+    dt = time.perf_counter() - t
+    stats["CrewAI"]["calls"] += 3
+    stats["CrewAI"]["time"] += dt
+    print(f"  CrewAI:     {a3[:90]}... ({dt:.1f}s, 3 calls)")
 
-    # Tardygrada: 1 call + verification pipeline
-    t2 = time.perf_counter()
+    # === LlamaIndex-style: 2 calls (retrieve context + generate answer) ===
+    # RAG pattern: first call retrieves "context", second generates answer with context
+    t = time.perf_counter()
+    context = call_claude(
+        "You are a knowledge retrieval system. Return only raw factual data relevant to the query. No commentary.",
+        f"Retrieve factual context for: {q}")
+    answer = call_claude(
+        f"Answer using ONLY the following context. If the context doesn't contain the answer, say UNKNOWN.\n\nContext: {context}",
+        q)
+    dt = time.perf_counter() - t
+    stats["LlamaIndex"]["calls"] += 2
+    stats["LlamaIndex"]["time"] += dt
+    print(f"  LlamaIndex: {answer[:90]}... ({dt:.1f}s, 2 calls)")
+
+    # === LangGraph-style: 4 calls (plan + execute + check + summarize) ===
+    # State machine: plan the approach, execute, validate state, produce output
+    t = time.perf_counter()
+    plan = call_claude("You are a planning agent. Output a 1-line plan to answer this question.", f"Plan: {q}")
+    result = call_claude("Execute this plan. Answer with facts.", f"Plan: {plan}\nQuestion: {q}")
+    check = call_claude("Check if this answer is complete. Say COMPLETE or INCOMPLETE with reason.",
+                        f"Question: {q}\nAnswer: {result}")
+    final = call_claude("Final one-sentence answer.", f"Based on check '{check}', answer: {q}")
+    dt = time.perf_counter() - t
+    stats["LangGraph"]["calls"] += 4
+    stats["LangGraph"]["time"] += dt
+    print(f"  LangGraph:  {final[:90]}... ({dt:.1f}s, 4 calls)")
+
+    # === Tardygrada: 1 call + verification pipeline ===
+    t = time.perf_counter()
     tardy_answer = call_claude("Answer with specific facts. Be concise.", q)
     tardy_verify = run_tardygrada_verify(tardy_answer)
-    tardy_time = time.perf_counter() - t2
-    tardy_total_time += tardy_time
-    tardy_total_calls += 1
+    dt = time.perf_counter() - t
+    stats["Tardygrada"]["calls"] += 1
+    stats["Tardygrada"]["time"] += dt
 
-    # Parse verification result
-    verified = "verified=true" in tardy_verify
-    grounded_match = "triples_grounded="
     grounded_str = ""
-    if grounded_match in tardy_verify:
-        idx = tardy_verify.index(grounded_match) + len(grounded_match)
-        grounded_str = tardy_verify[idx:idx+5]
     failure = ""
+    if "triples_grounded=" in tardy_verify:
+        idx = tardy_verify.index("triples_grounded=") + 17
+        grounded_str = tardy_verify[idx:idx+5]
     if "failure=" in tardy_verify:
         idx = tardy_verify.index("failure=") + 8
         end = tardy_verify.index(" ", idx) if " " in tardy_verify[idx:] else len(tardy_verify)
         failure = tardy_verify[idx:end]
-
-    if verified: tardy_verified += 1
     if grounded_str and not grounded_str.startswith("0/"):
         tardy_grounded += 1
 
-    print(f"  CrewAI:  {answer[:100]}...")
-    print(f"           -> {report[:80]}...")
-    print(f"           {crew_time:.1f}s, 3 calls, verification=LLM-self-check")
-    print(f"  Tardy:   {tardy_answer[:100]}...")
-    print(f"           -> grounded={grounded_str} {'VERIFIED' if verified else f'NOT VERIFIED ({failure})'}")
-    print(f"           {tardy_time:.1f}s, 1 call, verification=8-layer+BFT")
+    status = "VERIFIED" if "verified=true" in tardy_verify else f"NOT VERIFIED ({failure})"
+    print(f"  Tardygrada: {tardy_answer[:70]}... grounded={grounded_str} {status} ({dt:.1f}s, 1 call)")
     print()
+
+N = len(QUESTIONS)
+
+# Extract values for clean formatting
+c_calls = stats["CrewAI"]["calls"]
+l_calls = stats["LlamaIndex"]["calls"]
+g_calls = stats["LangGraph"]["calls"]
+t_calls = stats["Tardygrada"]["calls"]
+c_time = stats["CrewAI"]["time"]
+l_time = stats["LlamaIndex"]["time"]
+g_time = stats["LangGraph"]["time"]
+t_time = stats["Tardygrada"]["time"]
 
 print("=" * 80)
 print("RESULTS")
 print("=" * 80)
 print()
-print(f"  {'':35s} {'CrewAI-style':>15s}  {'Tardygrada':>15s}")
-print(f"  {'Total LLM calls':35s} {crew_total_calls:>15d}  {tardy_total_calls:>15d}")
-print(f"  {'Total time':35s} {f'{crew_total_time:.1f}s':>15s}  {f'{tardy_total_time:.1f}s':>15s}")
-print(f"  {'Avg time per question':35s} {f'{crew_total_time/len(QUESTIONS):.1f}s':>15s}  {f'{tardy_total_time/len(QUESTIONS):.1f}s':>15s}")
-print(f"  {'LLM calls per question':35s} {'3':>15s}  {'1':>15s}")
-print(f"  {'Verification method':35s} {'LLM self-check':>15s}  {'8-layer + BFT':>15s}")
-print(f"  {'Claims with grounding':35s} {'0/10':>15s}  {f'{tardy_grounded}/10':>15s}")
-print(f"  {'Independent verification':35s} {'no':>15s}  {'yes':>15s}")
-print(f"  {'Cryptographic provenance':35s} {'no':>15s}  {'yes':>15s}")
-print(f"  {'Cost (Claude Sonnet ~$3/1M tok)':35s} {'~$0.009':>15s}  {'~$0.003':>15s}")
+hdr = f"  {'':30s} {'CrewAI':>10s} {'LlamaIndex':>11s} {'LangGraph':>10s} {'Tardygrada':>11s}"
+sep = f"  {'':30s} {'------':>10s} {'----------':>11s} {'---------':>10s} {'----------':>11s}"
+print(hdr)
+print(sep)
+print(f"  {'Total LLM calls':30s} {c_calls:>10d} {l_calls:>11d} {g_calls:>10d} {t_calls:>11d}")
+print(f"  {'Calls per question':30s} {'3':>10s} {'2':>11s} {'4':>10s} {'1':>11s}")
+print(f"  {'Total time':30s} {c_time:>9.0f}s {l_time:>10.0f}s {g_time:>9.0f}s {t_time:>10.0f}s")
+print(f"  {'Avg per question':30s} {c_time/N:>9.1f}s {l_time/N:>10.1f}s {g_time/N:>9.1f}s {t_time/N:>10.1f}s")
+print(f"  {'Verification':30s} {'LLM check':>10s} {'none':>11s} {'LLM check':>10s} {'8-layer+BFT':>11s}")
+print(f"  {'Independent proof':30s} {'no':>10s} {'no':>11s} {'no':>10s} {'yes':>11s}")
+print(f"  {'Provenance':30s} {'none':>10s} {'none':>11s} {'none':>10s} {'ed25519+SHA':>11s}")
+tg = f"{tardy_grounded}/10"
+print(f"  {'Ontology grounding':30s} {'none':>10s} {'none':>11s} {'none':>10s} {tg:>11s}")
+c_cost = c_calls * 0.0003
+l_cost = l_calls * 0.0003
+g_cost = g_calls * 0.0003
+t_cost = t_calls * 0.0003
+print(f"  {'Est. cost (~$0.3/1K calls)':30s} {'$%.3f' % c_cost:>10s} {'$%.3f' % l_cost:>11s} {'$%.3f' % g_cost:>10s} {'$%.3f' % t_cost:>11s}")
 print()
-print(f"CrewAI-style calls the LLM 3x per question and trusts the output.")
-print(f"Tardygrada calls it 1x and independently verifies against an ontology.")
+sc = c_time / max(t_time, 0.1)
+sl = l_time / max(t_time, 0.1)
+sg = g_time / max(t_time, 0.1)
+print(f"Tardygrada: {sc:.1f}x faster than CrewAI, {sl:.1f}x faster than LlamaIndex, {sg:.1f}x faster than LangGraph.")
+print(f"All others trust LLM output. Tardygrada independently verifies it.")
 print()
