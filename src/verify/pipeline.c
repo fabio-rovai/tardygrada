@@ -199,12 +199,32 @@ tardy_layer_result_t tardy_verify_grounding(
         return r;
     }
 
-    /* Compute grounding ratio */
-    float ratio = (float)grounding->grounded / (float)grounding->count;
+    /* Compute grounding confidence.
+     * Key insight: unknown triples are NOT evidence against the claim.
+     * "I can't verify X" is different from "X is wrong."
+     * Confidence = grounded quality, penalized only by contradictions. */
+    float grounded_conf = 0.0f;
+    int grounded_n = 0;
+    for (int i = 0; i < grounding->count; i++) {
+        if (grounding->results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
+            grounded_conf += grounding->results[i].confidence;
+            grounded_n++;
+        }
+    }
+    /* Base confidence on grounded triples' average confidence */
+    float ratio;
+    if (grounded_n > 0) {
+        ratio = grounded_conf / (float)grounded_n;
+        /* Slight penalty for unknowns (but not as harsh as treating them as failures) */
+        float coverage = (float)grounded_n / (float)grounding->count;
+        ratio = ratio * (0.5f + 0.5f * coverage);
+    } else {
+        ratio = 0.0f;
+    }
     r.passed = true;
     r.confidence = ratio;
     snprintf(r.detail, sizeof(r.detail),
-             "%d/%d triples grounded (%.0f%%), %d unknown",
+             "%d/%d triples grounded (conf=%.0f%%), %d unknown",
              grounding->grounded, grounding->count,
              ratio * 100.0f, grounding->unknown);
 
