@@ -13,6 +13,9 @@
 #include "../vm/semantic.h"
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -618,18 +621,19 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         /* Run verification pipeline */
         uint64_t verify_start = mcp_now_ns();
 
-        /* Step 1: Decompose text into triples */
+        /* Check if caller provided pre-decomposed triples (LLM decomposer) */
         tardy_decomposition_t decomps[3];
         memset(decomps, 0, sizeof(decomps));
-        tardy_decompose_multi(claim_buf, claim_len, decomps, 3);
-
-        /* Step 2: Collect unique triples from all decompositions */
         tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
         int triple_count = 0;
+
+        /* Step 1: Rule-based decomposition first */
+        tardy_decompose_multi(claim_buf, claim_len, decomps, 3);
+
+        /* Collect unique triples */
         for (int d = 0; d < 3; d++) {
             for (int t = 0; t < decomps[d].count &&
                  triple_count < TARDY_MAX_TRIPLES; t++) {
-                /* Deduplicate */
                 int dup = 0;
                 for (int e = 0; e < triple_count; e++) {
                     if (strcmp(all_triples[e].subject,
@@ -638,12 +642,128 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                               decomps[d].triples[t].predicate) == 0 &&
                         strcmp(all_triples[e].object,
                               decomps[d].triples[t].object) == 0) {
-                        dup = 1;
-                        break;
+                        dup = 1; break;
                     }
                 }
                 if (!dup)
                     all_triples[triple_count++] = decomps[d].triples[t];
+            }
+        }
+
+        /* Step 1b: If rule-based decomposition produced few triples,
+         * try LLM-assisted decomposition via fork/exec curl.
+         * This is Tardygrada's own LLM call -- not delegated to the caller.
+         * The LLM converts free text to structured triples. */
+        const char *api_key = getenv("ANTHROPIC_API_KEY");
+        if (triple_count < 2 && api_key && api_key[0]) {
+            /* Build LLM prompt asking for structured triple extraction */
+            char prompt_body[2048];
+            snprintf(prompt_body, sizeof(prompt_body),
+                "{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":300,"
+                "\"temperature\":0,"
+                "\"system\":\"Extract factual claims as JSON triples. "
+                "Output ONLY a JSON array like: "
+                "[{\\\"s\\\":\\\"subject\\\",\\\"p\\\":\\\"predicate\\\",\\\"o\\\":\\\"object\\\"}]. "
+                "Use simple predicates like: created_by, located_in, created_in, "
+                "type_of, has, premiered_on, written_by, invented_by. "
+                "No explanation.\","
+                "\"messages\":[{\"role\":\"user\",\"content\":\"Extract triples: "
+                "%.800s\"}]}", claim_buf);
+
+            /* Fork curl to call Claude Haiku (cheapest, fastest) */
+            int pipefd[2];
+            if (pipe(pipefd) == 0) {
+                pid_t pid = fork();
+                if (pid == 0) {
+                    close(pipefd[0]);
+                    dup2(pipefd[1], STDOUT_FILENO);
+                    close(pipefd[1]);
+                    int devnull = open("/dev/null", O_WRONLY);
+                    if (devnull >= 0) {
+                        dup2(devnull, STDERR_FILENO);
+                        close(devnull);
+                    }
+                    char auth[300];
+                    snprintf(auth, sizeof(auth), "x-api-key: %s", api_key);
+                    execlp("curl", "curl", "-s",
+                           "-X", "POST",
+                           "https://api.anthropic.com/v1/messages",
+                           "-H", "Content-Type: application/json",
+                           "-H", "anthropic-version: 2023-06-01",
+                           "-H", auth,
+                           "-d", prompt_body,
+                           (char *)NULL);
+                    _exit(127);
+                } else if (pid > 0) {
+                    close(pipefd[1]);
+                    char llm_out[4096];
+                    int llm_len = 0;
+                    ssize_t n;
+                    while ((n = read(pipefd[0], llm_out + llm_len,
+                                     sizeof(llm_out) - (size_t)llm_len - 1)) > 0)
+                        llm_len += (int)n;
+                    llm_out[llm_len] = '\0';
+                    close(pipefd[0]);
+                    int wstatus;
+                    waitpid(pid, &wstatus, 0);
+
+                    /* Parse LLM response -- find the JSON array in content[0].text */
+                    tardy_json_parser_t lp;
+                    if (tardy_json_parse(&lp, llm_out, llm_len) == 0) {
+                        int ct = tardy_json_find(&lp, 0, "content");
+                        if (ct >= 0) {
+                            int ft = ct + 1;
+                            int tt = tardy_json_find(&lp, ft, "text");
+                            if (tt >= 0) {
+                                char text_buf[2048];
+                                int tlen = tardy_json_str(&lp, tt,
+                                    text_buf, sizeof(text_buf));
+                                /* Find [ in the text to locate the JSON array */
+                                char *arr_start = strchr(text_buf, '[');
+                                if (arr_start && tlen > 0) {
+                                    tardy_json_parser_t tp;
+                                    int arr_len = tlen - (int)(arr_start - text_buf);
+                                    if (tardy_json_parse(&tp, arr_start, arr_len) == 0 &&
+                                        tp.tokens[0].type == TARDY_JSON_ARRAY) {
+                                        int ac = tp.tokens[0].children;
+                                        int ti = 1;
+                                        for (int t = 0; t < ac &&
+                                             triple_count < TARDY_MAX_TRIPLES; t++) {
+                                            int st = tardy_json_find(&tp, ti, "s");
+                                            int pt = tardy_json_find(&tp, ti, "p");
+                                            int ot = tardy_json_find(&tp, ti, "o");
+                                            if (st >= 0 && pt >= 0 && ot >= 0) {
+                                                tardy_json_str(&tp, st,
+                                                    all_triples[triple_count].subject,
+                                                    TARDY_MAX_TRIPLE_LEN);
+                                                tardy_json_str(&tp, pt,
+                                                    all_triples[triple_count].predicate,
+                                                    TARDY_MAX_TRIPLE_LEN);
+                                                tardy_json_str(&tp, ot,
+                                                    all_triples[triple_count].object,
+                                                    TARDY_MAX_TRIPLE_LEN);
+                                                triple_count++;
+                                            }
+                                            ti += 1 + tp.tokens[ti].children;
+                                        }
+                                        /* Update decomps for pipeline */
+                                        for (int t = 0; t < triple_count; t++) {
+                                            decomps[0].triples[t] = all_triples[t];
+                                            decomps[1].triples[t] = all_triples[t];
+                                            decomps[2].triples[t] = all_triples[t];
+                                        }
+                                        decomps[0].count = triple_count;
+                                        decomps[1].count = triple_count;
+                                        decomps[2].count = triple_count;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    close(pipefd[0]);
+                    close(pipefd[1]);
+                }
             }
         }
 
