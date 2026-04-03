@@ -180,9 +180,10 @@ int tardy_exec(tardy_vm_t *vm, const tardy_program_t *prog)
             /* Log output preview */
             exec_print("[tardygrada]     -> \"");
             {
-                int preview_len = total < 80 ? total : 80;
+                size_t preview_len = (total > 0 && total < 80) ? (size_t)total : 80;
+                if (preview_len > (size_t)total && total > 0) preview_len = (size_t)total;
                 char preview[81];
-                memcpy(preview, output, (size_t)preview_len);
+                memcpy(preview, output, preview_len);
                 preview[preview_len] = '\0';
                 exec_print(preview);
                 if (total > 80) exec_print("...");
