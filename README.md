@@ -6,9 +6,9 @@
 
 # Tardygrada
 
-**The first programming language where agent laziness is mathematically impossible.**
+**A programming language where every agent output is cryptographically verified.**
 
-A formally verified agent programming language. Every value is an agent. Programs compile to MCP servers with cryptographic verification, ontology grounding, and Coq-proven Byzantine consensus.
+Every value is an agent. Programs compile to MCP servers. Immutability is OS-enforced (mprotect). BFT consensus is Coq-proven. Ontology grounding catches hallucinations. The VM monitors every operation independently.
 
 ```
 194KB binary | Zero dependencies | Pure C11 | Real ed25519 | Coq-proven BFT | 8-layer verification
