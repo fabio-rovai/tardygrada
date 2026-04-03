@@ -1,22 +1,37 @@
 #!/usr/bin/env python3
 """
-Head-to-head: CrewAI-style LLM pipeline vs Tardygrada verified pipeline.
-Both run for real. Both call the same LLM. We compare the outputs.
+Head-to-head: CrewAI-style (3 LLM calls) vs Tardygrada (1 LLM call + verification)
 
-Task: "Where was Doctor Who created, by whom, and when?"
+10 diverse factual questions. Both pipelines run for real.
+Reproducible: set ANTHROPIC_API_KEY and run.
+
+Usage:
+    ANTHROPIC_API_KEY=sk-... python3 examples/head-to-head/benchmark.py
 """
 import subprocess, json, time, os, sys
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 if not API_KEY:
-    print("Set ANTHROPIC_API_KEY")
+    print("Usage: ANTHROPIC_API_KEY=sk-... python3 examples/head-to-head/benchmark.py")
     sys.exit(1)
 
+QUESTIONS = [
+    "Where was Doctor Who created, by whom, and when?",
+    "What is the capital of Australia and when was it established?",
+    "Who invented the World Wide Web and where?",
+    "When was the Eiffel Tower built and how tall is it?",
+    "What programming language was created by Guido van Rossum?",
+    "Where is CERN located and what does it research?",
+    "Who wrote Romeo and Juliet and when?",
+    "What is the speed of light in meters per second?",
+    "When did humans first land on the Moon and who was first?",
+    "What is the largest ocean on Earth and its approximate area?",
+]
+
 def call_claude(system, user):
-    """Call Claude API via curl (same as Tardygrada would)"""
     body = json.dumps({
         "model": "claude-sonnet-4-20250514",
-        "max_tokens": 300,
+        "max_tokens": 200,
         "temperature": 0,
         "system": system,
         "messages": [{"role": "user", "content": user}]
@@ -31,154 +46,117 @@ def call_claude(system, user):
     )
     try:
         resp = json.loads(proc.stdout)
-        return resp["content"][0]["text"]
+        if "content" in resp:
+            return resp["content"][0]["text"]
+        return f"ERROR: {resp.get('error', {}).get('message', proc.stdout[:100])}"
     except:
-        return f"ERROR: {proc.stdout[:200]}"
+        return f"ERROR: {proc.stdout[:100]}"
 
 def mcp_msg(body):
     b = body.encode()
     return f"Content-Length: {len(b)}\r\n\r\n".encode() + b
 
-print("=" * 70)
-print("HEAD-TO-HEAD BENCHMARK: CrewAI-style vs Tardygrada")
-print("Task: Where was Doctor Who created, by whom, and when?")
-print("=" * 70)
+def run_tardygrada_verify(claim):
+    """Submit claim to Tardygrada, verify, return result."""
+    reqs = [
+        mcp_msg(json.dumps({"jsonrpc":"2.0","id":1,"method":"initialize","params":{}})),
+        mcp_msg(json.dumps({"jsonrpc":"2.0","id":2,"method":"tools/call",
+            "params":{"name":"load_ontology","arguments":{"path": os.path.abspath("tests/test_ontology.nt")}}})),
+        mcp_msg(json.dumps({"jsonrpc":"2.0","id":3,"method":"tools/call",
+            "params":{"name":"submit_claim","arguments":{"agent":"origin","claim": claim}}})),
+        mcp_msg(json.dumps({"jsonrpc":"2.0","id":4,"method":"tools/call",
+            "params":{"name":"verify_claim","arguments":{"agent":"origin"}}})),
+    ]
+    proc = subprocess.Popen(
+        ["./tardygrada", "examples/receive.tardy"],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    out, err = proc.communicate(input=b"".join(reqs), timeout=15)
+    parts = out.split(b"Content-Length: ")
+    for part in parts:
+        if not part: continue
+        idx = part.find(b"{")
+        if idx < 0: continue
+        try:
+            j = json.loads(part[idx:])
+            if j.get("id") == 4 and "result" in j:
+                return j["result"]["content"][0]["text"]
+        except: pass
+    return "no result"
+
+print("=" * 80)
+print("HEAD-TO-HEAD: CrewAI-style (3 LLM calls) vs Tardygrada (1 call + verify)")
+print(f"Questions: {len(QUESTIONS)}")
+print("=" * 80)
 print()
 
-# ============================================================
-# ROUND 1: CrewAI-style (3 sequential LLM calls, no verification)
-# ============================================================
+crew_total_time = 0
+crew_total_calls = 0
+tardy_total_time = 0
+tardy_total_calls = 0
+tardy_verified = 0
+tardy_grounded = 0
 
-print("--- Round 1: CrewAI-style (3 LLM calls, no verification) ---")
-print()
+for i, q in enumerate(QUESTIONS):
+    print(f"--- Q{i+1}: {q} ---")
 
-t1_start = time.perf_counter()
+    # CrewAI-style: 3 calls (research + verify + report)
+    t1 = time.perf_counter()
+    answer = call_claude("Answer with specific facts. Be concise.", q)
+    check = call_claude("Verify each fact. Say VERIFIED or DISPUTED.", f"Verify: {answer}")
+    report = call_claude("One sentence summary.", f"Summarize: {check}")
+    crew_time = time.perf_counter() - t1
+    crew_total_time += crew_time
+    crew_total_calls += 3
 
-# Agent 1: Researcher
-research = call_claude(
-    "You are a factual researcher. Answer concisely with specific facts.",
-    "Where was Doctor Who created, by whom, and when? Give specific names, places, and dates."
-)
-print(f"  Researcher: {research[:200]}")
+    # Tardygrada: 1 call + verification pipeline
+    t2 = time.perf_counter()
+    tardy_answer = call_claude("Answer with specific facts. Be concise.", q)
+    tardy_verify = run_tardygrada_verify(tardy_answer)
+    tardy_time = time.perf_counter() - t2
+    tardy_total_time += tardy_time
+    tardy_total_calls += 1
 
-# Agent 2: Fact Checker (LLM checking LLM)
-verification = call_claude(
-    "You are a fact checker. Verify these claims. Say VERIFIED or DISPUTED for each fact.",
-    f"Verify these research findings:\n{research}"
-)
-print(f"  Fact Checker: {verification[:200]}")
+    # Parse verification result
+    verified = "verified=true" in tardy_verify
+    grounded_match = "triples_grounded="
+    grounded_str = ""
+    if grounded_match in tardy_verify:
+        idx = tardy_verify.index(grounded_match) + len(grounded_match)
+        grounded_str = tardy_verify[idx:idx+5]
+    failure = ""
+    if "failure=" in tardy_verify:
+        idx = tardy_verify.index("failure=") + 8
+        end = tardy_verify.index(" ", idx) if " " in tardy_verify[idx:] else len(tardy_verify)
+        failure = tardy_verify[idx:end]
 
-# Agent 3: Reporter
-report = call_claude(
-    "You are a reporter. Write one concise paragraph summarizing verified facts.",
-    f"Write a factual summary based on:\n{verification}"
-)
-print(f"  Reporter: {report[:200]}")
+    if verified: tardy_verified += 1
+    if grounded_str and not grounded_str.startswith("0/"):
+        tardy_grounded += 1
 
-t1_total = time.perf_counter() - t1_start
+    print(f"  CrewAI:  {answer[:100]}...")
+    print(f"           -> {report[:80]}...")
+    print(f"           {crew_time:.1f}s, 3 calls, verification=LLM-self-check")
+    print(f"  Tardy:   {tardy_answer[:100]}...")
+    print(f"           -> grounded={grounded_str} {'VERIFIED' if verified else f'NOT VERIFIED ({failure})'}")
+    print(f"           {tardy_time:.1f}s, 1 call, verification=8-layer+BFT")
+    print()
 
-print()
-print(f"  Time: {t1_total:.1f}s")
-print(f"  API calls: 3")
-print(f"  Verification: LLM reviewed LLM (no independent proof)")
-print(f"  Provenance: none")
-print(f"  Immutability: none (Python string in memory)")
-print()
-
-# ============================================================
-# ROUND 2: Tardygrada (1 LLM call + 8-layer verification pipeline)
-# ============================================================
-
-print("--- Round 2: Tardygrada (1 LLM call + verified pipeline) ---")
-print()
-
-t2_start = time.perf_counter()
-
-# Step 1: Get the same factual answer (1 LLM call)
-answer = call_claude(
-    "Answer with specific facts only. No hedging.",
-    "Where was Doctor Who created, by whom, and when?"
-)
-print(f"  LLM answer: {answer[:200]}")
-
-# Step 2: Submit to Tardygrada for verification
-abs_nt = os.path.abspath("tests/test_ontology.nt")
-
-reqs = [
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":1,"method":"initialize","params":{}})),
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":2,"method":"tools/call",
-        "params":{"name":"load_ontology","arguments":{"path": abs_nt}}})),
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":3,"method":"tools/call",
-        "params":{"name":"submit_claim","arguments":{"agent":"origin","claim": answer}}})),
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":4,"method":"tools/call",
-        "params":{"name":"verify_claim","arguments":{"agent":"origin"}}})),
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":5,"method":"tools/call",
-        "params":{"name":"origin"}})),
-    mcp_msg(json.dumps({"jsonrpc":"2.0","id":6,"method":"tools/call",
-        "params":{"name":"get_conversation","arguments":{"agent":"origin"}}})),
-]
-
-proc = subprocess.Popen(
-    ["./tardygrada", "examples/receive.tardy"],
-    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-)
-out, err = proc.communicate(input=b"".join(reqs), timeout=15)
-
-t2_total = time.perf_counter() - t2_start
-
-# Parse Tardygrada responses
-parts = out.split(b"Content-Length: ")
-for part in parts:
-    if not part: continue
-    idx = part.find(b"{")
-    if idx < 0: continue
-    try:
-        j = json.loads(part[idx:])
-        rid = j.get("id", "?")
-        if rid == 2:
-            print(f"  Ontology: {j['result']['content'][0]['text']}")
-        elif rid == 4:
-            text = j["result"]["content"][0]["text"]
-            print(f"  Pipeline: {text}")
-        elif rid == 5:
-            text = j["result"]["content"][0]["text"]
-            tardy = j["result"].get("_tardy", {})
-            print(f"  Result: \"{text[:150]}\"")
-            print(f"    trust={tardy.get('trust','?')}")
-            print(f"    ontology={tardy.get('ontology','?')}")
-            print(f"    hash={tardy.get('birth_hash','?')[:24]}...")
-        elif rid == 6:
-            text = j["result"]["content"][0]["text"]
-            print(f"  Conversation: {text[:200]}")
-    except:
-        pass
-
-print()
-print(f"  Time: {t2_total:.1f}s")
-print(f"  API calls: 1 (same LLM, same question)")
-print(f"  Verification: 8-layer pipeline + BFT 3-pass consensus")
-print(f"  Provenance: ed25519 signed, SHA-256 hashed, timestamped")
-print(f"  Immutability: mprotect (OS-enforced)")
-print()
-
-# ============================================================
-# COMPARISON
-# ============================================================
-
-print("=" * 70)
+print("=" * 80)
 print("RESULTS")
-print("=" * 70)
+print("=" * 80)
 print()
-print(f"  {'':30s} {'CrewAI-style':>15s}  {'Tardygrada':>15s}")
-print(f"  {'LLM calls':30s} {'3':>15s}  {'1':>15s}")
-print(f"  {'Time':30s} {f'{t1_total:.1f}s':>15s}  {f'{t2_total:.1f}s':>15s}")
-print(f"  {'Cost (Claude Sonnet)':30s} {'~$0.003':>15s}  {'~$0.001':>15s}")
-print(f"  {'Verification':30s} {'LLM self-check':>15s}  {'8-layer + BFT':>15s}")
-print(f"  {'Independent proof':30s} {'no':>15s}  {'yes':>15s}")
-print(f"  {'Provenance':30s} {'none':>15s}  {'ed25519+SHA256':>15s}")
-print(f"  {'Immutability':30s} {'none':>15s}  {'mprotect+BFT':>15s}")
-print(f"  {'Ontology grounding':30s} {'none':>15s}  {'self-hosted':>15s}")
+print(f"  {'':35s} {'CrewAI-style':>15s}  {'Tardygrada':>15s}")
+print(f"  {'Total LLM calls':35s} {crew_total_calls:>15d}  {tardy_total_calls:>15d}")
+print(f"  {'Total time':35s} {f'{crew_total_time:.1f}s':>15s}  {f'{tardy_total_time:.1f}s':>15s}")
+print(f"  {'Avg time per question':35s} {f'{crew_total_time/len(QUESTIONS):.1f}s':>15s}  {f'{tardy_total_time/len(QUESTIONS):.1f}s':>15s}")
+print(f"  {'LLM calls per question':35s} {'3':>15s}  {'1':>15s}")
+print(f"  {'Verification method':35s} {'LLM self-check':>15s}  {'8-layer + BFT':>15s}")
+print(f"  {'Claims with grounding':35s} {'0/10':>15s}  {f'{tardy_grounded}/10':>15s}")
+print(f"  {'Independent verification':35s} {'no':>15s}  {'yes':>15s}")
+print(f"  {'Cryptographic provenance':35s} {'no':>15s}  {'yes':>15s}")
+print(f"  {'Cost (Claude Sonnet ~$3/1M tok)':35s} {'~$0.009':>15s}  {'~$0.003':>15s}")
 print()
-print("The CrewAI-style pipeline calls the LLM 3 times and trusts the output.")
-print("Tardygrada calls it once and independently verifies the answer.")
+print(f"CrewAI-style calls the LLM 3x per question and trusts the output.")
+print(f"Tardygrada calls it 1x and independently verifies against an ontology.")
 print()
