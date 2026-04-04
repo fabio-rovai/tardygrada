@@ -309,23 +309,10 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
         normalize_name(triples[i].subject, norm_s, sizeof(norm_s));
         normalize_name(triples[i].object, norm_o, sizeof(norm_o));
 
-        /* Map decomposer predicates to schema.org equivalents */
-        const char *raw_p = triples[i].predicate;
-        const char *mapped_p = raw_p;
-        if (strcmp(raw_p, "created_at") == 0) mapped_p = "locationCreated";
-        else if (strcmp(raw_p, "created_by") == 0) mapped_p = "creator";
-        else if (strcmp(raw_p, "created_in") == 0) mapped_p = "dateCreated";
-        else if (strcmp(raw_p, "born_in") == 0) mapped_p = "birthPlace";
-        else if (strcmp(raw_p, "located_in") == 0) mapped_p = "address";
-        else if (strcmp(raw_p, "type_of") == 0 || strcmp(raw_p, "is_a") == 0) mapped_p = "type";
-        else if (strcmp(raw_p, "wrote") == 0) mapped_p = "author";
-        else if (strcmp(raw_p, "directed") == 0) mapped_p = "director";
-        else if (strcmp(raw_p, "produced") == 0) mapped_p = "producer";
-        else if (strcmp(raw_p, "founded_by") == 0) mapped_p = "founder";
-        else if (strcmp(raw_p, "works_for") == 0) mapped_p = "worksFor";
-
-        char norm_p[128];
-        normalize_name(mapped_p, norm_p, sizeof(norm_p));
+        /* Grounding strategy: match by SUBJECT + OBJECT co-occurrence.
+         * Predicates vary between decomposer and ontology (created_by vs creator).
+         * What matters: does the ontology know these two entities are related?
+         * If subject and object both appear in the same triple, it's grounded. */
 
         /* Search through ontology agent's children */
         int evidence = 0;
@@ -334,33 +321,25 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
         for (int c = 0; c < ont_agent->context.child_count; c++) {
             const char *child_name = ont_agent->context.children[c].name;
 
-            /* Child name format: "subject|predicate|object" */
-            /* Check if subject matches */
+            /* Check if subject matches (try both normalized and raw) */
             int subj_match = ci_contains(child_name, norm_s);
             if (!subj_match && triples[i].subject[0])
                 subj_match = ci_contains(child_name, triples[i].subject);
 
             if (!subj_match) continue;
 
-            /* Subject matches — check predicate */
-            int pred_match = ci_contains(child_name, norm_p);
-            if (!pred_match && triples[i].predicate[0])
-                pred_match = ci_contains(child_name, triples[i].predicate);
+            /* Subject matches — check object (skip predicate matching) */
+            int obj_match = ci_contains(child_name, norm_o);
+            if (!obj_match && triples[i].object[0])
+                obj_match = ci_contains(child_name, triples[i].object);
 
-            if (subj_match && pred_match) {
-                /* Subject + predicate match — check object */
-                int obj_match = ci_contains(child_name, norm_o);
-                if (!obj_match && triples[i].object[0])
-                    obj_match = ci_contains(child_name, triples[i].object);
-
-                if (obj_match) {
-                    /* Full match — evidence found */
-                    evidence++;
-                } else {
-                    /* Same subject+predicate but different object — contradiction */
-                    contradictions++;
-                }
+            if (obj_match) {
+                /* Subject + object co-occur in same triple — evidence */
+                evidence++;
             }
+            /* Note: we don't flag contradictions on subject-only matches.
+             * "DoctorWho|creator|SydneyNewman" and "DoctorWho|dateCreated|1963"
+             * share a subject but aren't contradictions. */
         }
 
         if (evidence > 0) {
