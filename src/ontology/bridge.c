@@ -85,7 +85,7 @@ int tardy_bridge_init(tardy_ontology_bridge_t *bridge,
 
     bridge->dual_mode = (sketch_ok == 0 && complete_ok == 0);
 
-    /* At least one must be available, or we fall back to stub */
+    /* At least one must be available, or fall back to UNKNOWN */
     return (sketch_ok == 0 || complete_ok == 0) ? 0 : -1;
 }
 
