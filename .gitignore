@@ -8,3 +8,4 @@ proofs/*.vo
 proofs/*.glob
 *.tardy
 !examples/*.tardy
+.worktrees/
