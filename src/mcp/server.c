@@ -12,6 +12,7 @@
 #include "../verify/decompose.h"
 #include "../verify/preprocess.h"
 #include "../vm/semantic.h"
+#include "../ontology/inference.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -787,11 +788,27 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             }
         }
 
+        /* Step 2.5: Try computational verification first */
+        float comp_confidence = 0.0f;
+        int comp_result = tardy_inference_compute(claim_buf, claim_len,
+                                                   &comp_confidence);
+
         /* Step 3: Ground triples against ontology (real or fallback) */
         tardy_grounding_t grounding = {0};
         tardy_consistency_t consistency = {0};
 
-        if (srv->bridge_connected) {
+        if (comp_result == 1) {
+            /* Computational claim verified — set grounding as fully grounded */
+            grounding.count = triple_count;
+            for (int i = 0; i < triple_count && i < TARDY_MAX_TRIPLES; i++) {
+                grounding.results[i].triple = all_triples[i];
+                grounding.results[i].status = TARDY_KNOWLEDGE_GROUNDED;
+                grounding.results[i].confidence = comp_confidence;
+                grounding.results[i].evidence_count = 1;
+                grounding.grounded++;
+            }
+            consistency.consistent = true;
+        } else if (srv->bridge_connected) {
             /* External ontology engine via unix socket */
             tardy_bridge_verify(&srv->bridge, all_triples, triple_count,
                                  &grounding, &consistency);
@@ -944,6 +961,14 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                         all_triples[t].predicate,
                         all_triples[t].object);
                 }
+                /* Re-evaluate Datalog to derive new facts from additions */
+                tardy_dl_evaluate(&srv->self_ontology.datalog);
+            }
+
+            /* Rule mining: learn patterns from verified claims */
+            if (triple_count >= 2) {
+                tardy_inference_learn(&srv->ruleset,
+                                      all_triples, triple_count);
             }
 
             char turn_msg[256];
@@ -1563,6 +1588,9 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
     /* Initialize self-hosted ontology (always available as fallback) */
     tardy_self_ontology_init(&srv->self_ontology, vm);
     srv->self_ontology_loaded = srv->self_ontology.initialized;
+
+    /* Initialize inference ruleset with synthetic backbone */
+    tardy_inference_init(&srv->ruleset);
 
     return 0;
 }
