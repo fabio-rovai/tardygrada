@@ -12,6 +12,7 @@
 |---|---|---|
 | 100 handoffs, no tampering | Value intact, **0% proof** | Value intact, **100% proof** |
 | 100 handoffs, tamper at #50 | Value changed, **not detected** | **Blocked by OS** |
+| Hash the value yourself? | Attacker recomputes hash too | Hash in **read-only memory** (mprotect) |
 
 Tardygrada is trust infrastructure for AI agents. Every value is a living agent with cryptographic provenance. Once frozen, a value cannot be changed -- not by your code, not by a bug, not by a malicious agent.
 
