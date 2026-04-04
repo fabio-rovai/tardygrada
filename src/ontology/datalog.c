@@ -334,7 +334,66 @@ int tardy_dl_query(const tardy_dl_program_t *prog,
 void tardy_dl_load_backbone(tardy_dl_program_t *prog)
 {
     if (!prog) return;
-    /* Task 2 will fill this in */
+
+    /* Spatial: capital(X, Y) -> locatedIn(X, Y) */
+    tardy_dl_rule_t r;
+
+    r = tardy_dl_make_rule("locatedIn", "X", "Y",
+                            "capital", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    r = tardy_dl_make_rule("locatedIn", "X", "Y",
+                            "capitalOf", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* contains(Y, X) :- locatedIn(X, Y) */
+    r = tardy_dl_make_rule("contains", "Y", "X",
+                            "locatedIn", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* Creation synonyms -> createdBy */
+    r = tardy_dl_make_rule("createdBy", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    r = tardy_dl_make_rule("createdBy", "X", "Y",
+                            "founder", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    r = tardy_dl_make_rule("createdBy", "X", "Y",
+                            "inventor", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    r = tardy_dl_make_rule("createdBy", "X", "Y",
+                            "discoverer", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* Reverse: creator(Y, X) :- createdBy(X, Y) */
+    r = tardy_dl_make_rule("creator", "Y", "X",
+                            "createdBy", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* Reverse: locatedIn(Y, X) :- contains(X, Y) */
+    r = tardy_dl_make_rule("locatedIn", "Y", "X",
+                            "contains", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* Temporal: createdIn(X, Y) :- dateCreated(X, Y) */
+    r = tardy_dl_make_rule("createdIn", "X", "Y",
+                            "dateCreated", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* Chain: locatedIn(X, Z) :- locatedIn(X, Y), locatedIn(Y, Z) */
+    r = tardy_dl_make_rule("locatedIn", "X", "Z",
+                            "locatedIn", "X", "Y",
+                            "locatedIn", "Y", "Z");
+    tardy_dl_add_rule(prog, &r);
+
+    /* Chain: associatedWith(X, Z) :- createdBy(X, Y), locatedIn(Y, Z) */
+    r = tardy_dl_make_rule("associatedWith", "X", "Z",
+                            "createdBy", "X", "Y",
+                            "locatedIn", "Y", "Z");
+    tardy_dl_add_rule(prog, &r);
 }
 
 /* ============================================
