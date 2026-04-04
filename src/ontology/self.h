@@ -14,16 +14,18 @@
 
 #include "../vm/vm.h"
 #include "../verify/pipeline.h"
+#include "datalog.h"
 
 /* ============================================
  * Self-Hosted Ontology — triples as agents
  * ============================================ */
 
 typedef struct {
-    tardy_vm_t   *vm;
-    tardy_uuid_t  ontology_agent;  /* parent agent holding all triples */
-    int           triple_count;
-    bool          initialized;
+    tardy_vm_t          *vm;
+    tardy_uuid_t         ontology_agent;  /* parent agent holding all triples */
+    int                  triple_count;
+    bool                 initialized;
+    tardy_dl_program_t   datalog;         /* Datalog inference engine */
 } tardy_self_ontology_t;
 
 /* Initialize self-hosted ontology within a VM */
