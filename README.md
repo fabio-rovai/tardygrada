@@ -6,11 +6,12 @@
 
 # Tardygrada
 
-**In every agent framework, after 100 handoffs, you have 0% proof a value hasn't been modified. In Tardygrada, you have 100%. Every read is hash-verified. Every write is signed. The OS kernel enforces immutability.**
+**Pass a value through 100 agents in Python: the value might be intact, but you have 0% proof. Tampering at handoff #50 goes undetected. In Tardygrada: 100 handoffs, 100 hash-verified reads, tampering blocked by the OS kernel.**
 
-<p align="center">
-<strong>100 agent handoffs. 100 integrity checks passed. 0 bytes changed. Proven.</strong>
-</p>
+| | Python / CrewAI / MiroFish | Tardygrada |
+|---|---|---|
+| 100 handoffs, no tampering | Value intact, **0% proof** | Value intact, **100% proof** |
+| 100 handoffs, tamper at #50 | Value changed, **not detected** | **Blocked by OS** |
 
 Tardygrada is trust infrastructure for AI agents. Every value is a living agent with cryptographic provenance. Once frozen, a value cannot be changed -- not by your code, not by a bug, not by a malicious agent.
 
