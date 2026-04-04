@@ -650,12 +650,14 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             }
         }
 
-        /* Step 1b: If rule-based decomposition produced few triples,
-         * try LLM-assisted decomposition via fork/exec curl.
-         * This is Tardygrada's own LLM call -- not delegated to the caller.
+        /* Step 1b: OPTIONAL LLM-assisted decomposition.
+         * Only fires when TARDY_LLM_DECOMPOSE=1 is set AND ANTHROPIC_API_KEY exists.
+         * Default: rule-based only (zero deps, zero cost, instant).
          * The LLM converts free text to structured triples. */
         const char *api_key = getenv("ANTHROPIC_API_KEY");
-        if (triple_count < 2 && api_key && api_key[0]) {
+        const char *llm_decompose = getenv("TARDY_LLM_DECOMPOSE");
+        if (triple_count < 2 && api_key && api_key[0] &&
+            llm_decompose && llm_decompose[0] == '1') {
             /* Build LLM prompt asking for structured triple extraction */
             char prompt_body[2048];
             snprintf(prompt_body, sizeof(prompt_body),

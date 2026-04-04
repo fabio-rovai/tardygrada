@@ -1,42 +1,43 @@
 // Tardygrada — Fact Verification Example
 //
-// LLM produces a claim. It goes through the verification pipeline.
+// Claims go through the verification pipeline.
 // Only grounded claims become Facts.
+// Unverified claims stay mutable (untrusted).
 
-agent Researcher(ontology: "domain.owl") {
+agent Researcher @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3,
+) {
+    invariant(trust_min: @verified)
 
-    // Ask an LLM — response is mutable until verified
-    response: str = ask("Where was Dr Who created?")
+    // Pending claims — external agents submit via MCP
+    let origin: Fact = receive("Where was Doctor Who created?") grounded_in(domain) @verified
+    let creator: Fact = receive("Who created Doctor Who?") grounded_in(domain) @verified
 
-    // Ground it in the ontology — find evidence
-    evidence = ontology.query(response)
+    // Shell commands for data retrieval
+    let wiki: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | head -c 500")
 
-    // Freeze it: mutable -> immutable, with evidence
-    let fact: Fact = freeze(response, evidence) @verified
-
-    // fact.provenance shows:
-    //   - which LLM said it
-    //   - what prompt was used
-    //   - what ontology triples support it
-    //   - when it was frozen
-    //   - by whom
+    let name: str = "fact-checker" @sovereign
 }
 
-agent MedicalAdvisor(ontology: "medical.owl") @semantics(
+agent MedicalAdvisor @sovereign @semantics(
     truth.min_confidence: 0.99,
     truth.min_consensus_agents: 5,
-    hallucination.min_decomposers: 5,
-    pipeline.layer_formal_certification: true,
     pipeline.min_passing_layers: 7,
 ) {
     // Medical claims require near-certainty
-    let diagnosis: Fact = ask("symptoms analysis") grounded_in(ontology)
+    let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
+    let treatment: Fact = receive("treatment plan") grounded_in(medical) @verified
+
+    let name: str = "medical-advisor" @sovereign
 }
 
-agent CasualBot(ontology: "general.owl") @semantics(
+agent CasualBot @semantics(
     truth.min_confidence: 0.5,
     truth.min_consensus_agents: 1,
 ) {
-    // Casual chat — lower thresholds
-    response: str = ask("tell me a joke")
+    // Casual chat — lower thresholds, less verification
+    let response: Fact = receive("tell me something interesting") grounded_in(general) @verified
+
+    let name: str = "casual-bot"
 }
