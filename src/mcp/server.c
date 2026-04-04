@@ -10,6 +10,7 @@
 #include "vm/util.h"
 #include "../verify/pipeline.h"
 #include "../verify/decompose.h"
+#include "../verify/preprocess.h"
 #include "../vm/semantic.h"
 #include <unistd.h>
 #include <string.h>
@@ -627,10 +628,16 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
         int triple_count = 0;
 
-        /* Step 1: Rule-based decomposition first */
+        /* Step 1: Subagent decomposer (preprocessor + rule-based).
+         * Strips markdown, extracts key-value pairs, then decomposes.
+         * This is the default -- zero cost, deterministic. */
+        triple_count = tardy_preprocess_and_decompose(
+            claim_buf, claim_len, all_triples, TARDY_MAX_TRIPLES);
+
+        /* Also run multi-pass rule decomposer for agreement scoring */
         tardy_decompose_multi(claim_buf, claim_len, decomps, 3);
 
-        /* Collect unique triples */
+        /* Merge any triples from multi-pass that aren't already found */
         for (int d = 0; d < 3; d++) {
             for (int t = 0; t < decomps[d].count &&
                  triple_count < TARDY_MAX_TRIPLES; t++) {
@@ -650,9 +657,20 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
             }
         }
 
+        /* Update decomps for pipeline (uses preprocessor triples) */
+        for (int t = 0; t < triple_count && t < TARDY_MAX_TRIPLES; t++) {
+            if (t < decomps[0].count) continue; /* already there from multi-pass */
+            decomps[0].triples[decomps[0].count] = all_triples[t];
+            decomps[0].count++;
+            decomps[1].triples[decomps[1].count] = all_triples[t];
+            decomps[1].count++;
+            decomps[2].triples[decomps[2].count] = all_triples[t];
+            decomps[2].count++;
+        }
+
         /* Step 1b: OPTIONAL LLM-assisted decomposition.
          * Only fires when TARDY_LLM_DECOMPOSE=1 is set AND ANTHROPIC_API_KEY exists.
-         * Default: rule-based only (zero deps, zero cost, instant).
+         * Default: subagent preprocessor (zero deps, zero cost, instant).
          * The LLM converts free text to structured triples. */
         const char *api_key = getenv("ANTHROPIC_API_KEY");
         const char *llm_decompose = getenv("TARDY_LLM_DECOMPOSE");

@@ -26,6 +26,7 @@ SRC = src/main.c \
       src/mcp/server.c \
       src/verify/pipeline.c \
       src/verify/decompose.c \
+      src/verify/preprocess.c \
       src/ontology/bridge.c \
       src/ontology/self.c \
       src/compiler/lexer.c \
