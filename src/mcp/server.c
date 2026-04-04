@@ -965,6 +965,12 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                 tardy_dl_evaluate(&srv->self_ontology.datalog);
             }
 
+            /* Rule mining: learn patterns from verified claims */
+            if (triple_count >= 2) {
+                tardy_inference_learn(&srv->ruleset,
+                                      all_triples, triple_count);
+            }
+
             char turn_msg[256];
             snprintf(turn_msg, sizeof(turn_msg),
                      "verified: strength=%d confidence=%d%%",
@@ -1582,6 +1588,9 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
     /* Initialize self-hosted ontology (always available as fallback) */
     tardy_self_ontology_init(&srv->self_ontology, vm);
     srv->self_ontology_loaded = srv->self_ontology.initialized;
+
+    /* Initialize inference ruleset with synthetic backbone */
+    tardy_inference_init(&srv->ruleset);
 
     return 0;
 }
