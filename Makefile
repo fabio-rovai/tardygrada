@@ -29,6 +29,8 @@ SRC = src/main.c \
       src/verify/preprocess.c \
       src/ontology/bridge.c \
       src/ontology/self.c \
+      src/ontology/datalog.c \
+      src/ontology/inference.c \
       src/compiler/lexer.c \
       src/compiler/compiler.c \
       src/compiler/exec.c \
