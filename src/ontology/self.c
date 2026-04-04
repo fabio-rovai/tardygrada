@@ -88,6 +88,11 @@ int tardy_self_ontology_init(tardy_self_ontology_t *ont, tardy_vm_t *vm)
         return -1;
 
     ont->initialized = true;
+
+    /* Initialize Datalog engine with backbone rules */
+    tardy_dl_init(&ont->datalog);
+    tardy_dl_load_backbone(&ont->datalog);
+
     return 0;
 }
 
@@ -123,6 +128,10 @@ int tardy_self_ontology_add(tardy_self_ontology_t *ont,
         return -1;
 
     ont->triple_count++;
+
+    /* Also add to Datalog engine for inference */
+    tardy_dl_add_fact(&ont->datalog, predicate, subject, object);
+
     return 0;
 }
 
@@ -275,6 +284,11 @@ int tardy_self_ontology_load_ttl(tardy_self_ontology_t *ont,
     }
 
     munmap(buf, (size_t)st.st_size + 1);
+
+    /* Evaluate Datalog after bulk load to derive facts */
+    if (loaded > 0)
+        tardy_dl_evaluate(&ont->datalog);
+
     return loaded;
 }
 
@@ -309,37 +323,49 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
         normalize_name(triples[i].subject, norm_s, sizeof(norm_s));
         normalize_name(triples[i].object, norm_o, sizeof(norm_o));
 
-        /* Grounding strategy: match by SUBJECT + OBJECT co-occurrence.
-         * Predicates vary between decomposer and ontology (created_by vs creator).
-         * What matters: does the ontology know these two entities are related?
-         * If subject and object both appear in the same triple, it's grounded. */
+        /* Datalog-first grounding: try logical inference before substring scan.
+         * Query the Datalog engine with predicate, subject, object.
+         * Falls back to agent child scan if Datalog has no match. */
 
-        /* Search through ontology agent's children */
         int evidence = 0;
         int contradictions = 0;
 
-        for (int c = 0; c < ont_agent->context.child_count; c++) {
-            const char *child_name = ont_agent->context.children[c].name;
+        /* Try Datalog query (exact + normalized) */
+        int dl_result = tardy_dl_query(&ont->datalog,
+                                        triples[i].predicate, norm_s, norm_o);
+        if (dl_result == 0) {
+            /* Try with raw names */
+            dl_result = tardy_dl_query(&ont->datalog,
+                                        triples[i].predicate,
+                                        triples[i].subject,
+                                        triples[i].object);
+        }
 
-            /* Check if subject matches (try both normalized and raw) */
-            int subj_match = ci_contains(child_name, norm_s);
-            if (!subj_match && triples[i].subject[0])
-                subj_match = ci_contains(child_name, triples[i].subject);
+        if (dl_result == 1) {
+            evidence++;
+        } else if (dl_result == -1) {
+            contradictions++;
+        }
 
-            if (!subj_match) continue;
+        /* Fallback: agent child scan (substring matching) */
+        if (evidence == 0 && contradictions == 0) {
+            for (int c = 0; c < ont_agent->context.child_count; c++) {
+                const char *child_name = ont_agent->context.children[c].name;
 
-            /* Subject matches — check object (skip predicate matching) */
-            int obj_match = ci_contains(child_name, norm_o);
-            if (!obj_match && triples[i].object[0])
-                obj_match = ci_contains(child_name, triples[i].object);
+                int subj_match = ci_contains(child_name, norm_s);
+                if (!subj_match && triples[i].subject[0])
+                    subj_match = ci_contains(child_name, triples[i].subject);
 
-            if (obj_match) {
-                /* Subject + object co-occur in same triple — evidence */
-                evidence++;
+                if (!subj_match) continue;
+
+                int obj_match = ci_contains(child_name, norm_o);
+                if (!obj_match && triples[i].object[0])
+                    obj_match = ci_contains(child_name, triples[i].object);
+
+                if (obj_match) {
+                    evidence++;
+                }
             }
-            /* Note: we don't flag contradictions on subject-only matches.
-             * "DoctorWho|creator|SydneyNewman" and "DoctorWho|dateCreated|1963"
-             * share a subject but aren't contradictions. */
         }
 
         if (evidence > 0) {
