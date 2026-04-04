@@ -12,6 +12,7 @@
 #include "../vm/vm.h"
 #include "../ontology/bridge.h"
 #include "../ontology/self.h"
+#include "../ontology/frames.h"
 #include "../ontology/inference.h"
 #include "json.h"
 
@@ -27,6 +28,7 @@ typedef struct {
     bool                     bridge_connected;
     tardy_self_ontology_t    self_ontology;
     bool                     self_ontology_loaded;
+    tardy_frame_registry_t   frames;
     tardy_ruleset_t          ruleset;
     char                     read_buf[TARDY_MCP_BUF_SIZE];
     char                     write_buf[TARDY_MCP_BUF_SIZE];

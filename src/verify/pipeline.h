@@ -63,6 +63,7 @@ typedef struct {
     tardy_grounding_result_t results[TARDY_MAX_TRIPLES];
     int                      count;
     int                      grounded;     /* count of GROUNDED */
+    int                      consistent;   /* count of CONSISTENT (frame-valid) */
     int                      unknown;      /* count of UNKNOWN */
     int                      contradicted; /* count of CONTRADICTED */
 } tardy_grounding_t;

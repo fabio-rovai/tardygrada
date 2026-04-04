@@ -1589,6 +1589,9 @@ int tardy_mcp_init(tardy_mcp_server_t *srv, tardy_vm_t *vm)
     tardy_self_ontology_init(&srv->self_ontology, vm);
     srv->self_ontology_loaded = srv->self_ontology.initialized;
 
+    /* Initialize frame registry for CRDT merge */
+    tardy_frames_init(&srv->frames);
+
     /* Initialize inference ruleset with synthetic backbone */
     tardy_inference_init(&srv->ruleset);
 

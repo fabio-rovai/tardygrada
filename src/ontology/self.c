@@ -93,6 +93,9 @@ int tardy_self_ontology_init(tardy_self_ontology_t *ont, tardy_vm_t *vm)
     tardy_dl_init(&ont->datalog);
     tardy_dl_load_backbone(&ont->datalog);
 
+    /* Initialize frame registry for CRDT merge */
+    tardy_frames_init(&ont->frames);
+
     return 0;
 }
 
@@ -129,8 +132,17 @@ int tardy_self_ontology_add(tardy_self_ontology_t *ont,
 
     ont->triple_count++;
 
-    /* Also add to Datalog engine for inference */
-    tardy_dl_add_fact(&ont->datalog, predicate, subject, object);
+    /* CRDT merge: add to Datalog via frame-aware merge.
+     * Handles type learning, functional dep checks, and re-evaluation.
+     * If no frame matches, falls through to plain Datalog add. */
+    tardy_merge_result_t mr = tardy_crdt_merge(&ont->frames, &ont->datalog,
+                                                predicate, subject, object);
+    if (mr == TARDY_MERGE_CONFLICT) {
+        /* Triple rejected by functional dependency — undo the agent spawn.
+         * In practice the agent still exists but the fact is not in Datalog. */
+        ont->triple_count--;
+        return -1;
+    }
 
     return 0;
 }
@@ -368,6 +380,26 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
             }
         }
 
+        /* CRDT dry-merge: if still unknown, check frame structural consistency */
+        int is_consistent = 0;
+        if (evidence == 0 && contradictions == 0) {
+            tardy_merge_result_t mr = tardy_crdt_dry_merge(
+                &ont->frames, &ont->datalog,
+                triples[i].predicate, norm_s, norm_o);
+
+            if (mr == TARDY_MERGE_CONFLICT) {
+                contradictions++;
+            } else if (mr == TARDY_MERGE_DUPLICATE || mr == TARDY_MERGE_DERIVED) {
+                evidence++;
+            } else if (mr == TARDY_MERGE_OK) {
+                /* Frame matched and no conflicts: structurally consistent */
+                const tardy_frame_t *frame = tardy_frames_find(
+                    &ont->frames, triples[i].predicate);
+                if (frame)
+                    is_consistent = 1;
+            }
+        }
+
         if (evidence > 0) {
             out->results[i].status = TARDY_KNOWLEDGE_GROUNDED;
             out->results[i].confidence = evidence > 2 ? 0.95f :
@@ -379,6 +411,11 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
             out->results[i].confidence = 0.0f;
             out->results[i].evidence_count = contradictions;
             out->contradicted++;
+        } else if (is_consistent) {
+            out->results[i].status = TARDY_KNOWLEDGE_CONSISTENT;
+            out->results[i].confidence = 0.60f;
+            out->results[i].evidence_count = 0;
+            out->consistent++;
         } else {
             out->results[i].status = TARDY_KNOWLEDGE_UNKNOWN;
             out->results[i].confidence = 0.0f;
