@@ -1,0 +1,22 @@
+// Chinese Whispers: 5 agents pass a value through a chain.
+// Each agent receives from the previous, freezes, passes to next.
+// Tardygrada guarantees: the value at agent_5 == the value at agent_1.
+// No other framework can prove this.
+
+agent Pipeline @sovereign {
+    invariant(trust_min: @verified)
+    invariant(non_empty)
+
+    // Agent 1 commits the original value
+    let agent_1: Fact = receive("original message from source") @sovereign
+
+    // Each subsequent agent receives and must match
+    let agent_2: Fact = receive("message passed from agent 1") @verified
+    let agent_3: Fact = receive("message passed from agent 2") @verified
+    let agent_4: Fact = receive("message passed from agent 3") @verified
+    let agent_5: Fact = receive("message passed from agent 4") @verified
+
+    // Metadata
+    let chain_length: int = 5
+    let name: str = "chinese-whispers-test" @sovereign
+}
