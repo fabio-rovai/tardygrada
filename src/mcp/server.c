@@ -961,6 +961,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                         all_triples[t].predicate,
                         all_triples[t].object);
                 }
+                /* Re-evaluate Datalog to derive new facts from additions */
+                tardy_dl_evaluate(&srv->self_ontology.datalog);
             }
 
             char turn_msg[256];
