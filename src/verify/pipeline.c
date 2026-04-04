@@ -188,35 +188,48 @@ tardy_layer_result_t tardy_verify_grounding(
         return r;
     }
 
-    /* Need minimum grounded triples */
-    if (grounding->grounded < sem->truth.min_evidence_triples) {
+    /* Count CONSISTENT triples (structurally valid per frame) */
+    int consistent_n = 0;
+    for (int i = 0; i < grounding->count; i++) {
+        if (grounding->results[i].status == TARDY_KNOWLEDGE_CONSISTENT)
+            consistent_n++;
+    }
+
+    /* Need minimum grounded + consistent triples */
+    int effective_evidence = grounding->grounded + consistent_n;
+    if (effective_evidence < sem->truth.min_evidence_triples) {
         r.passed = false;
-        r.confidence = (float)grounding->grounded / (float)grounding->count;
+        r.confidence = (float)effective_evidence / (float)grounding->count;
         snprintf(r.detail, sizeof(r.detail),
-                 "only %d grounded triples, need %d",
-                 grounding->grounded, sem->truth.min_evidence_triples);
+                 "only %d evidence triples (%d grounded + %d consistent), need %d",
+                 effective_evidence, grounding->grounded, consistent_n,
+                 sem->truth.min_evidence_triples);
         r.compute_ns = now_ns() - start;
         return r;
     }
 
     /* Compute grounding confidence.
-     * Key insight: unknown triples are NOT evidence against the claim.
-     * "I can't verify X" is different from "X is wrong."
-     * Confidence = grounded quality, penalized only by contradictions. */
+     * Key insight: CONSISTENT triples are partial evidence (better than unknown).
+     * GROUNDED = high confidence, CONSISTENT = medium, UNKNOWN = low. */
     float grounded_conf = 0.0f;
     int grounded_n = 0;
+    float consistent_conf = 0.0f;
     for (int i = 0; i < grounding->count; i++) {
         if (grounding->results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
             grounded_conf += grounding->results[i].confidence;
             grounded_n++;
+        } else if (grounding->results[i].status == TARDY_KNOWLEDGE_CONSISTENT) {
+            consistent_conf += grounding->results[i].confidence;
         }
     }
-    /* Base confidence on grounded triples' average confidence */
+    /* Base confidence on grounded + consistent triples */
     float ratio;
-    if (grounded_n > 0) {
-        ratio = grounded_conf / (float)grounded_n;
+    if (grounded_n > 0 || consistent_n > 0) {
+        float total_evidence_conf = grounded_conf + consistent_conf;
+        int total_evidence_n = grounded_n + consistent_n;
+        ratio = total_evidence_conf / (float)total_evidence_n;
         /* Slight penalty for unknowns (but not as harsh as treating them as failures) */
-        float coverage = (float)grounded_n / (float)grounding->count;
+        float coverage = (float)total_evidence_n / (float)grounding->count;
         ratio = ratio * (0.5f + 0.5f * coverage);
     } else {
         ratio = 0.0f;
@@ -224,8 +237,8 @@ tardy_layer_result_t tardy_verify_grounding(
     r.passed = true;
     r.confidence = ratio;
     snprintf(r.detail, sizeof(r.detail),
-             "%d/%d triples grounded (conf=%.0f%%), %d unknown",
-             grounding->grounded, grounding->count,
+             "%d/%d grounded, %d consistent (conf=%.0f%%), %d unknown",
+             grounding->grounded, grounding->count, consistent_n,
              ratio * 100.0f, grounding->unknown);
 
     r.compute_ns = now_ns() - start;
@@ -295,11 +308,12 @@ tardy_layer_result_t tardy_verify_probabilistic(
         return r;
     }
 
-    /* Average confidence across all grounded triples */
+    /* Average confidence across grounded + consistent triples */
     float total_conf = 0.0f;
     int counted = 0;
     for (int i = 0; i < grounding->count; i++) {
-        if (grounding->results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
+        if (grounding->results[i].status == TARDY_KNOWLEDGE_GROUNDED ||
+            grounding->results[i].status == TARDY_KNOWLEDGE_CONSISTENT) {
             total_conf += grounding->results[i].confidence;
             counted++;
         }
@@ -317,7 +331,7 @@ tardy_layer_result_t tardy_verify_probabilistic(
         r.passed = true;
         r.confidence = avg;
         snprintf(r.detail, sizeof(r.detail),
-                 "confidence %.3f from %d grounded triples", avg, counted);
+                 "confidence %.3f from %d evidence triples", avg, counted);
     }
 
     r.compute_ns = now_ns() - start;
@@ -789,6 +803,7 @@ tardy_pipeline_result_t tardy_pipeline_verify(
             if (grounding && grounding->contradicted > 0)
                 result.failure_type = TARDY_FAIL_CONTRADICTION;
             else if (grounding && grounding->grounded == 0 &&
+                     grounding->consistent == 0 &&
                      grounding->unknown == grounding->count)
                 result.failure_type = TARDY_FAIL_ONTOLOGY_GAP;
             else

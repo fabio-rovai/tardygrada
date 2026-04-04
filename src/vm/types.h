@@ -79,6 +79,7 @@ typedef enum {
     TARDY_KNOWLEDGE_GROUNDED    = 0x01,
     TARDY_KNOWLEDGE_UNKNOWN     = 0x02,
     TARDY_KNOWLEDGE_CONTRADICTED = 0x03,
+    TARDY_KNOWLEDGE_CONSISTENT  = 0x04,  /* structurally valid per frame, not contradicted */
 } tardy_knowledge_status_t;
 
 /* ============================================
