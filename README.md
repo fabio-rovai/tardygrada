@@ -6,147 +6,93 @@
 
 # Tardygrada
 
-**Pass a value through 100 agents in Python: the value might be intact, but you have 0% proof. Tampering at handoff #50 goes undetected. In Tardygrada: 100 handoffs, 100 hash-verified reads, tampering blocked by the OS kernel.**
+**Pass a value through 100 agents in Python: it might be intact, but you have 0% proof. In Tardygrada: 100 handoffs, 100 hash-verified reads, tampering blocked by the OS kernel.**
 
 | | Python / CrewAI / MiroFish | Tardygrada |
 |---|---|---|
 | 100 handoffs, no tampering | Value intact, **0% proof** | Value intact, **100% proof** |
 | 100 handoffs, tamper at #50 | Value changed, **not detected** | **Blocked by OS** |
-| Hash the value yourself? | Attacker recomputes hash too | Hash in **read-only memory** (mprotect) |
+| "Just hash it yourself" | Attacker recomputes hash too | Hash in **read-only memory** (mprotect) |
 
-Tardygrada is trust infrastructure for AI agents. Every value is a living agent with cryptographic provenance. Once frozen, a value cannot be changed -- not by your code, not by a bug, not by a malicious agent.
+246KB binary. Zero dependencies. Pure C11. Real ed25519 signatures. Coq-proven BFT consensus.
 
-```
-246KB binary | Zero dependencies | Pure C11 | Real ed25519 | Coq-proven BFT
-```
+## What This Is
 
-## What Tardygrada Guarantees (and What It Doesn't)
+A programming language where every value carries cryptographic proof of who created it, when, and that it hasn't been tampered with. Programs compile to MCP servers. The OS kernel enforces immutability.
 
-**Guaranteed (mathematically proven):**
+**What it guarantees:** integrity (mprotect + SHA-256 + ed25519 + BFT, proven in Coq), provenance (who, when, signed), audit trail (every operation logged).
 
-- **Integrity**: once a value is frozen, it CANNOT change. mprotect (hardware-enforced) + SHA-256 + ed25519 + BFT replicas. Proven in Coq.
-- **Provenance**: every value carries WHO created it, WHEN, from WHAT operation, signed with ed25519.
-- **Audit trail**: every mutation, every message, every verification attempt is logged in an immutable conversation history.
-- **Tamper detection**: if a replica is corrupted, the BFT consensus detects it and the system self-heals from honest replicas.
+**What it doesn't guarantee:** that a value is TRUE. Truth requires external knowledge. Tardygrada guarantees the value hasn't CHANGED. That's a different problem, and no other agent framework solves either.
 
-**Not guaranteed (requires external knowledge):**
-
-- **Correctness**: Tardygrada can tell you "this value was produced by agent X, verified by the pipeline, and hasn't changed." It cannot tell you "this value is true." Truth requires knowledge, and knowledge comes from ontologies, which are always incomplete.
-
-This is the honest difference between CrewAI and Tardygrada. CrewAI's "reviewer agent" is an LLM checking itself -- it says "VERIFIED" but has no proof. Tardygrada says "this value has integrity -- here's the cryptographic evidence" and is honest when it can't verify content.
-
-## Quick Start
+## 30 Seconds
 
 ```bash
-# Build (< 1 second)
 git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
 
-# Check integrity of a claim
-tardy run "Doctor Who was created at BBC Television Centre in 1963"
-
-# Convert any agent framework to Tardygrada
-tardy terraform /path/to/crewai
-
-# Run a .tardy program as an MCP server
-tardy serve examples/medical.tardy
+tardy run "Python was created by Guido van Rossum"   # VERIFIED (85%)
+tardy run "Paris is in France"                        # VERIFIED via Datalog chain reasoning
+tardy run "The speed of light is 299792458 m/s"       # VERIFIED via computational check
+tardy serve examples/medical.tardy                    # MCP server with 13 tools
+tardy terraform /path/to/crewai                       # 153K lines -> 53 instructions
 ```
 
 ## The Language
 
 ```
-agent MedicalAdvisor @sovereign @semantics(
-    truth.min_confidence: 0.99,
-) {
+agent MedicalAdvisor @sovereign @semantics(truth.min_confidence: 0.99) {
     invariant(trust_min: @verified)
-
-    // Claims from external agents -- integrity-checked before freezing
     let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
-
-    // Shell commands as agent bodies
-    let patient_data: str = exec("sqlite3 patients.db 'SELECT * FROM current'")
-
-    // Multi-agent coordination
+    let data: str = exec("sqlite3 patients.db 'SELECT * FROM current'")
     coordinate {analyzer, validator} on("verify diagnosis") consensus(ProofWeight)
-
-    let name: str = "Tardygrada Medical" @sovereign
 }
 ```
 
-What each keyword does:
-- `receive()` -- pending slot filled by external agents via MCP. Mutable until verified.
-- `exec()` -- forks /bin/sh, captures stdout, stores as agent value. No API calls.
-- `grounded_in()` -- checks claims against an ontology. Returns GROUNDED, UNKNOWN, or CONTRADICTED.
-- `@sovereign` -- mprotect + ed25519 + SHA-256 + 5 BFT replicas. Hardware-enforced immutability.
-- `invariant()` -- constitution rules checked on every operation. Cannot be bypassed.
-- `coordinate` -- dispatches tasks to brain-in-the-fish debate engine.
-- `fork` -- imports another .tardy file into current context. Trust cannot escalate.
+`receive()` accepts claims from external agents via MCP. `exec()` runs shell commands. `@sovereign` means mprotect + ed25519 + 5 BFT replicas. `invariant()` is checked on every operation. `coordinate` dispatches to the brain-in-the-fish debate engine.
 
-## How Verification Works
+## How It Verifies
 
 ```
-External agent submits a claim via MCP
-        |
-    Decompose into structured triples
-        |-- Preprocessor: strip markdown, extract key-value pairs
-        |-- Rule engine: 60+ English patterns, 3 independent passes
-        |-- Optional: LLM-assisted decomposition (TARDY_LLM_DECOMPOSE=1)
-        |
-    Ground against ontology (if available)
-        |-- Self-hosted: triples as @sovereign agents (200ns, in-process)
-        |-- External: open-ontologies via unix socket (SPARQL + OWL)
-        |-- No ontology: honest UNKNOWN (never fakes confidence)
-        |
-    8-layer verification pipeline
-        |-- Decomposition agreement, ontology grounding, consistency,
-        |-- probabilistic scoring, protocol check, certification,
-        |-- cross-layer contradiction detection, work verification
-        |
-    BFT consensus: 3 independent passes, 2/3 must agree
-        |
-    Passed -> frozen with provenance (integrity guaranteed)
-    Failed -> 11 structured failure types + feedback-driven retry
+Claim arrives -> decompose (60+ patterns) -> Datalog inference engine
+    -> frame matching (structural constraints) -> CRDT merge check
+    -> 8-layer pipeline -> BFT 3-pass consensus
+    -> VERIFIED / CONSISTENT / CONFLICT / UNVERIFIABLE
 ```
 
-**Integrity vs Correctness:**
-- The pipeline checks claim structure, consistency, ontology grounding (when available), and agent work.
-- It guarantees the claim has INTEGRITY (provenance, immutability, tamper detection).
-- It does NOT guarantee the claim is TRUE unless the ontology has supporting data.
-- When the ontology lacks data, the system reports UNKNOWN -- never VERIFIED.
+Four outcomes, all deterministic:
 
-## Tiered Immutability
+- **VERIFIED**: Datalog derives it from known facts
+- **CONSISTENT**: structurally valid, no conflicts (CRDT merge passes)
+- **CONFLICT**: violates a functional dependency or contradicts known facts
+- **UNVERIFIABLE**: no frame matches, honest "I can't check this"
 
-| Level | Mechanism | What Breaks It |
-|-------|-----------|----------------|
-| `x: int = 5` | Provenance-tracked | Any write (logged) |
-| `let x: int = 5` | mprotect (OS kernel) | Kernel exploit |
-| `let x = 5 @verified` | + SHA-256 hash | Kernel + SHA-256 preimage |
-| `let x = 5 @hardened` | + 3 BFT replicas | Corrupt majority + SHA-256 |
-| `let x = 5 @sovereign` | + ed25519 + 5 replicas | All above + forge ed25519 |
+The Datalog engine has 15 backbone inference rules. `capitalOf(Paris, France)` automatically derives `locatedIn(Paris, France)`. Self-growing: verified claims become new Datalog facts.
 
-## Real Benchmark: CrewAI vs Tardygrada
+## Immutability Tiers
 
-Same task (Tesla investment analysis), same LLM (Claude Sonnet), both run for real:
+| Level | What Breaks It |
+|-------|----------------|
+| `let x = 5` | Kernel exploit (mprotect) |
+| `@verified` | Kernel + SHA-256 preimage |
+| `@hardened` | Corrupt majority of 3 replicas + SHA-256 |
+| `@sovereign` | All above + forge ed25519 signature |
 
-| | CrewAI | Tardygrada |
-|---|---|---|
-| Time | 38s | 15s |
-| LLM calls | 2+ (sequential agents) | 1 |
-| Output | 2000 chars | 1846 chars |
-| Integrity proof | None | ed25519 + SHA-256 + mprotect |
-| Provenance | None | WHO, WHEN, audit trail |
-| Dependencies | 30+ packages | Zero (229KB binary) |
+## Benchmarks
 
-CrewAI's reviewer agent added `[RISK FLAG: UNVERIFIED]` -- the LLM admitting it can't verify itself. Tardygrada provides cryptographic proof of integrity: who produced the value, when, and that it hasn't changed.
+| Operation | Speed |
+|-----------|-------|
+| Read @verified (SHA-256 check) | 197ns / 5M ops/sec |
+| Read @sovereign (BFT + sig) | 1,538ns / 650K ops/sec |
+| Full verification pipeline | 692ns / 1.4M ops/sec |
+| Message send between agents | 190ns / 5.3M ops/sec |
+
+Real benchmark: 5 agents predict BTC price. MiroFish-style: 6 LLM calls, 10.6s. Tardygrada: 5 calls, 8.8s, with integrity proof.
 
 ## Three Projects, One Stack
 
 ```
-Tardygrada (C, 229KB)          -- language, compiler, VM, MCP server
-        |
-brain-in-the-fish (Rust, 25K) -- debate, scoring, moderation
-        |                         coordinate keyword connects here
-open-ontologies (Rust, 10K)    -- OWL reasoning, SPARQL, knowledge graphs
-                                  grounded_in() connects here
+Tardygrada (C, 246KB)         -- language, compiler, VM, MCP server, Datalog engine
+brain-in-the-fish (Rust, 25K) -- debate, scoring, moderation (coordinate connects here)
+open-ontologies (Rust, 10K)   -- OWL reasoning, SPARQL (grounded_in connects here)
 ```
 
 ## terraform
@@ -155,33 +101,23 @@ open-ontologies (Rust, 10K)    -- OWL reasoning, SPARQL, knowledge graphs
 tardy terraform /path/to/any-agent-framework
 # CrewAI:     153,245 lines -> 53 instructions
 # LlamaIndex: 237,414 lines -> 15 instructions
-# LangGraph:  101,662 lines -> 39 instructions
-# MetaGPT:     89,734 lines -> 11 instructions
-```
-
-## Benchmarks
-
-```
-Read @verified (SHA-256):       197ns    5,000,000 ops/sec
-Read @sovereign (BFT+sig):   1,538ns      650,000 ops/sec
-Verification pipeline:          692ns    1,400,000 ops/sec
-Message send:                   190ns    5,300,000 ops/sec
+# MiroFish:    21,016 lines -> 15 lines
 ```
 
 ## Building
 
 ```bash
-make        # < 1 second
-make run    # run tests
-make bench  # run benchmarks
+make            # < 1 second, 246KB binary
+make run        # tests
+make bench      # benchmarks
 ```
 
-C11 compiler. No external libraries. No malloc. Direct syscalls only.
+C11 compiler. No malloc. Direct syscalls. Zero external libraries.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT
 
-## Research Foundations
+## Research
 
-Built on: [ARIA Safeguarded AI](https://www.aria.org.uk/programme/safeguarded-ai/) (formal verification for AI), [HalluGraph](https://arxiv.org/abs/2406.12072) (knowledge-graph grounding), [AgentSpec](https://arxiv.org/abs/2401.13178) (runtime agent enforcement), [Bythos](https://arxiv.org/abs/2302.01527) (Coq-proven BFT consensus).
+Built on: [ARIA Safeguarded AI](https://www.aria.org.uk/programme/safeguarded-ai/), [AgentSpec](https://arxiv.org/abs/2503.18666) (ICSE 2026), [Agent Behavioral Contracts](https://arxiv.org/abs/2602.22302) (2026), [Bythos](https://arxiv.org/abs/2302.01527) (Coq BFT), Minsky frames (1974), CRDTs (Shapiro 2011), Datalog (1986).
