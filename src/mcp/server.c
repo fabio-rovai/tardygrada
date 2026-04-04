@@ -934,6 +934,18 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
 
             tardy_vm_freeze(srv->vm, target->id, TARDY_TRUST_VERIFIED);
 
+            /* Self-growing ontology: add verified triples so future
+             * claims can be grounded against past verifications.
+             * The more you verify, the more the system knows. */
+            if (srv->self_ontology_loaded) {
+                for (int t = 0; t < triple_count; t++) {
+                    tardy_self_ontology_add(&srv->self_ontology,
+                        all_triples[t].subject,
+                        all_triples[t].predicate,
+                        all_triples[t].object);
+                }
+            }
+
             char turn_msg[256];
             snprintf(turn_msg, sizeof(turn_msg),
                      "verified: strength=%d confidence=%d%%",
