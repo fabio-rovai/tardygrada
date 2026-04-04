@@ -194,6 +194,7 @@ static const pattern_t patterns[] = {
     { " died in ",              "died_in"          },
     { " died on ",              "died_on"          },
     /* Location / containment */
+    { " is in ",                "located_in"       },
     { " is located in ",        "located_in"       },
     { " is part of ",           "part_of"          },
     { " belongs to ",           "belongs_to"       },

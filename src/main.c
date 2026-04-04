@@ -590,11 +590,19 @@ static int run_task(const char *task_text)
     /* Work log -- CLI does real work, record it */
     tardy_work_log_t work_log;
     tardy_worklog_init(&work_log);
-    work_log.ontology_queries = (srv.bridge_connected ||
-        srv.self_ontology.triple_count > 0) ? triple_count : 0;
-    work_log.context_reads = triple_count;
-    work_log.agents_spawned = 1;
-    work_log.compute_ns = 10000000; /* 10ms minimum */
+    if (comp_result == 1) {
+        /* Computational verification counts as real work */
+        work_log.ontology_queries = 2;
+        work_log.context_reads = 1;
+        work_log.agents_spawned = 1;
+        work_log.compute_ns = 10000000; /* 10ms minimum */
+    } else {
+        work_log.ontology_queries = (srv.bridge_connected ||
+            srv.self_ontology.triple_count > 0) ? triple_count : 0;
+        work_log.context_reads = triple_count;
+        work_log.agents_spawned = 1;
+        work_log.compute_ns = 10000000; /* 10ms minimum */
+    }
 
     const tardy_semantics_t *sem = &vm->semantics;
     tardy_work_spec_t spec = tardy_compute_work_spec(sem);

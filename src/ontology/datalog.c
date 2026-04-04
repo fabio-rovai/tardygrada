@@ -48,6 +48,32 @@ static int ci_streq(const char *a, const char *b)
     return *a == *b;
 }
 
+/* Predicate matching: exact, case-insensitive, or underscore/camelCase normalized.
+ * "located_in" matches "locatedIn", "LocatedIn", "located_in", etc. */
+static int pred_match(const char *a, const char *b)
+{
+    /* Exact match */
+    if (strcmp(a, b) == 0) return 1;
+
+    /* Case-insensitive match */
+    if (ci_streq(a, b)) return 1;
+
+    /* Normalize both: remove underscores, lowercase, then compare */
+    char norm_a[64], norm_b[64];
+    int ai = 0, bi = 0;
+    for (int i = 0; a[i] && ai < 63; i++) {
+        if (a[i] != '_')
+            norm_a[ai++] = (a[i] >= 'A' && a[i] <= 'Z') ? a[i] + 32 : a[i];
+    }
+    norm_a[ai] = '\0';
+    for (int i = 0; b[i] && bi < 63; i++) {
+        if (b[i] != '_')
+            norm_b[bi++] = (b[i] >= 'A' && b[i] <= 'Z') ? b[i] + 32 : b[i];
+    }
+    norm_b[bi] = '\0';
+    return strcmp(norm_a, norm_b) == 0;
+}
+
 /* Check if fact already exists (linear scan, fine for 4K facts) */
 static int fact_exists(const tardy_dl_program_t *prog,
                        const tardy_dl_atom_t *atom)
@@ -188,8 +214,8 @@ static int unify_atom(const tardy_dl_atom_t *pattern,
                       const tardy_dl_atom_t *fact,
                       env_t *e)
 {
-    /* Predicate must match exactly (case-insensitive) */
-    if (!ci_streq(pattern->pred, fact->pred))
+    /* Predicate must match (case-insensitive + underscore/camelCase normalized) */
+    if (!pred_match(pattern->pred, fact->pred))
         return 0;
 
     /* Unify arg1 */
@@ -311,7 +337,7 @@ int tardy_dl_query(const tardy_dl_program_t *prog,
     if (!prog || !pred) return 0;
 
     for (int i = 0; i < prog->fact_count; i++) {
-        if (!ci_streq(prog->facts[i].pred, pred))
+        if (!pred_match(prog->facts[i].pred, pred))
             continue;
 
         int a1_match = (!arg1 || !arg1[0] ||
