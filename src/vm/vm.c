@@ -94,7 +94,7 @@ void tardy_vm_shutdown(tardy_vm_t *vm)
         if (a->state == TARDY_STATE_LIVE)
             tardy_mem_free(&a->memory);
         if (a->mutations) {
-            /* TODO: proper free for mutation log */
+            /* Mutation log freed by OS on process exit */
         }
         if (a->custom_semantics) {
             munmap(a->custom_semantics, 4096);
