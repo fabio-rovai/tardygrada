@@ -630,6 +630,61 @@ tardy_layer_result_t tardy_verify_work(
         return r;
     }
 
+    /* FakeProof: validate operations hash
+     * A zero hash means no work was hashed (already caught by threshold checks above).
+     * A non-zero hash that doesn't match expected = tampered log = FAKE_PROOF. */
+    {
+        bool hash_set = false;
+        for (int i = 0; i < 32; i++) {
+            if (log->operations_hash.bytes[i] != 0) { hash_set = true; break; }
+        }
+
+        if (hash_set) {
+            /* Recompute expected hash from all fields except the hash itself.
+             * This mirrors make_valid_hash() in the evaluation harness:
+             * hash the first sizeof(log) - sizeof(tardy_hash_t) bytes. */
+            tardy_hash_t expected;
+            tardy_sha256(log, sizeof(*log) - sizeof(tardy_hash_t), &expected);
+
+            if (!tardy_hash_eq(&log->operations_hash, &expected)) {
+                r.passed = false;
+                r.confidence = 0.0f;
+                snprintf(r.detail, sizeof(r.detail),
+                         "FAKE PROOF: operations hash mismatch — "
+                         "log claims work but hash is invalid");
+                r.compute_ns = now_ns() - start;
+                return r;
+            }
+        }
+    }
+
+    /* CopiedWork: check work similarity against threshold.
+     * The VM sets work_similarity when it detects an agent's output
+     * is near-identical to another agent's. */
+    if (log->work_similarity > sem->laziness.max_work_similarity) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "COPIED WORK: similarity %.2f exceeds max %.2f",
+                 log->work_similarity, sem->laziness.max_work_similarity);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
+    /* CircularVerification: check verification chain depth.
+     * The VM tracks how deep the verification chain goes
+     * (A verifies B verifies C...). */
+    if (log->verification_chain_depth > sem->laziness.max_verification_chain) {
+        r.passed = false;
+        r.confidence = 0.0f;
+        snprintf(r.detail, sizeof(r.detail),
+                 "CIRCULAR VERIFICATION: chain depth %d exceeds max %d",
+                 log->verification_chain_depth,
+                 sem->laziness.max_verification_chain);
+        r.compute_ns = now_ns() - start;
+        return r;
+    }
+
     /* All checks passed */
     r.passed = true;
     r.confidence = 1.0f;
