@@ -101,6 +101,8 @@ typedef struct {
     int      agents_spawned;     /* how many sub-agents created */
     uint64_t compute_ns;         /* actual CPU time consumed */
     size_t   memory_used;        /* actual memory allocated */
+    float    work_similarity;    /* similarity to other agents' work (0.0-1.0) */
+    int      verification_chain_depth; /* depth of verification chain (A->B->C = 3) */
     tardy_hash_t operations_hash; /* hash of all operations for tamper detection */
 } tardy_work_log_t;
 

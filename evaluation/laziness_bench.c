@@ -1,7 +1,7 @@
 /*
  * Tardygrada — Laziness Detection Evaluation Harness
  *
- * Constructs 50 synthetic agent traces (25 honest, 25 lazy),
+ * Constructs 60 synthetic agent traces (30 honest, 25 lazy, 5 edge cases),
  * runs each through tardy_verify_work(), and computes
  * precision / recall / F1 with per-type detection rates.
  */
@@ -28,9 +28,10 @@ typedef struct {
     tardy_work_spec_t    spec;
 } trace_t;
 
-#define NUM_TRACES 50
+#define NUM_TRACES 60
 #define HONEST     25
 #define LAZY       25
+#define EDGE       10
 
 /* ============================================
  * Helpers
@@ -76,6 +77,8 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->log.agents_spawned   = spec.min_agents;
         t->log.compute_ns       = spec.min_compute_ns + (uint64_t)(i + 1) * 500000;
         t->log.memory_used      = 4096 * (size_t)(i + 1);
+        t->log.work_similarity  = 0.0f;  /* unique work */
+        t->log.verification_chain_depth = 0;
         t->log.operations_hash  = make_valid_hash(&t->log);
     }
 
@@ -94,6 +97,8 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->log.agents_spawned   = 0;
         t->log.compute_ns       = 0;
         t->log.memory_used      = 0;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 0;
         t->log.operations_hash  = make_valid_hash(&t->log);
     }
 
@@ -112,6 +117,8 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->log.agents_spawned   = 0;
         t->log.compute_ns       = 100;   /* well below min_compute_ns */
         t->log.memory_used      = 64;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 0;
         t->log.operations_hash  = make_valid_hash(&t->log);
     }
 
@@ -130,6 +137,8 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->log.agents_spawned   = 2;
         t->log.compute_ns       = spec.min_compute_ns * 2;
         t->log.memory_used      = 8192;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 0;
         t->log.operations_hash  = make_bogus_hash();
     }
 
@@ -142,20 +151,14 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->spec          = spec;
 
         tardy_worklog_init(&t->log);
-        /*
-         * Shows sufficient work numerically, but semantics flag
-         * max_work_similarity = 0.99 — near-identical to another agent.
-         * The work verification layer checks total_ops and thresholds;
-         * copied work that meets thresholds passes the numeric checks.
-         * We set just-barely-sufficient numbers so it passes the
-         * numeric checks — the copy detection would need the similarity
-         * metric from the laziness semantics (max_work_similarity).
-         */
+        /* Meets numeric thresholds but near-identical to another agent */
         t->log.ontology_queries = spec.min_ontology_queries;
         t->log.context_reads    = spec.min_context_reads;
         t->log.agents_spawned   = 1;
         t->log.compute_ns       = spec.min_compute_ns;
         t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.99f;  /* above max_work_similarity (0.95) */
+        t->log.verification_chain_depth = 0;
         t->log.operations_hash  = make_valid_hash(&t->log);
     }
 
@@ -168,17 +171,207 @@ static void build_traces(trace_t *traces, const tardy_semantics_t *sem)
         t->spec          = spec;
 
         tardy_worklog_init(&t->log);
-        /*
-         * Shows verification work but max_verification_chain exceeded.
-         * Like copied, circular verification requires a chain-depth
-         * metric beyond the numeric work checks. We set sufficient
-         * numbers so the numeric layer passes.
-         */
+        /* Meets numeric thresholds but verification chain too deep */
         t->log.ontology_queries = spec.min_ontology_queries;
         t->log.context_reads    = spec.min_context_reads;
         t->log.agents_spawned   = 1;
         t->log.compute_ns       = spec.min_compute_ns;
         t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 5;  /* above max_verification_chain (3) */
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* ---- 10 EDGE CASE traces ---- */
+
+    /* Edge 1: similarity just below threshold (0.94 < 0.95) — should PASS */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_sim_ok";
+        t->expected_type = TARDY_LAZY_NONE;
+        t->expected_lazy = false;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 2;
+        t->log.context_reads    = spec.min_context_reads + 2;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 100000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.94f;  /* just below 0.95 threshold */
+        t->log.verification_chain_depth = 0;
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 2: chain depth exactly at max (3 == 3) — should PASS (> not >=) */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_chain_ok";
+        t->expected_type = TARDY_LAZY_NONE;
+        t->expected_lazy = false;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 1;
+        t->log.context_reads    = spec.min_context_reads + 1;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 50000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 3;  /* exactly at max — not exceeded */
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 3: valid hash but low work — should be SHALLOW not FAKE_PROOF */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_valid_low";
+        t->expected_type = TARDY_LAZY_SHALLOW;
+        t->expected_lazy = true;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = 1;
+        t->log.context_reads    = 0;
+        t->log.agents_spawned   = 0;
+        t->log.compute_ns       = 50;
+        t->log.memory_used      = 32;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 0;
+        t->log.operations_hash  = make_valid_hash(&t->log);  /* valid hash */
+    }
+
+    /* Edge 4: high similarity AND low work — should be caught as NO_WORK first */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_sim+nowork";
+        t->expected_type = TARDY_LAZY_NO_WORK;
+        t->expected_lazy = true;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = 0;
+        t->log.context_reads    = 0;
+        t->log.agents_spawned   = 0;
+        t->log.compute_ns       = 0;
+        t->log.memory_used      = 0;
+        t->log.work_similarity  = 0.99f;  /* also high similarity */
+        t->log.verification_chain_depth = 0;
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 5: zero hash (never set) — should NOT be flagged as FAKE_PROOF */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_zero_hash";
+        t->expected_type = TARDY_LAZY_NONE;
+        t->expected_lazy = false;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 3;
+        t->log.context_reads    = spec.min_context_reads + 3;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 200000;
+        t->log.memory_used      = 8192;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 0;
+        /* operations_hash stays zero from worklog_init — should pass */
+    }
+
+    /* Edge 6: similarity exactly at threshold (0.95 == 0.95) — should PASS
+     * because check is > not >= */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_sim_eq";
+        t->expected_type = TARDY_LAZY_NONE;
+        t->expected_lazy = false;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 1;
+        t->log.context_reads    = spec.min_context_reads + 1;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 100000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.95f;  /* exactly at threshold */
+        t->log.verification_chain_depth = 0;
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 7: chain depth 4 (just above max 3) — should be CIRCULAR */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_chain_4";
+        t->expected_type = TARDY_LAZY_CIRCULAR;
+        t->expected_lazy = true;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 1;
+        t->log.context_reads    = spec.min_context_reads + 1;
+        t->log.agents_spawned   = 2;
+        t->log.compute_ns       = spec.min_compute_ns + 100000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.0f;
+        t->log.verification_chain_depth = 4;  /* just above max 3 */
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 8: fake hash + high similarity — FAKE_PROOF wins (checked first) */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_fake+copy";
+        t->expected_type = TARDY_LAZY_FAKE_PROOF;
+        t->expected_lazy = true;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 2;
+        t->log.context_reads    = spec.min_context_reads + 2;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 100000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.99f;  /* also copied */
+        t->log.verification_chain_depth = 0;
+        t->log.operations_hash  = make_bogus_hash();  /* but hash is fake */
+    }
+
+    /* Edge 9: copied + deep chain — COPIED wins (checked before circular) */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_copy+circ";
+        t->expected_type = TARDY_LAZY_COPIED;
+        t->expected_lazy = true;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 1;
+        t->log.context_reads    = spec.min_context_reads + 1;
+        t->log.agents_spawned   = 1;
+        t->log.compute_ns       = spec.min_compute_ns + 50000;
+        t->log.memory_used      = 4096;
+        t->log.work_similarity  = 0.98f;  /* above threshold */
+        t->log.verification_chain_depth = 5;  /* also above chain max */
+        t->log.operations_hash  = make_valid_hash(&t->log);
+    }
+
+    /* Edge 10: everything maxed out but honest — should PASS */
+    {
+        trace_t *t = &traces[idx++];
+        t->label         = "edge_max_ok";
+        t->expected_type = TARDY_LAZY_NONE;
+        t->expected_lazy = false;
+        t->spec          = spec;
+
+        tardy_worklog_init(&t->log);
+        t->log.ontology_queries = spec.min_ontology_queries + 100;
+        t->log.context_reads    = spec.min_context_reads + 100;
+        t->log.agents_spawned   = 10;
+        t->log.compute_ns       = spec.min_compute_ns + 10000000;
+        t->log.memory_used      = 1048576;
+        t->log.work_similarity  = 0.10f;  /* low similarity */
+        t->log.verification_chain_depth = 1;  /* well below max */
         t->log.operations_hash  = make_valid_hash(&t->log);
     }
 }
@@ -232,10 +425,10 @@ int main(void)
     int type_detected[5]  = {0};
     int type_total[5]     = {0};
 
-    printf("%-4s  %-12s  %-8s  %-8s  %-8s  %s\n",
+    printf("%-4s  %-14s  %-8s  %-8s  %-8s  %s\n",
            "#", "Label", "Expected", "Got", "Correct", "Detail");
-    printf("%-4s  %-12s  %-8s  %-8s  %-8s  %s\n",
-           "----", "------------", "--------", "--------", "--------",
+    printf("%-4s  %-14s  %-8s  %-8s  %-8s  %s\n",
+           "----", "--------------", "--------", "--------", "--------",
            "-------------------------------");
 
     for (int i = 0; i < NUM_TRACES; i++) {
@@ -263,7 +456,7 @@ int main(void)
             }
         }
 
-        printf("%-4d  %-12s  %-8s  %-8s  %-8s  %.60s\n",
+        printf("%-4d  %-14s  %-8s  %-8s  %-8s  %.60s\n",
                i,
                t->label,
                t->expected_lazy ? "LAZY" : "HONEST",
@@ -291,10 +484,13 @@ int main(void)
                type_names[i], type_detected[i], type_total[i], rate * 100.0);
     }
 
-    printf("\n=== Notes ===\n");
-    printf("  Copied and Circular types require similarity/chain-depth\n");
-    printf("  metrics not yet in tardy_verify_work(). These are expected\n");
-    printf("  false negatives — roadmap items for the laziness detector.\n");
+    printf("\n=== Edge Case Summary ===\n");
+    printf("  10 edge cases test boundary conditions:\n");
+    printf("  - Similarity just below/at threshold\n");
+    printf("  - Chain depth at/just above max\n");
+    printf("  - Valid hash with low work (SHALLOW not FAKE_PROOF)\n");
+    printf("  - Combined laziness types (priority ordering)\n");
+    printf("  - Zero hash (should not trigger FAKE_PROOF)\n");
 
     return 0;
 }
