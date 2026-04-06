@@ -27,6 +27,8 @@ SRC = src/main.c \
       src/verify/pipeline.c \
       src/verify/decompose.c \
       src/verify/preprocess.c \
+      src/verify/numeric.c \
+      src/verify/llm_decompose.c \
       src/ontology/bridge.c \
       src/ontology/self.c \
       src/ontology/datalog.c \
