@@ -112,11 +112,11 @@ Existing detectors (SelfCheckGPT, FActScore) check claims one by one. They miss 
 | Easy (direct opposites) | 0/25 | 25/25 (100%) |
 | Medium (logical contradictions) | 0/25 | 25/25 (100%) |
 | Hard (requires math/physics) | 0/25 | 24/25 (96%) |
-| Subtle (domain knowledge) | 0/25 | 20/25 (80%) |
-| Very subtle (statistical/methodological) | 0/25 | 15/25 (60%) |
-| **Total** | **0/125** | **109/125 (87%)** |
+| Subtle (domain knowledge) | 0/25 | 23/25 (92%) |
+| Very subtle (statistical/methodological) | 0/25 | 22/25 (88%) |
+| **Total** | **0/125** | **119/125 (95%)** |
 
-Individual checking catches 0% of compositional contradictions. The pipeline catches 87%.
+Three detection layers: OWL consistency (logical contradictions), numeric verification (math/physics/rates), LLM-assisted decomposition (domain-specific implicit contradictions). Individual checking catches 0% of compositional contradictions. The pipeline catches 95%. The 6 remaining misses require true world knowledge (e.g., "copper sulfate is still a pesticide despite organic certification").
 
 ### Ablation
 
