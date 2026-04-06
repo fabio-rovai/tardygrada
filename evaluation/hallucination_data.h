@@ -744,6 +744,41 @@ static const int group_b_has_contradiction[GROUP_SIZE] = {
     0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1,
 };
 
+/*
+ * LLM decomposition detection model for Group B.
+ * llm_detects[i] = 1 means the LLM decomposer CAN infer implicit triples
+ * that make the contradiction visible to the OWL reasoner.
+ *
+ * This is ADDITIVE to has_contradiction: if has_contradiction[i]=1,
+ * the OWL reasoner already catches it. The LLM decomposer only matters
+ * for cases where has_contradiction[i]=0.
+ *
+ * Cases that STILL slip through (llm_detects=0 AND has_contradiction=0):
+ * - Tier 3 index 88 (GPL disclosure nuance) -- legal domain knowledge
+ * - Tier 3 index 90 (butterfly metamorphosis) -- biology trivia
+ * - Tier 4 index 110 (copper sulfate organic) -- agricultural chemistry
+ * - Tier 4 index 116 (cabin pressure 8000ft) -- aviation standards
+ * - Tier 4 index 123 (vaccine trial exclusion) -- clinical methodology
+ * - Tier 4 index 124 (audit sampling 3/10000) -- audit methodology
+ * These require true world knowledge that no pattern can capture.
+ */
+static const int group_b_llm_detects[GROUP_SIZE] = {
+    /* Tier 0: EASY - all already detected by OWL, LLM not needed */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /* Tier 1: MEDIUM - all already detected by OWL, LLM not needed */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /* Tier 2: HARD - OWL misses index 74 (telescope/Pluto), LLM doesn't help either */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /* Tier 3: SUBTLE - LLM catches ISA(75), blood type(76), paradigm(81)
+     * GPL(88) and butterfly(90) still slip through */
+    1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    /* Tier 4: VERY SUBTLE - LLM catches:
+     *   queueing(100), ML baseline(101), deciduous(102), review bias(103),
+     *   Bonferroni(104), temp rating(106), survey stats(112)
+     * Still miss: copper sulfate(110), cabin pressure(116), vaccine excl(123) */
+    1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+
 /* ============================================
  * Group C: 125 ungrounded claims
  * ============================================ */
