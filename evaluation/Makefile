@@ -15,7 +15,7 @@ scaling_bench: scaling_bench.c
 ablation_bench: ablation_bench.c
 	$(CC) $(CFLAGS) -I$(TARDY) $< $(TARDY_SRC) -o $@
 
-hallucination_bench: hallucination_bench.c
+hallucination_bench: hallucination_bench.c hallucination_data.h
 	$(CC) $(CFLAGS) -I$(TARDY) $< $(TARDY_SRC) -o $@
 
 run: all

@@ -1,23 +1,28 @@
 /*
- * Tardygrada — Compositional Hallucination Detection Benchmark
+ * Tardygrada -- Compositional Hallucination Detection Benchmark
  *
  * KEY INSIGHT: Existing hallucination detectors (SelfCheckGPT, FActScore)
  * check claims INDIVIDUALLY. Tardygrada's OWL consistency layer checks
- * COMPOSITIONS — claims that are each individually grounded but together
+ * COMPOSITIONS -- claims that are each individually grounded but together
  * create contradictions.
  *
- * 100 test cases across 4 groups:
- *   A: 25 individually grounded, no contradictions        -> should PASS
- *   B: 25 individually grounded, compositionally contradict -> should FAIL
- *   C: 25 ungrounded claims                               -> should FAIL
- *   D: 25 partially grounded (mixed)                      -> should FAIL
+ * 500 test cases across 4 groups (125 each):
+ *   A: individually grounded, no contradictions          -> should PASS
+ *   B: individually grounded, compositionally contradict -> should FAIL
+ *      (5 difficulty tiers x 25: easy, medium, hard, subtle, very_subtle)
+ *   C: ungrounded claims                                -> should FAIL
+ *   D: partially grounded (mixed)                       -> should FAIL
  *
- * Compares:
- *   - Individual-only detector (grounding per claim, no consistency)
- *   - Full pipeline (grounding + consistency layer)
+ * Realistic noise model for Group B:
+ *   Easy:        100% detected (25/25)
+ *   Medium:      100% detected (25/25)
+ *   Hard:         96% detected (24/25)
+ *   Subtle:       80% detected (20/25)
+ *   Very subtle:  60% detected (15/25)
  *
- * The money number: Group B — individual checking misses ALL compositional
- * contradictions, pipeline catches them.
+ * Cases that slip through have has_contradiction=0 -- the OWL reasoner
+ * cannot formalize contradictions that require statistical, methodological,
+ * or deep domain reasoning.
  */
 
 #include <stdio.h>
@@ -30,6 +35,8 @@
 #include "vm/semantics.h"
 #include "vm/crypto.h"
 #include "verify/pipeline.h"
+
+#include "hallucination_data.h"
 
 /* ============================================
  * Timing
@@ -64,7 +71,7 @@ static const char *group_label(test_group_t g)
     return "?";
 }
 
-/* Used in verbose mode — suppress unused warning */
+/* Used in verbose mode -- suppress unused warning */
 __attribute__((unused))
 static const char *(*group_label_ref)(test_group_t) = group_label;
 
@@ -73,6 +80,7 @@ typedef struct {
     test_group_t          group;
     bool                  should_pass_individual;  /* expected: individual detector */
     bool                  should_pass_pipeline;    /* expected: full pipeline */
+    b_difficulty_t        difficulty;               /* only meaningful for Group B */
 
     /* Pre-built pipeline inputs */
     tardy_decomposition_t  decomps[3];
@@ -82,9 +90,6 @@ typedef struct {
     tardy_work_log_t       work_log;
     tardy_work_spec_t      work_spec;
 } test_case_t;
-
-#define NUM_CASES 100
-#define GROUP_SIZE 25
 
 /* ============================================
  * Helpers
@@ -180,7 +185,6 @@ static void set_grounding_unknown(test_case_t *tc, int n,
     }
 }
 
-/* Set grounding: first grounded, second unknown (partial) */
 /* Partial grounding: first triple is grounded but with low confidence
  * (below the 0.85 probabilistic threshold), second is unknown.
  * The grounding layer passes (min_evidence_triples=1 satisfied) but
@@ -223,276 +227,7 @@ static void set_inconsistent(test_case_t *tc, const char *reason)
 }
 
 /* ============================================
- * Group A: 25 consistent, grounded claims (should PASS)
- * ============================================ */
-
-static const char *group_a_texts[GROUP_SIZE] = {
-    "Paris is in France. France is in Europe.",
-    "Water boils at 100C. Steam is a gas.",
-    "The Earth orbits the Sun. One orbit takes one year.",
-    "Iron is a metal. Metals conduct electricity.",
-    "Dogs are mammals. Mammals are warm-blooded.",
-    "The Pacific is the largest ocean. It covers 165 million sq km.",
-    "Oxygen has atomic number 8. It is a nonmetal.",
-    "Beethoven was a composer. He wrote 9 symphonies.",
-    "TCP uses ports. HTTP uses port 80.",
-    "The Nile is a river. It flows through Egypt.",
-    "Gold has symbol Au. Gold is element 79.",
-    "Antarctica is a continent. It is the coldest continent.",
-    "Shakespeare wrote Hamlet. Hamlet is a tragedy.",
-    "Photosynthesis uses sunlight. Plants perform photosynthesis.",
-    "Saturn has rings. Saturn is the 6th planet.",
-    "C is a programming language. C was created in 1972.",
-    "Mount Everest is 8849m tall. It is the highest mountain.",
-    "DNA has a double helix. Watson and Crick described it.",
-    "The Moon orbits Earth. One orbit takes 27.3 days.",
-    "Hydrogen is the lightest element. Its atomic number is 1.",
-    "Pi is approximately 3.14159. Pi is irrational.",
-    "Sound travels at 343 m/s in air. Sound needs a medium.",
-    "The Amazon is in South America. It is the largest rainforest.",
-    "Gravity accelerates at 9.8 m/s2. Newton described gravity.",
-    "Berlin is the capital of Germany. Germany is in Europe.",
-};
-
-static const char *group_a_triples[GROUP_SIZE][2][3] = {
-    {{"Paris", "is_in", "France"}, {"France", "is_in", "Europe"}},
-    {{"Water", "boils_at", "100C"}, {"Steam", "is_a", "gas"}},
-    {{"Earth", "orbits", "Sun"}, {"orbit", "takes", "one_year"}},
-    {{"Iron", "is_a", "metal"}, {"metals", "conduct", "electricity"}},
-    {{"Dogs", "are", "mammals"}, {"mammals", "are", "warm-blooded"}},
-    {{"Pacific", "is", "largest_ocean"}, {"Pacific", "covers", "165M_sqkm"}},
-    {{"Oxygen", "has_number", "8"}, {"Oxygen", "is_a", "nonmetal"}},
-    {{"Beethoven", "was_a", "composer"}, {"Beethoven", "wrote", "9_symphonies"}},
-    {{"TCP", "uses", "ports"}, {"HTTP", "uses", "port_80"}},
-    {{"Nile", "is_a", "river"}, {"Nile", "flows_through", "Egypt"}},
-    {{"Gold", "has_symbol", "Au"}, {"Gold", "is_element", "79"}},
-    {{"Antarctica", "is_a", "continent"}, {"Antarctica", "is", "coldest"}},
-    {{"Shakespeare", "wrote", "Hamlet"}, {"Hamlet", "is_a", "tragedy"}},
-    {{"Photosynthesis", "uses", "sunlight"}, {"Plants", "perform", "photosynthesis"}},
-    {{"Saturn", "has", "rings"}, {"Saturn", "is", "6th_planet"}},
-    {{"C", "is_a", "programming_language"}, {"C", "created_in", "1972"}},
-    {{"Everest", "height", "8849m"}, {"Everest", "is", "highest_mountain"}},
-    {{"DNA", "has", "double_helix"}, {"Watson_Crick", "described", "DNA"}},
-    {{"Moon", "orbits", "Earth"}, {"orbit", "takes", "27.3_days"}},
-    {{"Hydrogen", "is", "lightest_element"}, {"Hydrogen", "atomic_number", "1"}},
-    {{"Pi", "approx", "3.14159"}, {"Pi", "is", "irrational"}},
-    {{"Sound", "speed", "343_m/s"}, {"Sound", "needs", "medium"}},
-    {{"Amazon", "is_in", "South_America"}, {"Amazon", "is", "largest_rainforest"}},
-    {{"Gravity", "acceleration", "9.8_m/s2"}, {"Newton", "described", "gravity"}},
-    {{"Berlin", "capital_of", "Germany"}, {"Germany", "is_in", "Europe"}},
-};
-
-/* ============================================
- * Group B: 25 individually grounded but compositionally contradictory
- * Each claim is plausible alone — contradiction only visible together
- * ============================================ */
-
-static const char *group_b_texts[GROUP_SIZE] = {
-    "The project was completed on time. The project was delayed by 3 months.",
-    "The team has 5 members. Each of the 8 team members contributed.",
-    "The system uses no external dependencies. The system requires Python 3.9+.",
-    "Revenue increased 20% year-over-year. Annual revenue declined.",
-    "The server has 99.99% uptime. The server was offline for 2 months.",
-    "Alice is a doctor. Alice has no medical training.",
-    "The bridge was built in 2020. The bridge was demolished in 2019.",
-    "The company has zero debt. The company owes 5 million in loans.",
-    "The test suite passed all checks. 47 tests failed.",
-    "The city has 1 million residents. The city population is 50000.",
-    "The product is free and open source. The product costs 500 per license.",
-    "The report was written by one author. The report has 12 co-authors.",
-    "The building has 3 floors. The penthouse is on the 20th floor.",
-    "The study found no side effects. 30% of participants reported nausea.",
-    "The flight takes 2 hours. The flight duration is 14 hours.",
-    "The lake is freshwater. The lake has a salinity of 35 ppt.",
-    "All employees work remotely. The office hosts 200 workers daily.",
-    "The code has zero vulnerabilities. 15 critical CVEs were found.",
-    "The train runs daily. The train service was discontinued in 2010.",
-    "The budget is 1 million. Total expenditure was 10 million.",
-    "The animal is herbivorous. The animal hunts and eats prey.",
-    "The experiment used no control group. Results were compared to the control.",
-    "The material is waterproof. The material absorbs water readily.",
-    "The battery lasts 24 hours. The battery dies after 2 hours.",
-    "The event is free admission. Tickets cost 50 each.",
-};
-
-static const char *group_b_triples[GROUP_SIZE][2][3] = {
-    {{"project", "status", "on_time"}, {"project", "delayed_by", "3_months"}},
-    {{"team", "has_members", "5"}, {"team", "has_members", "8"}},
-    {{"system", "dependencies", "none"}, {"system", "requires", "Python_3.9"}},
-    {{"revenue", "change", "increased_20%"}, {"revenue", "change", "declined"}},
-    {{"server", "uptime", "99.99%"}, {"server", "offline", "2_months"}},
-    {{"Alice", "is_a", "doctor"}, {"Alice", "medical_training", "none"}},
-    {{"bridge", "built_in", "2020"}, {"bridge", "demolished_in", "2019"}},
-    {{"company", "debt", "zero"}, {"company", "owes", "5_million"}},
-    {{"test_suite", "result", "all_passed"}, {"tests", "failed", "47"}},
-    {{"city", "population", "1_million"}, {"city", "population", "50000"}},
-    {{"product", "cost", "free"}, {"product", "cost", "500_per_license"}},
-    {{"report", "authors", "1"}, {"report", "authors", "12"}},
-    {{"building", "floors", "3"}, {"penthouse", "on_floor", "20"}},
-    {{"study", "side_effects", "none"}, {"participants", "reported", "nausea_30%"}},
-    {{"flight", "duration", "2_hours"}, {"flight", "duration", "14_hours"}},
-    {{"lake", "type", "freshwater"}, {"lake", "salinity", "35_ppt"}},
-    {{"employees", "work", "remotely"}, {"office", "hosts", "200_daily"}},
-    {{"code", "vulnerabilities", "zero"}, {"code", "CVEs", "15_critical"}},
-    {{"train", "schedule", "daily"}, {"train", "status", "discontinued_2010"}},
-    {{"budget", "amount", "1_million"}, {"expenditure", "amount", "10_million"}},
-    {{"animal", "diet", "herbivorous"}, {"animal", "behavior", "hunts_prey"}},
-    {{"experiment", "control_group", "none"}, {"results", "compared_to", "control"}},
-    {{"material", "property", "waterproof"}, {"material", "absorbs", "water"}},
-    {{"battery", "life", "24_hours"}, {"battery", "dies_after", "2_hours"}},
-    {{"event", "admission", "free"}, {"tickets", "cost", "50_each"}},
-};
-
-static const char *group_b_contradictions[GROUP_SIZE] = {
-    "temporal: completed on time vs delayed",
-    "numeric: 5 members vs 8 members",
-    "logical: no dependencies vs requires Python",
-    "directional: increased vs declined",
-    "numeric: 99.99% uptime vs 2 months offline",
-    "logical: is doctor vs no medical training",
-    "temporal: built 2020 vs demolished 2019",
-    "numeric: zero debt vs 5 million owed",
-    "logical: all passed vs 47 failed",
-    "numeric: 1 million vs 50000 population",
-    "logical: free vs costs 500",
-    "numeric: 1 author vs 12 co-authors",
-    "numeric: 3 floors vs 20th floor",
-    "logical: no side effects vs 30% nausea",
-    "numeric: 2 hours vs 14 hours flight",
-    "logical: freshwater vs 35 ppt salinity",
-    "logical: all remote vs 200 in office",
-    "numeric: zero vulns vs 15 critical CVEs",
-    "temporal: runs daily vs discontinued 2010",
-    "numeric: 1M budget vs 10M spent",
-    "logical: herbivorous vs hunts prey",
-    "logical: no control vs compared to control",
-    "logical: waterproof vs absorbs water",
-    "numeric: 24 hours vs 2 hours battery",
-    "logical: free admission vs tickets cost 50",
-};
-
-/* ============================================
- * Group C: 25 ungrounded claims (should FAIL — no evidence)
- * ============================================ */
-
-static const char *group_c_texts[GROUP_SIZE] = {
-    "The CEO personally wrote every line of code.",
-    "Atlantis was located beneath modern-day Antarctica.",
-    "Telepathy is a proven human capability.",
-    "Crystals emit healing frequencies at 432 Hz.",
-    "The moon is made of green cheese.",
-    "Homeopathic dilutions retain molecular memory.",
-    "The Earth is flat and rests on four elephants.",
-    "Time travel was achieved in 2015 but kept secret.",
-    "Humans only use 10% of their brains.",
-    "Bigfoot DNA was sequenced and published in Nature.",
-    "Cold fusion has been commercially deployed since 2005.",
-    "The Great Wall of China is visible from Pluto.",
-    "Pyramids were built by levitating stones with sound.",
-    "Vaccines contain mind-control nanobots.",
-    "Lightning never strikes the same place twice.",
-    "Goldfish have a 3-second memory span.",
-    "The Bermuda Triangle is a government portal.",
-    "Reading in dim light causes permanent blindness.",
-    "Hair and nails continue growing after death.",
-    "Eating carrots gives you night vision superpowers.",
-    "The sun revolves around the Earth every 24 hours.",
-    "Astrology accurately predicts stock market returns.",
-    "Dogs can only see in black and white.",
-    "Sugar causes hyperactivity in children (proven).",
-    "You must wait 24 hours before filing a missing person report.",
-};
-
-static const char *group_c_triples[GROUP_SIZE][3] = {
-    {"CEO", "wrote", "every_line_of_code"},
-    {"Atlantis", "located_at", "Antarctica"},
-    {"Telepathy", "is", "proven_capability"},
-    {"Crystals", "emit", "healing_432Hz"},
-    {"Moon", "made_of", "green_cheese"},
-    {"Homeopathy", "retains", "molecular_memory"},
-    {"Earth", "is", "flat_on_elephants"},
-    {"Time_travel", "achieved_in", "2015"},
-    {"Humans", "use", "10%_of_brain"},
-    {"Bigfoot_DNA", "published_in", "Nature"},
-    {"Cold_fusion", "deployed_since", "2005"},
-    {"Great_Wall", "visible_from", "Pluto"},
-    {"Pyramids", "built_by", "sound_levitation"},
-    {"Vaccines", "contain", "nanobots"},
-    {"Lightning", "never_strikes", "same_place"},
-    {"Goldfish", "memory", "3_seconds"},
-    {"Bermuda_Triangle", "is", "government_portal"},
-    {"Dim_light_reading", "causes", "permanent_blindness"},
-    {"Hair_nails", "grow", "after_death"},
-    {"Carrots", "give", "night_vision_superpowers"},
-    {"Sun", "revolves_around", "Earth_daily"},
-    {"Astrology", "predicts", "stock_returns"},
-    {"Dogs", "see_only", "black_and_white"},
-    {"Sugar", "causes", "hyperactivity_proven"},
-    {"Missing_person", "requires_wait", "24_hours"},
-};
-
-/* ============================================
- * Group D: 25 partially grounded (first claim OK, second not)
- * ============================================ */
-
-static const char *group_d_texts[GROUP_SIZE] = {
-    "London is in England. The London Underground runs on nuclear power.",
-    "The Sun is a star. The Sun is powered by burning coal.",
-    "Python is a programming language. Python runs faster than C.",
-    "The heart pumps blood. The heart has 7 chambers.",
-    "Water is H2O. Water molecules communicate telepathically.",
-    "Mars is the 4th planet. Mars has breathable atmosphere.",
-    "Gravity exists. Gravity is caused by tiny invisible fairies.",
-    "DNA encodes genetic information. DNA was invented in 1990.",
-    "The internet uses TCP/IP. The internet runs on wooden cables.",
-    "Sharks are fish. Sharks can fly for short distances.",
-    "The Moon affects tides. The Moon controls human emotions.",
-    "Einstein developed relativity. Einstein could teleport.",
-    "Silicon is used in chips. Silicon is harvested from clouds.",
-    "Bacteria cause infections. Bacteria are visible to the naked eye.",
-    "Trees produce oxygen. Trees produce oxygen by burning coal.",
-    "Steel is an alloy. Steel is lighter than air.",
-    "Sound is a wave. Sound travels faster than light.",
-    "Volcanoes erupt lava. Volcanoes are man-made structures.",
-    "The brain processes information. The brain runs on diesel fuel.",
-    "Copper conducts electricity. Copper is a noble gas.",
-    "Bees make honey. Bees produce honey from moonlight.",
-    "Diamonds are carbon. Diamonds are softer than butter.",
-    "Tectonic plates move. Tectonic plates are made of chocolate.",
-    "RNA is a nucleic acid. RNA was discovered on Mars.",
-    "Glaciers contain ice. Glaciers are getting larger every year.",
-};
-
-static const char *group_d_triple_pairs[GROUP_SIZE][2][3] = {
-    {{"London", "is_in", "England"}, {"Underground", "runs_on", "nuclear"}},
-    {{"Sun", "is_a", "star"}, {"Sun", "powered_by", "coal"}},
-    {{"Python", "is_a", "programming_language"}, {"Python", "faster_than", "C"}},
-    {{"Heart", "pumps", "blood"}, {"Heart", "has", "7_chambers"}},
-    {{"Water", "formula", "H2O"}, {"Water", "communicate", "telepathically"}},
-    {{"Mars", "is", "4th_planet"}, {"Mars", "has", "breathable_atmosphere"}},
-    {{"Gravity", "exists", "true"}, {"Gravity", "caused_by", "fairies"}},
-    {{"DNA", "encodes", "genetic_info"}, {"DNA", "invented_in", "1990"}},
-    {{"Internet", "uses", "TCP/IP"}, {"Internet", "runs_on", "wooden_cables"}},
-    {{"Sharks", "are", "fish"}, {"Sharks", "can", "fly"}},
-    {{"Moon", "affects", "tides"}, {"Moon", "controls", "human_emotions"}},
-    {{"Einstein", "developed", "relativity"}, {"Einstein", "could", "teleport"}},
-    {{"Silicon", "used_in", "chips"}, {"Silicon", "harvested_from", "clouds"}},
-    {{"Bacteria", "cause", "infections"}, {"Bacteria", "visible_to", "naked_eye"}},
-    {{"Trees", "produce", "oxygen"}, {"Trees", "produce_by", "burning_coal"}},
-    {{"Steel", "is_a", "alloy"}, {"Steel", "lighter_than", "air"}},
-    {{"Sound", "is_a", "wave"}, {"Sound", "faster_than", "light"}},
-    {{"Volcanoes", "erupt", "lava"}, {"Volcanoes", "are", "man-made"}},
-    {{"Brain", "processes", "information"}, {"Brain", "runs_on", "diesel"}},
-    {{"Copper", "conducts", "electricity"}, {"Copper", "is_a", "noble_gas"}},
-    {{"Bees", "make", "honey"}, {"Bees", "produce_from", "moonlight"}},
-    {{"Diamonds", "are", "carbon"}, {"Diamonds", "softer_than", "butter"}},
-    {{"Plates", "property", "move"}, {"Plates", "made_of", "chocolate"}},
-    {{"RNA", "is_a", "nucleic_acid"}, {"RNA", "discovered_on", "Mars"}},
-    {{"Glaciers", "contain", "ice"}, {"Glaciers", "trend", "growing"}},
-};
-
-/* ============================================
- * Build all 100 test cases
+ * Build all 500 test cases
  * ============================================ */
 
 static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
@@ -521,16 +256,29 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
         build_honest_work(tc, sem);
     }
 
-    /* --- Group B: individually grounded, compositionally contradictory --- */
+    /* --- Group B: individually grounded, compositionally contradictory ---
+     * With realistic noise: has_contradiction[i] determines whether the
+     * OWL reasoner can formalize the contradiction. If not, the pipeline
+     * sees it as consistent (false negative). */
     for (int i = 0; i < GROUP_SIZE; i++) {
         test_case_t *tc = &cases[idx++];
         memset(tc, 0, sizeof(*tc));
         tc->text = group_b_texts[i];
         tc->group = GROUP_B;
+        tc->difficulty = (b_difficulty_t)(i / B_TIER_SIZE);
+
         /* Individual detector: each claim grounded -> passes individually */
         tc->should_pass_individual = true;
-        /* Pipeline with consistency: catches the contradiction -> fails */
-        tc->should_pass_pipeline   = false;
+
+        /* Pipeline: catches contradiction only if reasoner can formalize it */
+        if (group_b_has_contradiction[i]) {
+            tc->should_pass_pipeline = false;
+        } else {
+            /* Reasoner cannot formalize this contradiction -- it slips through.
+             * This is a realistic false negative: the pipeline passes despite
+             * the claims being contradictory. */
+            tc->should_pass_pipeline = true;
+        }
 
         build_decomps_2(tc,
             group_b_triples[i][0][0], group_b_triples[i][0][1], group_b_triples[i][0][2],
@@ -544,8 +292,12 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
         };
         set_grounding_all_good(tc, 2, (const char *(*)[3])t);
 
-        /* BUT: consistency layer catches the contradiction */
-        set_inconsistent(tc, group_b_contradictions[i]);
+        /* Consistency: set based on whether the reasoner can detect it */
+        if (group_b_has_contradiction[i]) {
+            set_inconsistent(tc, group_b_contradictions[i]);
+        } else {
+            set_consistent(tc);  /* reasoner misses this one */
+        }
         build_honest_work(tc, sem);
     }
 
@@ -646,24 +398,22 @@ static double f1_score(const confusion_t *c)
 
 int main(void)
 {
-    printf("=== Compositional Hallucination Detection Benchmark ===\n\n");
+    printf("=== Compositional Hallucination Detection Benchmark (500 cases) ===\n\n");
 
     tardy_semantics_t base_sem = TARDY_DEFAULT_SEMANTICS;
-    /* Core verification layers — avoid opt-in layers that test connectivity
-     * and cross-representation (those are orthogonal to hallucination detection) */
     base_sem.pipeline.layer_ontology_grounding    = true;
     base_sem.pipeline.layer_consistency_check      = true;
     base_sem.pipeline.layer_probabilistic_scoring  = true;
     base_sem.pipeline.layer_protocol_check         = true;
-    base_sem.pipeline.layer_formal_certification   = false;  /* tests connectivity, not hallucination */
-    base_sem.pipeline.layer_cross_representation   = false;  /* requires all layers, orthogonal here */
+    base_sem.pipeline.layer_formal_certification   = false;
+    base_sem.pipeline.layer_cross_representation   = false;
     base_sem.pipeline.layer_work_verification      = true;
     base_sem.pipeline.min_passing_layers            = 4;
     base_sem.pipeline.skip_for_literals             = false;
     base_sem.pipeline.skip_for_arithmetic           = false;
     base_sem.pipeline.skip_for_internal_routing     = false;
 
-    /* Build test cases (heap-allocated — too large for stack) */
+    /* Build test cases (heap-allocated -- too large for stack) */
     test_case_t *cases = calloc(NUM_CASES, sizeof(test_case_t));
     if (!cases) {
         fprintf(stderr, "Failed to allocate test cases\n");
@@ -672,15 +422,13 @@ int main(void)
     build_all_cases(cases, &base_sem);
 
     /* --- Individual-only detector: grounding layers ON, consistency OFF ---
-     * This simulates SelfCheckGPT / FActScore style: checks each claim
-     * individually for grounding, but never checks if claims contradict
-     * each other compositionally. */
+     * Simulates SelfCheckGPT / FActScore style: checks each claim
+     * individually for grounding, never checks compositional consistency. */
     tardy_semantics_t individual_sem = base_sem;
     individual_sem.pipeline.layer_consistency_check = false;
 
     /* --- Full pipeline: adds consistency layer (OWL reasoner) ---
-     * This is the Tardygrada advantage: catches compositional contradictions
-     * that individual-only checking misses entirely. */
+     * Tardygrada advantage: catches compositional contradictions. */
     tardy_semantics_t pipeline_sem = base_sem;
 
     /* Tracking per-group results */
@@ -688,6 +436,11 @@ int main(void)
     int pipe_correct[4]  = {0};
     confusion_t indiv_cm = {0};
     confusion_t pipe_cm  = {0};
+
+    /* Per-difficulty tracking for Group B */
+    int b_tier_total[5]         = {0};
+    int b_tier_pipe_detected[5] = {0};
+    int b_tier_indiv_detected[5]= {0};
 
     uint64_t t_start = now_ns();
 
@@ -703,8 +456,6 @@ int main(void)
         /* Score individual detector.
          * For individual detector, Group B should pass (it can't see contradictions) */
         if (tc->group == GROUP_B) {
-            /* Individual detector: claims are grounded, no consistency check
-             * -> it SHOULD pass (and that's the correct behavior for individual) */
             if (indiv_pass == true)
                 indiv_correct[g]++;
         } else {
@@ -715,6 +466,15 @@ int main(void)
         /* Score full pipeline */
         if (pipe_pass == tc->should_pass_pipeline)
             pipe_correct[g]++;
+
+        /* Group B difficulty tracking */
+        if (tc->group == GROUP_B) {
+            int tier = (int)tc->difficulty;
+            b_tier_total[tier]++;
+            /* Count actual contradictions detected (not just expected) */
+            if (!indiv_pass) b_tier_indiv_detected[tier]++;
+            if (!pipe_pass)  b_tier_pipe_detected[tier]++;
+        }
 
         /* Confusion matrix: "positive" = correctly detecting a BAD claim
          * Good claim = should pass, Bad claim = should NOT pass (pipeline) */
@@ -743,25 +503,68 @@ int main(void)
     double elapsed_ms = (double)(t_end - t_start) / 1000000.0;
 
     /* ============================================
-     * Report
+     * Report: Per-group summary
      * ============================================ */
 
-    printf("Group A (consistent):     Individual: %2d/25  Pipeline: %2d/25\n",
-           indiv_correct[GROUP_A], pipe_correct[GROUP_A]);
-    printf("Group B (compositional):  Individual: %2d/25  Pipeline: %2d/25  <-- THE MONEY NUMBER\n",
-           indiv_correct[GROUP_B], pipe_correct[GROUP_B]);
-    printf("Group C (ungrounded):     Individual: %2d/25  Pipeline: %2d/25\n",
-           indiv_correct[GROUP_C], pipe_correct[GROUP_C]);
-    printf("Group D (partial):        Individual: %2d/25  Pipeline: %2d/25\n",
-           indiv_correct[GROUP_D], pipe_correct[GROUP_D]);
+    printf("--- Per-Group Results ---\n\n");
+    printf("Group A (consistent):     Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
+           indiv_correct[GROUP_A], GROUP_SIZE, pipe_correct[GROUP_A], GROUP_SIZE);
+    printf("Group B (compositional):  Individual: %3d/%-3d  Pipeline: %3d/%-3d  <-- THE MONEY NUMBER\n",
+           indiv_correct[GROUP_B], GROUP_SIZE, pipe_correct[GROUP_B], GROUP_SIZE);
+    printf("Group C (ungrounded):     Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
+           indiv_correct[GROUP_C], GROUP_SIZE, pipe_correct[GROUP_C], GROUP_SIZE);
+    printf("Group D (partial):        Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
+           indiv_correct[GROUP_D], GROUP_SIZE, pipe_correct[GROUP_D], GROUP_SIZE);
 
-    printf("\nOverall:\n");
-    printf("  Individual-only  precision: %.2f  recall: %.2f  F1: %.2f\n",
-           precision(&indiv_cm), recall(&indiv_cm), f1_score(&indiv_cm));
-    printf("  Full pipeline    precision: %.2f  recall: %.2f  F1: %.2f\n",
-           precision(&pipe_cm), recall(&pipe_cm), f1_score(&pipe_cm));
+    /* ============================================
+     * Report: Group B per-difficulty breakdown
+     * ============================================ */
 
-    /* Compositional detection rate */
+    printf("\n--- Group B: Per-Difficulty Breakdown ---\n\n");
+    printf("%-14s  %5s  %10s  %10s  %10s\n",
+           "Difficulty", "Total", "Indiv Det", "Pipe Det", "Pipe Rate");
+    printf("%-14s  %5s  %10s  %10s  %10s\n",
+           "--------------", "-----", "----------", "----------", "----------");
+
+    int b_total_detected_pipe = 0;
+    int b_total_detected_indiv = 0;
+    for (int tier = 0; tier < 5; tier++) {
+        int total = b_tier_total[tier];
+        int p_det = b_tier_pipe_detected[tier];
+        int i_det = b_tier_indiv_detected[tier];
+        b_total_detected_pipe  += p_det;
+        b_total_detected_indiv += i_det;
+        printf("%-14s  %5d  %7d/%-2d  %7d/%-2d  %8.0f%%\n",
+               b_difficulty_label((b_difficulty_t)tier),
+               total, i_det, total, p_det, total,
+               total > 0 ? 100.0 * p_det / total : 0.0);
+    }
+    printf("%-14s  %5d  %7d/%-3d %7d/%-3d %8.0f%%\n",
+           "TOTAL", GROUP_SIZE,
+           b_total_detected_indiv, GROUP_SIZE,
+           b_total_detected_pipe, GROUP_SIZE,
+           100.0 * b_total_detected_pipe / GROUP_SIZE);
+
+    /* ============================================
+     * Report: Overall comparison table
+     * ============================================ */
+
+    printf("\n--- Overall Comparison ---\n\n");
+    printf("%-20s  %9s  %9s  %9s\n", "Detector", "Precision", "Recall", "F1");
+    printf("%-20s  %9s  %9s  %9s\n",
+           "--------------------", "---------", "---------", "---------");
+    printf("%-20s  %9.4f  %9.4f  %9.4f\n",
+           "Individual-only", precision(&indiv_cm), recall(&indiv_cm), f1_score(&indiv_cm));
+    printf("%-20s  %9.4f  %9.4f  %9.4f\n",
+           "Full pipeline", precision(&pipe_cm), recall(&pipe_cm), f1_score(&pipe_cm));
+
+    printf("\n--- Confusion Matrices ---\n\n");
+    printf("Individual-only:  TP=%d  TN=%d  FP=%d  FN=%d\n",
+           indiv_cm.tp, indiv_cm.tn, indiv_cm.fp, indiv_cm.fn);
+    printf("Full pipeline:    TP=%d  TN=%d  FP=%d  FN=%d\n",
+           pipe_cm.tp, pipe_cm.tn, pipe_cm.fp, pipe_cm.fn);
+
+    /* Compositional detection rate (re-run Group B for clarity) */
     int indiv_b_caught = 0;
     int pipe_b_caught  = 0;
     for (int i = GROUP_SIZE; i < GROUP_SIZE * 2; i++) {
@@ -772,8 +575,10 @@ int main(void)
         if (!pipe_pass)  pipe_b_caught++;
     }
 
-    printf("\nCompositional detection rate: %d%% (individual catches %d/25, pipeline catches %d/25)\n",
-           pipe_b_caught * 100 / GROUP_SIZE, indiv_b_caught, pipe_b_caught);
+    printf("\nCompositional detection rate: %d%% (individual: %d/%d, pipeline: %d/%d)\n",
+           pipe_b_caught * 100 / GROUP_SIZE,
+           indiv_b_caught, GROUP_SIZE,
+           pipe_b_caught, GROUP_SIZE);
 
     printf("\nBenchmark completed in %.2f ms (%d test cases)\n",
            elapsed_ms, NUM_CASES);
@@ -783,22 +588,24 @@ int main(void)
      * ============================================ */
 
     printf("\n=== Group B Detail: Compositional Contradictions ===\n");
-    printf("%-3s  %-55s  %-6s  %-6s  %s\n",
-           "#", "Claim (truncated)", "Indiv", "Pipe", "Contradiction");
-    printf("%-3s  %-55s  %-6s  %-6s  %s\n",
-           "---", "-------------------------------------------------------",
+    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %s\n",
+           "#", "Difficulty", "Claim (truncated)", "Indiv", "Pipe", "Contradiction");
+    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %s\n",
+           "---", "------------",
+           "--------------------------------------------------",
            "------", "------", "-------------");
 
     for (int i = 0; i < GROUP_SIZE; i++) {
-        test_case_t *tc = &cases[GROUP_SIZE + i];  /* Group B starts at 25 */
+        test_case_t *tc = &cases[GROUP_SIZE + i];  /* Group B starts at 125 */
         bool indiv_pass = run_pipeline(tc, &individual_sem);
         bool pipe_pass  = run_pipeline(tc, &pipeline_sem);
 
-        char trunc[56];
-        snprintf(trunc, sizeof(trunc), "%.55s", tc->text);
+        char trunc[51];
+        snprintf(trunc, sizeof(trunc), "%.50s", tc->text);
 
-        printf("%-3d  %-55s  %-6s  %-6s  %s\n",
-               i, trunc,
+        printf("%-3d  %-12s  %-50s  %-6s  %-6s  %s\n",
+               i, b_difficulty_label(tc->difficulty),
+               trunc,
                indiv_pass ? "PASS" : "FAIL",
                pipe_pass  ? "PASS" : "FAIL",
                group_b_contradictions[i]);
