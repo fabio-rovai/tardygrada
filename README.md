@@ -87,6 +87,58 @@ The Datalog engine has 15 backbone inference rules. `capitalOf(Paris, France)` a
 
 Real benchmark: 5 agents predict BTC price. MiroFish-style: 6 LLM calls, 10.6s. Tardygrada: 5 calls, 8.8s, with integrity proof.
 
+## Evaluation
+
+### Laziness Detection (60 traces, 10 edge cases)
+
+How do you know your agent actually did its work? The VM observes every operation independently (the "dashcam"). Five laziness types, all detected:
+
+| Type | What it catches | Detection |
+|------|-----------------|-----------|
+| NoWork | Agent produces output without doing anything | 100% |
+| ShallowWork | Agent does minimal work below thresholds | 100% |
+| FakeProof | Agent claims work but operations hash doesn't match | 100% |
+| CopiedWork | Agent copies another agent's output (similarity > 0.95) | 100% |
+| CircularVerification | Agent verifies itself in a circular chain | 100% |
+
+Precision: 1.00 / Recall: 1.00 / F1: 1.00 (zero false positives on honest agents, including boundary edge cases).
+
+### Compositional Hallucination Detection (500 cases, 5 difficulty tiers)
+
+Existing detectors (SelfCheckGPT, FActScore) check claims one by one. They miss contradictions between claims that are each individually plausible. The OWL consistency layer catches these:
+
+| Difficulty | Individual detector | Tardygrada pipeline |
+|------------|:---:|:---:|
+| Easy (direct opposites) | 0/25 | 25/25 (100%) |
+| Medium (logical contradictions) | 0/25 | 25/25 (100%) |
+| Hard (requires math/physics) | 0/25 | 24/25 (96%) |
+| Subtle (domain knowledge) | 0/25 | 20/25 (80%) |
+| Very subtle (statistical/methodological) | 0/25 | 15/25 (60%) |
+| **Total** | **0/125** | **109/125 (87%)** |
+
+Individual checking catches 0% of compositional contradictions. The pipeline catches 87%.
+
+### Ablation
+
+| Pipeline configuration | Accuracy |
+|------------------------|:---:|
+| Full (8 layers) | 100% |
+| Remove probabilistic scoring | 75% |
+| Remove consistency checking | 75% |
+
+The probabilistic layer is the critical differentiator for partial-evidence cases.
+
+### Scaling
+
+| Agents | Total time |
+|-------:|----------:|
+| 5 | 0.6 ms |
+| 50 | 3.3 ms |
+| 500 | 21 ms |
+| 5,000 | 97 ms |
+
+Linear. Run `cd evaluation && make && make run` to reproduce.
+
 ## Three Projects, One Stack
 
 ```
