@@ -44,6 +44,7 @@
 #include "verify/llm_decompose.h"
 
 #include "hallucination_data.h"
+#include "baselines.h"
 
 /* ============================================
  * Timing
@@ -484,6 +485,12 @@ int main(void)
     int b_tier_total[5]         = {0};
     int b_tier_pipe_detected[5] = {0};
     int b_tier_indiv_detected[5]= {0};
+    int b_tier_selfcheck_detected[5] = {0};
+    int b_tier_factscore_detected[5] = {0};
+
+    /* Overall baseline tracking for Group B */
+    int selfcheck_b_detected = 0;
+    int factscore_b_detected = 0;
 
     uint64_t t_start = now_ns();
 
@@ -510,13 +517,33 @@ int main(void)
         if (pipe_pass == tc->should_pass_pipeline)
             pipe_correct[g]++;
 
-        /* Group B difficulty tracking */
+        /* Group B difficulty tracking + baselines */
         if (tc->group == GROUP_B) {
             int tier = (int)tc->difficulty;
             b_tier_total[tier]++;
             /* Count actual contradictions detected (not just expected) */
             if (!indiv_pass) b_tier_indiv_detected[tier]++;
             if (!pipe_pass)  b_tier_pipe_detected[tier]++;
+
+            /* Run SelfCheckGPT baseline: compare claims within the text */
+            const char *sc_claims[1] = { tc->text };
+            selfcheck_result_t sc = selfcheck_evaluate(sc_claims, 1);
+            bool sc_flagged = (sc.consistency_score < 0.5f);
+            if (sc_flagged) {
+                b_tier_selfcheck_detected[tier]++;
+                selfcheck_b_detected++;
+            }
+
+            /* Run FActScore baseline: check individual claim verifiability.
+             * FActScore checks each claim individually -- it will almost never
+             * flag compositional contradictions because each claim alone looks
+             * verifiable (has numbers, entities, specifics). */
+            factscore_result_t fs = factscore_evaluate(sc_claims, 1);
+            bool fs_flagged = (fs.factscore < 0.5f);
+            if (fs_flagged) {
+                b_tier_factscore_detected[tier]++;
+                factscore_b_detected++;
+            }
         }
 
         /* Confusion matrix: "positive" = correctly detecting a BAD claim
@@ -564,10 +591,10 @@ int main(void)
      * ============================================ */
 
     printf("\n--- Group B: Per-Difficulty Breakdown ---\n\n");
-    printf("%-14s  %5s  %10s  %10s  %10s\n",
-           "Difficulty", "Total", "Indiv Det", "Pipe Det", "Pipe Rate");
-    printf("%-14s  %5s  %10s  %10s  %10s\n",
-           "--------------", "-----", "----------", "----------", "----------");
+    printf("%-14s  %5s  %10s  %10s  %10s  %10s  %10s\n",
+           "Difficulty", "Total", "Indiv Det", "SelfCheck", "FActScore", "Pipe Det", "Pipe Rate");
+    printf("%-14s  %5s  %10s  %10s  %10s  %10s  %10s\n",
+           "--------------", "-----", "----------", "----------", "----------", "----------", "----------");
 
     int b_total_detected_pipe = 0;
     int b_total_detected_indiv = 0;
@@ -575,16 +602,20 @@ int main(void)
         int total = b_tier_total[tier];
         int p_det = b_tier_pipe_detected[tier];
         int i_det = b_tier_indiv_detected[tier];
+        int sc_det = b_tier_selfcheck_detected[tier];
+        int fs_det = b_tier_factscore_detected[tier];
         b_total_detected_pipe  += p_det;
         b_total_detected_indiv += i_det;
-        printf("%-14s  %5d  %7d/%-2d  %7d/%-2d  %8.0f%%\n",
+        printf("%-14s  %5d  %7d/%-2d  %7d/%-2d  %7d/%-2d  %7d/%-2d  %8.0f%%\n",
                b_difficulty_label((b_difficulty_t)tier),
-               total, i_det, total, p_det, total,
+               total, i_det, total, sc_det, total, fs_det, total, p_det, total,
                total > 0 ? 100.0 * p_det / total : 0.0);
     }
-    printf("%-14s  %5d  %7d/%-3d %7d/%-3d %8.0f%%\n",
+    printf("%-14s  %5d  %7d/%-3d %7d/%-3d %7d/%-3d %7d/%-3d %8.0f%%\n",
            "TOTAL", GROUP_SIZE,
            b_total_detected_indiv, GROUP_SIZE,
+           selfcheck_b_detected, GROUP_SIZE,
+           factscore_b_detected, GROUP_SIZE,
            b_total_detected_pipe, GROUP_SIZE,
            100.0 * b_total_detected_pipe / GROUP_SIZE);
 
@@ -618,6 +649,28 @@ int main(void)
         if (!pipe_pass)  pipe_b_caught++;
     }
 
+    /* Re-run baselines on Group B for the summary */
+    int sc_b_total = 0;
+    int fs_b_total = 0;
+    for (int i = GROUP_SIZE; i < GROUP_SIZE * 2; i++) {
+        test_case_t *tc = &cases[i];
+        const char *sc_claims[1] = { tc->text };
+        selfcheck_result_t sc = selfcheck_evaluate(sc_claims, 1);
+        if (sc.consistency_score < 0.5f) sc_b_total++;
+        factscore_result_t fs = factscore_evaluate(sc_claims, 1);
+        if (fs.factscore < 0.5f) fs_b_total++;
+    }
+
+    printf("\n--- Baseline Comparison: Group B (compositional) ---\n\n");
+    printf("  Individual:  %3d/%d  (%d%%)\n",
+           indiv_b_caught, GROUP_SIZE, indiv_b_caught * 100 / GROUP_SIZE);
+    printf("  SelfCheck:   %3d/%d  (%d%%)\n",
+           sc_b_total, GROUP_SIZE, sc_b_total * 100 / GROUP_SIZE);
+    printf("  FActScore:   %3d/%d  (%d%%)\n",
+           fs_b_total, GROUP_SIZE, fs_b_total * 100 / GROUP_SIZE);
+    printf("  Pipeline:    %3d/%d  (%d%%)\n",
+           pipe_b_caught, GROUP_SIZE, pipe_b_caught * 100 / GROUP_SIZE);
+
     printf("\nCompositional detection rate: %d%% (individual: %d/%d, pipeline: %d/%d)\n",
            pipe_b_caught * 100 / GROUP_SIZE,
            indiv_b_caught, GROUP_SIZE,
@@ -631,25 +684,33 @@ int main(void)
      * ============================================ */
 
     printf("\n=== Group B Detail: Compositional Contradictions ===\n");
-    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %s\n",
-           "#", "Difficulty", "Claim (truncated)", "Indiv", "Pipe", "Contradiction");
-    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %s\n",
+    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %-6s  %-6s  %s\n",
+           "#", "Difficulty", "Claim (truncated)", "Indiv", "SelfCk", "FActSc", "Pipe", "Contradiction");
+    printf("%-3s  %-12s  %-50s  %-6s  %-6s  %-6s  %-6s  %s\n",
            "---", "------------",
            "--------------------------------------------------",
-           "------", "------", "-------------");
+           "------", "------", "------", "------", "-------------");
 
     for (int i = 0; i < GROUP_SIZE; i++) {
         test_case_t *tc = &cases[GROUP_SIZE + i];  /* Group B starts at 125 */
         bool indiv_pass = run_pipeline(tc, &individual_sem);
         bool pipe_pass  = run_pipeline(tc, &pipeline_sem);
 
+        const char *bl_claims[1] = { tc->text };
+        selfcheck_result_t sc = selfcheck_evaluate(bl_claims, 1);
+        bool sc_flag = (sc.consistency_score < 0.5f);
+        factscore_result_t fs = factscore_evaluate(bl_claims, 1);
+        bool fs_flag = (fs.factscore < 0.5f);
+
         char trunc[51];
         snprintf(trunc, sizeof(trunc), "%.50s", tc->text);
 
-        printf("%-3d  %-12s  %-50s  %-6s  %-6s  %s\n",
+        printf("%-3d  %-12s  %-50s  %-6s  %-6s  %-6s  %-6s  %s\n",
                i, b_difficulty_label(tc->difficulty),
                trunc,
                indiv_pass ? "PASS" : "FAIL",
+               sc_flag    ? "FAIL" : "PASS",
+               fs_flag    ? "FAIL" : "PASS",
                pipe_pass  ? "PASS" : "FAIL",
                group_b_contradictions[i]);
     }
