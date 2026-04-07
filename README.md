@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 <p align="center">
-  <img src="assets/logo-animated.svg" alt="Tardygrada" width="300">
+  <img src="tardygrada-logo.png" alt="Tardygrada" width="200">
 </p>
 
 <h3 align="center">Catch lazy agents, contradicting claims, and tampered data</h3>
