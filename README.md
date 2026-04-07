@@ -274,6 +274,95 @@ graph LR
 ```
 
 <details>
+<summary><b>Project structure</b></summary>
+
+```mermaid
+graph TB
+    subgraph src["src/"]
+        direction TB
+        subgraph vm["vm/"]
+            VM_C["vm.c — spawn, read, write, kill, GC"]
+            MEM["memory.c — mmap, mprotect, replicas"]
+            CTX["context.c — agent pointers, provenance"]
+            CRYPTO_C["crypto.c — SHA-256, ed25519"]
+            CONST["constitution.c — invariant enforcement"]
+            PERSIST["persist.c — sovereign dump to disk"]
+        end
+        subgraph verify["verify/"]
+            PIPE["pipeline.c — 8-layer verification"]
+            DECOMP_C["decompose.c — 60+ sentence patterns"]
+            NUM["numeric.c — 9 numeric checkers"]
+            LLM_D["llm_decompose.c — 14 domain patterns"]
+        end
+        subgraph ontology["ontology/"]
+            SELF["self.c — triples as sovereign agents"]
+            DL["datalog.c — 15 inference rules"]
+            FR["frames.c — Minsky frames + CRDT"]
+            INF["inference.c — self-healing, rule mining"]
+        end
+        subgraph compiler["compiler/"]
+            LEX["lexer.c — .tardy tokenizer"]
+            COMP_C["compiler.c — 10 opcodes"]
+            TF["terraform.c — framework converter"]
+        end
+        subgraph mcp["mcp/"]
+            SRV["server.c — JSON-RPC, MCP protocol"]
+            JSON["json.c — minimal JSON parser"]
+        end
+    end
+    subgraph eval["evaluation/"]
+        LAZY["laziness_bench.c"]
+        HALLU["hallucination_bench.c"]
+        SCALE["scaling_bench.c"]
+        ABLAT["ablation_bench.c"]
+        CONTRA["contradoc_bench.c"]
+        HALU["halueval_bench.c"]
+    end
+
+    style src fill:#1a1a2e,color:#fff
+    style vm fill:#16213e,color:#fff
+    style verify fill:#0f3460,color:#fff
+    style ontology fill:#1a1a2e,color:#fff
+    style compiler fill:#16213e,color:#fff
+    style mcp fill:#0f3460,color:#fff
+    style eval fill:#2a2a3e,color:#fff
+```
+
+</details>
+
+<details>
+<summary><b>How users interact</b></summary>
+
+```mermaid
+graph TB
+    subgraph tier1["Tier 1: Chat (everyone)"]
+        USER1["User"] -- "Verify this document" --> CC["Claude Code"]
+        CC -- "MCP tool call" --> MCP_S["Tardygrada MCP Server"]
+        MCP_S -- "result" --> CC
+        CC -- "2 contradictions found" --> USER1
+    end
+
+    subgraph tier2["Tier 2: CLI (developers)"]
+        USER2["Developer"] -- "tardy verify-doc paper.md" --> CLI["Tardygrada Binary"]
+        CLI -- "CONFLICT line 42 vs 89" --> USER2
+        USER2 -- "tardy run 'Paris is in France'" --> CLI
+        CLI -- "VERIFIED via Datalog" --> USER2
+    end
+
+    subgraph tier3["Tier 3: Language (power users)"]
+        USER3["Engineer"] -- "writes .tardy" --> TARDY[".tardy Program"]
+        TARDY -- "make && tardy serve" --> MCP_OUT["MCP Server"]
+        MCP_OUT -- "13 verified tools" --> AGENTS["Other Agents"]
+    end
+
+    style tier1 fill:#1a1a2e,color:#fff
+    style tier2 fill:#16213e,color:#fff
+    style tier3 fill:#0f3460,color:#fff
+```
+
+</details>
+
+<details>
 <summary><b>VM internals</b></summary>
 
 | Component | Lines | What It Does |
