@@ -1,1 +1,9 @@
 docs/
+*.o
+*.a
+*.so
+*.dylib
+*.dSYM/
+tardygrada
+tardygrada_dbg
+/tmp/
