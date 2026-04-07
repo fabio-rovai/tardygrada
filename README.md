@@ -111,20 +111,34 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 
 100 traces total. Zero false positives. Smart copiers who change 10-15% of the text slip through (similarity below threshold) — a known limitation. No existing tool does any of this.
 
-### Contradiction detection
+### Contradiction and hallucination detection
 
 | Dataset | What it is | Tardygrada | Best alternative |
 |---|---|:-:|:-:|
 | Clear contradictions (125) | Designed compositional | **95%** | SelfCheck: 59% |
 | + Borderline cases (100) | Soft/ambiguous contradictions | **68%** | SelfCheck: ~40% |
+| **AgentHallu (693 trajectories)** | Real agent hallucinations, 7 frameworks | **F1: 0.57** | DeepSeek-V3.1: 0.52 |
 | ContraDoc (891 docs) | Real documents, human-annotated | **10%** | SelfCheck: 9% |
 | HaluEval (500 responses) | Individual factual errors | F1: 0.32 | SelfCheck: 0.32 |
 
-No LLM calls needed. 12ms per document.
+Detection runs in two modes: fully deterministic (11ms/trajectory, benchmarks use this) or LLM-enhanced for broader coverage.
 
-The sweet spot: logical, numeric, and structural contradictions. Borderline cases ("mostly on time" vs "minor delays") are genuinely ambiguous — the detector gets some right and reasonably misses others.
+On AgentHallu — the largest agent hallucination benchmark (693 trajectories, 7 frameworks, 5 categories) — Tardygrada **beats DeepSeek-V3.1** (F1 0.57 vs 0.52) without any LLM calls. GPT-5 gets 0.70 but costs per-trajectory API calls.
 
-The gap: perspective shifts and emotional contradictions need world knowledge. GPT-4 gets 34.7% on ContraDoc — but costs orders of magnitude more per document.
+The sweet spot: logical, numeric, and structural contradictions between agent steps. Borderline cases and perspective shifts remain hard.
+
+<details>
+<summary>AgentHallu per-category recall</summary>
+
+| Category | Recall |
+|---|:-:|
+| Tool-Use | 57% |
+| Reasoning | 53% |
+| Human-Interaction | 51% |
+| Retrieval | 44% |
+| Planning | 42% |
+
+</details>
 
 <details>
 <summary>Detailed breakdown (clear cases)</summary>
