@@ -117,15 +117,17 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 |---|---|:-:|:-:|
 | Clear contradictions (125) | Designed compositional | **95%** | SelfCheck: 59% |
 | + Borderline cases (100) | Soft/ambiguous contradictions | **68%** | SelfCheck: ~40% |
-| **AgentHallu (693 trajectories)** | Real agent hallucinations, 7 frameworks | **F1: 0.57** | DeepSeek-V3.1: 0.52 |
-| ContraDoc (891 docs) | Real documents, human-annotated | **10%** | SelfCheck: 9% |
-| HaluEval (500 responses) | Individual factual errors | F1: 0.32 | SelfCheck: 0.32 |
+| **AgentHallu (693 trajectories)** | Real agent hallucinations, 7 frameworks | **F1: 0.58** | DeepSeek-V3.1: 0.52 |
+| **ContraDoc (891 docs)** | Real documents, human-annotated | **F1: 0.58** | SelfCheck: 0.16 |
+| HaluEval (500 responses) | Individual factual errors | F1: 0.03 | SelfCheck: 0.32 |
 
 Detection runs in two modes: deterministic (11ms/trajectory, all benchmarks use this) or LLM-enhanced for broader coverage.
 
-On AgentHallu — the largest agent hallucination benchmark (693 trajectories, 7 frameworks, 5 categories) — Tardygrada **beats DeepSeek-V3.1** (F1 0.57 vs 0.52). GPT-5 gets 0.70 but costs per-trajectory API calls.
+On ContraDoc (891 real documents) — **F1 0.58**, up from 0.16 after fixing a bug where the benchmark accidentally used the SelfCheck baseline instead of proper triple checking. Recall jumped from 9.6% to 64.8%.
 
-The sweet spot: logical, numeric, and structural contradictions between agent steps. Borderline cases and perspective shifts remain hard.
+On AgentHallu (693 real agent trajectories) — **F1 0.58**, beats DeepSeek-V3.1 (0.52). GPT-5 gets 0.70 but costs per-trajectory API calls.
+
+HaluEval (individual factual errors) — F1 0.03. Expected: our pipeline catches contradictions between claims, not individual factual mistakes. SelfCheck does better here (0.32) because its loose heuristics accidentally catch some errors.
 
 > **What runs where:** Contradiction detection (verify-doc, all benchmarks) uses the internal decomposition + consistency + numeric layers — no external calls. Claim grounding (`tardy run "claim"`) optionally connects to [open-ontologies](https://github.com/fabio-rovai/open-ontologies) for OWL reasoning, or uses the built-in Datalog engine. Different features, different paths.
 
