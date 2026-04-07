@@ -121,11 +121,13 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 | ContraDoc (891 docs) | Real documents, human-annotated | **10%** | SelfCheck: 9% |
 | HaluEval (500 responses) | Individual factual errors | F1: 0.32 | SelfCheck: 0.32 |
 
-Detection runs in two modes: fully deterministic (11ms/trajectory, benchmarks use this) or LLM-enhanced for broader coverage.
+Detection runs in two modes: deterministic (11ms/trajectory, all benchmarks use this) or LLM-enhanced for broader coverage.
 
-On AgentHallu — the largest agent hallucination benchmark (693 trajectories, 7 frameworks, 5 categories) — Tardygrada **beats DeepSeek-V3.1** (F1 0.57 vs 0.52) without any LLM calls. GPT-5 gets 0.70 but costs per-trajectory API calls.
+On AgentHallu — the largest agent hallucination benchmark (693 trajectories, 7 frameworks, 5 categories) — Tardygrada **beats DeepSeek-V3.1** (F1 0.57 vs 0.52). GPT-5 gets 0.70 but costs per-trajectory API calls.
 
 The sweet spot: logical, numeric, and structural contradictions between agent steps. Borderline cases and perspective shifts remain hard.
+
+> **What runs where:** Contradiction detection (verify-doc, all benchmarks) uses the internal decomposition + consistency + numeric layers — no external calls. Claim grounding (`tardy run "claim"`) optionally connects to [open-ontologies](https://github.com/fabio-rovai/open-ontologies) for OWL reasoning, or uses the built-in Datalog engine. Different features, different paths.
 
 <details>
 <summary>AgentHallu per-category recall</summary>
