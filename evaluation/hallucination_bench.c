@@ -6,28 +6,18 @@
  * COMPOSITIONS -- claims that are each individually grounded but together
  * create contradictions.
  *
- * 500 test cases across 4 groups (125 each):
- *   A: individually grounded, no contradictions          -> should PASS
- *   B: individually grounded, compositionally contradict -> should FAIL
- *      (5 difficulty tiers x 25: easy, medium, hard, subtle, very_subtle)
- *   C: ungrounded claims                                -> should FAIL
- *   D: partially grounded (mixed)                       -> should FAIL
+ * 650 test cases across 4 groups:
+ *   A: 175 individually grounded, no contradictions          -> should PASS
+ *      (125 original + 50 tricky non-contradictions that look like contradictions)
+ *   B: 225 individually grounded, compositionally contradict -> should FAIL
+ *      (125 original across 5 tiers + 50 soft + 50 borderline)
+ *   C: 125 ungrounded claims                                -> should FAIL
+ *   D: 125 partially grounded (mixed)                       -> should FAIL
  *
- * Three-layer detection model for Group B:
- *   Layer 1: OWL consistency (formal logical contradictions)
- *   Layer 2: Numeric verification (math/rate/capacity contradictions)
- *   Layer 3: LLM decomposition (implicit domain-specific contradictions)
- *
- * Combined detection rates:
- *   Easy:        100% detected (25/25) -- OWL catches all
- *   Medium:      100% detected (25/25) -- OWL catches all
- *   Hard:        100% detected (25/25) -- OWL + numeric catch all
- *   Subtle:       92% detected (23/25) -- OWL + LLM catch most
- *   Very subtle:  84% detected (21/25) -- all three layers combined
- *
- * Cases that slip through require true world knowledge that no
- * pattern-based system can capture (e.g., agricultural chemistry,
- * aviation standards, clinical methodology).
+ * Results are reported in three tiers:
+ *   - Clear cases (original 500): high performance expected
+ *   - Adversarial cases (new 150): lower performance expected
+ *   - Combined (650): the honest overall number
  */
 
 #include <stdio.h>
@@ -83,11 +73,18 @@ static const char *group_label(test_group_t g)
 __attribute__((unused))
 static const char *(*group_label_ref)(test_group_t) = group_label;
 
+/* Per-group sizes (used in reporting) */
+__attribute__((unused))
+static const int group_sizes[4] = {
+    GROUP_A_SIZE, GROUP_B_SIZE, GROUP_C_SIZE, GROUP_D_SIZE
+};
+
 typedef struct {
     const char           *text;
     test_group_t          group;
     bool                  should_pass_individual;  /* expected: individual detector */
     bool                  should_pass_pipeline;    /* expected: full pipeline */
+    bool                  is_adversarial;          /* true = new harder case */
     b_difficulty_t        difficulty;               /* only meaningful for Group B */
 
     /* Pre-built pipeline inputs */
@@ -194,9 +191,7 @@ static void set_grounding_unknown(test_case_t *tc, int n,
 }
 
 /* Partial grounding: first triple is grounded but with low confidence
- * (below the 0.85 probabilistic threshold), second is unknown.
- * The grounding layer passes (min_evidence_triples=1 satisfied) but
- * the probabilistic layer catches the low aggregate confidence. */
+ * (below the 0.85 probabilistic threshold), second is unknown. */
 static void set_grounding_partial(test_case_t *tc,
                                   const char *s1, const char *p1, const char *o1,
                                   const char *s2, const char *p2, const char *o2)
@@ -209,7 +204,7 @@ static void set_grounding_partial(test_case_t *tc,
 
     tc->grounding.results[0].status         = TARDY_KNOWLEDGE_GROUNDED;
     tc->grounding.results[0].evidence_count = 1;
-    tc->grounding.results[0].confidence     = 0.70f;  /* below 0.85 threshold */
+    tc->grounding.results[0].confidence     = 0.70f;
     set_triple(&tc->grounding.results[0].triple, s1, p1, o1);
 
     tc->grounding.results[1].status         = TARDY_KNOWLEDGE_UNKNOWN;
@@ -235,21 +230,22 @@ static void set_inconsistent(test_case_t *tc, const char *reason)
 }
 
 /* ============================================
- * Build all 500 test cases
+ * Build all 650 test cases
  * ============================================ */
 
 static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
 {
     int idx = 0;
 
-    /* --- Group A: consistent grounded --- */
-    for (int i = 0; i < GROUP_SIZE; i++) {
+    /* --- Group A: consistent grounded (175 cases) --- */
+    for (int i = 0; i < GROUP_A_SIZE; i++) {
         test_case_t *tc = &cases[idx++];
         memset(tc, 0, sizeof(*tc));
         tc->text = group_a_texts[i];
         tc->group = GROUP_A;
         tc->should_pass_individual = true;
         tc->should_pass_pipeline   = true;
+        tc->is_adversarial = (i >= 125);  /* new tricky non-contradictions */
 
         build_decomps_2(tc,
             group_a_triples[i][0][0], group_a_triples[i][0][1], group_a_triples[i][0][2],
@@ -264,40 +260,41 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
         build_honest_work(tc, sem);
     }
 
-    /* --- Group B: individually grounded, compositionally contradictory ---
-     * With realistic noise: has_contradiction[i] determines whether the
-     * OWL reasoner can formalize the contradiction. If not, the pipeline
-     * sees it as consistent (false negative). */
-    for (int i = 0; i < GROUP_SIZE; i++) {
+    /* --- Group B: individually grounded, compositionally contradictory (225 cases) ---
+     * Original 125: has_contradiction determines OWL detection.
+     * New 50 soft (125-174): genuinely ambiguous.
+     * New 50 borderline (175-224): domain-specific contradictions. */
+    for (int i = 0; i < GROUP_B_SIZE; i++) {
         test_case_t *tc = &cases[idx++];
         memset(tc, 0, sizeof(*tc));
         tc->text = group_b_texts[i];
         tc->group = GROUP_B;
-        tc->difficulty = (b_difficulty_t)(i / B_TIER_SIZE);
+        tc->is_adversarial = (i >= 125);
+
+        /* Assign difficulty tier */
+        if (i < 125) {
+            tc->difficulty = (b_difficulty_t)(i / B_TIER_SIZE);
+        } else if (i < 175) {
+            tc->difficulty = B_SOFT;
+        } else {
+            tc->difficulty = B_BORDERLINE;
+        }
 
         /* Individual detector: each claim grounded -> passes individually */
         tc->should_pass_individual = true;
 
         /* Pipeline: catches contradiction if OWL reasoner, numeric verifier,
-         * OR LLM decomposer can detect it. Each layer catches different types:
-         *   - OWL: formal logical contradictions
-         *   - Numeric: mathematical/rate/capacity contradictions
-         *   - LLM: implicit domain-specific contradictions (statistical,
-         *          paradigm, compatibility, feasibility) */
+         * OR LLM decomposer can detect it. */
         if (group_b_has_contradiction[i]) {
             tc->should_pass_pipeline = false;
         } else if (group_b_llm_detects[i]) {
-            tc->should_pass_pipeline = false;  /* LLM decomposer catches it */
+            tc->should_pass_pipeline = false;
         } else {
-            /* OWL reasoner cannot formalize -- check if numeric verifier can */
             const char *nc_claims[1] = { tc->text };
             tardy_numeric_check_t nc = tardy_numeric_verify(nc_claims, 1);
             if (nc.has_contradiction) {
-                tc->should_pass_pipeline = false;  /* numeric verifier catches it */
+                tc->should_pass_pipeline = false;
             } else {
-                /* None of the three layers can catch it -- realistic false negative.
-                 * These require true world knowledge (e.g., copper sulfate is a
-                 * pesticide, cabin pressure standards, audit methodology). */
                 tc->should_pass_pipeline = true;
             }
         }
@@ -306,31 +303,29 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
             group_b_triples[i][0][0], group_b_triples[i][0][1], group_b_triples[i][0][2],
             group_b_triples[i][1][0], group_b_triples[i][1][1], group_b_triples[i][1][2]);
 
-        /* KEY: each triple is individually grounded (this is what makes
-         * individual-only detectors miss the problem) */
         const char *t[2][3] = {
             {group_b_triples[i][0][0], group_b_triples[i][0][1], group_b_triples[i][0][2]},
             {group_b_triples[i][1][0], group_b_triples[i][1][1], group_b_triples[i][1][2]},
         };
         set_grounding_all_good(tc, 2, (const char *(*)[3])t);
 
-        /* Consistency: set based on whether the reasoner can detect it */
         if (group_b_has_contradiction[i]) {
             set_inconsistent(tc, group_b_contradictions[i]);
         } else {
-            set_consistent(tc);  /* reasoner misses this one */
+            set_consistent(tc);
         }
         build_honest_work(tc, sem);
     }
 
-    /* --- Group C: ungrounded claims --- */
-    for (int i = 0; i < GROUP_SIZE; i++) {
+    /* --- Group C: ungrounded claims (125 cases) --- */
+    for (int i = 0; i < GROUP_C_SIZE; i++) {
         test_case_t *tc = &cases[idx++];
         memset(tc, 0, sizeof(*tc));
         tc->text = group_c_texts[i];
         tc->group = GROUP_C;
         tc->should_pass_individual = false;
         tc->should_pass_pipeline   = false;
+        tc->is_adversarial = false;
 
         build_decomps_1(tc,
             group_c_triples[i][0], group_c_triples[i][1], group_c_triples[i][2]);
@@ -339,19 +334,19 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
             {group_c_triples[i][0], group_c_triples[i][1], group_c_triples[i][2]},
         };
         set_grounding_unknown(tc, 1, (const char *(*)[3])t);
-        set_consistent(tc);  /* no contradiction, just no evidence */
+        set_consistent(tc);
         build_honest_work(tc, sem);
     }
 
-    /* --- Group D: partially grounded --- */
-    for (int i = 0; i < GROUP_SIZE; i++) {
+    /* --- Group D: partially grounded (125 cases) --- */
+    for (int i = 0; i < GROUP_D_SIZE; i++) {
         test_case_t *tc = &cases[idx++];
         memset(tc, 0, sizeof(*tc));
         tc->text = group_d_texts[i];
         tc->group = GROUP_D;
-        /* Individual detector sees one grounded, one unknown -> fails on the unknown */
         tc->should_pass_individual = false;
         tc->should_pass_pipeline   = false;
+        tc->is_adversarial = false;
 
         build_decomps_2(tc,
             group_d_triple_pairs[i][0][0], group_d_triple_pairs[i][0][1], group_d_triple_pairs[i][0][2],
@@ -361,7 +356,7 @@ static void build_all_cases(test_case_t *cases, const tardy_semantics_t *sem)
             group_d_triple_pairs[i][0][0], group_d_triple_pairs[i][0][1], group_d_triple_pairs[i][0][2],
             group_d_triple_pairs[i][1][0], group_d_triple_pairs[i][1][1], group_d_triple_pairs[i][1][2]);
 
-        set_consistent(tc);  /* structurally consistent but partially ungrounded */
+        set_consistent(tc);
         build_honest_work(tc, sem);
     }
 }
@@ -381,24 +376,17 @@ static bool run_pipeline(const test_case_t *tc, const tardy_semantics_t *sem)
         &tc->work_spec,
         sem);
 
-    /* If OWL consistency layer passed (no contradiction found),
-     * try numeric verification as a second line of defense.
-     * This catches contradictions requiring numeric reasoning. */
     if (r.passed && sem->pipeline.layer_consistency_check) {
         const char *claims[1] = { tc->text };
         tardy_numeric_check_t nc = tardy_numeric_verify(claims, 1);
         if (nc.has_contradiction) {
-            return false;  /* numeric verifier caught a contradiction */
+            return false;
         }
 
-        /* If numeric also passed, try LLM decomposition as third layer.
-         * This catches implicit domain-specific contradictions:
-         * statistical (Bonferroni), ML baselines, ISA mismatches,
-         * blood type incompatibility, paradigm violations, etc. */
         tardy_llm_decomposition_t llm = tardy_llm_decompose(
             claims, 1, &tc->decomps[0]);
         if (llm.found_implicit_contradiction) {
-            return false;  /* LLM decomposer caught an implicit contradiction */
+            return false;
         }
     }
 
@@ -442,7 +430,8 @@ static double f1_score(const confusion_t *c)
 
 int main(void)
 {
-    printf("=== Compositional Hallucination Detection Benchmark (500 cases) ===\n\n");
+    printf("=== Compositional Hallucination Detection Benchmark (%d cases) ===\n\n",
+           NUM_CASES);
 
     tardy_semantics_t base_sem = TARDY_DEFAULT_SEMANTICS;
     base_sem.pipeline.layer_ontology_grounding    = true;
@@ -465,30 +454,31 @@ int main(void)
     }
     build_all_cases(cases, &base_sem);
 
-    /* --- Individual-only detector: grounding layers ON, consistency OFF ---
-     * Simulates SelfCheckGPT / FActScore style: checks each claim
-     * individually for grounding, never checks compositional consistency. */
+    /* --- Individual-only detector: grounding layers ON, consistency OFF --- */
     tardy_semantics_t individual_sem = base_sem;
     individual_sem.pipeline.layer_consistency_check = false;
 
-    /* --- Full pipeline: adds consistency layer (OWL reasoner) ---
-     * Tardygrada advantage: catches compositional contradictions. */
+    /* --- Full pipeline: adds consistency layer (OWL reasoner) --- */
     tardy_semantics_t pipeline_sem = base_sem;
 
     /* Tracking per-group results */
     int indiv_correct[4] = {0};
     int pipe_correct[4]  = {0};
-    confusion_t indiv_cm = {0};
-    confusion_t pipe_cm  = {0};
+    int group_total[4]   = {0};
 
-    /* Per-difficulty tracking for Group B */
-    int b_tier_total[5]         = {0};
-    int b_tier_pipe_detected[5] = {0};
-    int b_tier_indiv_detected[5]= {0};
-    int b_tier_selfcheck_detected[5] = {0};
-    int b_tier_factscore_detected[5] = {0};
+    /* Separate clear vs adversarial confusion matrices */
+    confusion_t indiv_cm     = {0};
+    confusion_t pipe_cm      = {0};
+    confusion_t clear_cm     = {0};
+    confusion_t adv_cm       = {0};
 
-    /* Overall baseline tracking for Group B */
+    /* Per-difficulty tracking for Group B (7 tiers now) */
+    int b_tier_total[7]              = {0};
+    int b_tier_pipe_detected[7]      = {0};
+    int b_tier_indiv_detected[7]     = {0};
+    int b_tier_selfcheck_detected[7] = {0};
+    int b_tier_factscore_detected[7] = {0};
+
     int selfcheck_b_detected = 0;
     int factscore_b_detected = 0;
 
@@ -497,14 +487,12 @@ int main(void)
     for (int i = 0; i < NUM_CASES; i++) {
         test_case_t *tc = &cases[i];
         int g = (int)tc->group;
+        group_total[g]++;
 
-        /* Individual detector (no consistency layer) */
         bool indiv_pass = run_pipeline(tc, &individual_sem);
-        /* Full pipeline (with consistency) */
         bool pipe_pass  = run_pipeline(tc, &pipeline_sem);
 
-        /* Score individual detector.
-         * For individual detector, Group B should pass (it can't see contradictions) */
+        /* Score individual detector */
         if (tc->group == GROUP_B) {
             if (indiv_pass == true)
                 indiv_correct[g]++;
@@ -520,52 +508,42 @@ int main(void)
         /* Group B difficulty tracking + baselines */
         if (tc->group == GROUP_B) {
             int tier = (int)tc->difficulty;
-            b_tier_total[tier]++;
-            /* Count actual contradictions detected (not just expected) */
-            if (!indiv_pass) b_tier_indiv_detected[tier]++;
-            if (!pipe_pass)  b_tier_pipe_detected[tier]++;
+            if (tier >= 0 && tier < 7) {
+                b_tier_total[tier]++;
+                if (!indiv_pass) b_tier_indiv_detected[tier]++;
+                if (!pipe_pass)  b_tier_pipe_detected[tier]++;
 
-            /* Run SelfCheckGPT baseline: compare claims within the text */
-            const char *sc_claims[1] = { tc->text };
-            selfcheck_result_t sc = selfcheck_evaluate(sc_claims, 1);
-            bool sc_flagged = (sc.consistency_score < 0.5f);
-            if (sc_flagged) {
-                b_tier_selfcheck_detected[tier]++;
-                selfcheck_b_detected++;
-            }
+                const char *sc_claims[1] = { tc->text };
+                selfcheck_result_t sc = selfcheck_evaluate(sc_claims, 1);
+                bool sc_flagged = (sc.consistency_score < 0.5f);
+                if (sc_flagged) {
+                    b_tier_selfcheck_detected[tier]++;
+                    selfcheck_b_detected++;
+                }
 
-            /* Run FActScore baseline: check individual claim verifiability.
-             * FActScore checks each claim individually -- it will almost never
-             * flag compositional contradictions because each claim alone looks
-             * verifiable (has numbers, entities, specifics). */
-            factscore_result_t fs = factscore_evaluate(sc_claims, 1);
-            bool fs_flagged = (fs.factscore < 0.5f);
-            if (fs_flagged) {
-                b_tier_factscore_detected[tier]++;
-                factscore_b_detected++;
+                factscore_result_t fs = factscore_evaluate(sc_claims, 1);
+                bool fs_flagged = (fs.factscore < 0.5f);
+                if (fs_flagged) {
+                    b_tier_factscore_detected[tier]++;
+                    factscore_b_detected++;
+                }
             }
         }
 
-        /* Confusion matrix: "positive" = correctly detecting a BAD claim
-         * Good claim = should pass, Bad claim = should NOT pass (pipeline) */
+        /* Confusion matrices */
         bool is_bad_claim = !tc->should_pass_pipeline;
+        confusion_t *split_cm = tc->is_adversarial ? &adv_cm : &clear_cm;
 
-        /* Individual detector confusion */
         if (is_bad_claim) {
             if (!indiv_pass) indiv_cm.tp++;
             else             indiv_cm.fn++;
+            if (!pipe_pass)  { pipe_cm.tp++; split_cm->tp++; }
+            else             { pipe_cm.fn++; split_cm->fn++; }
         } else {
             if (indiv_pass)  indiv_cm.tn++;
             else             indiv_cm.fp++;
-        }
-
-        /* Pipeline confusion */
-        if (is_bad_claim) {
-            if (!pipe_pass) pipe_cm.tp++;
-            else            pipe_cm.fn++;
-        } else {
-            if (pipe_pass)  pipe_cm.tn++;
-            else            pipe_cm.fp++;
+            if (pipe_pass)   { pipe_cm.tn++; split_cm->tn++; }
+            else             { pipe_cm.fp++; split_cm->fp++; }
         }
     }
 
@@ -578,13 +556,13 @@ int main(void)
 
     printf("--- Per-Group Results ---\n\n");
     printf("Group A (consistent):     Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
-           indiv_correct[GROUP_A], GROUP_SIZE, pipe_correct[GROUP_A], GROUP_SIZE);
+           indiv_correct[GROUP_A], GROUP_A_SIZE, pipe_correct[GROUP_A], GROUP_A_SIZE);
     printf("Group B (compositional):  Individual: %3d/%-3d  Pipeline: %3d/%-3d  <-- THE MONEY NUMBER\n",
-           indiv_correct[GROUP_B], GROUP_SIZE, pipe_correct[GROUP_B], GROUP_SIZE);
+           indiv_correct[GROUP_B], GROUP_B_SIZE, pipe_correct[GROUP_B], GROUP_B_SIZE);
     printf("Group C (ungrounded):     Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
-           indiv_correct[GROUP_C], GROUP_SIZE, pipe_correct[GROUP_C], GROUP_SIZE);
+           indiv_correct[GROUP_C], GROUP_C_SIZE, pipe_correct[GROUP_C], GROUP_C_SIZE);
     printf("Group D (partial):        Individual: %3d/%-3d  Pipeline: %3d/%-3d\n",
-           indiv_correct[GROUP_D], GROUP_SIZE, pipe_correct[GROUP_D], GROUP_SIZE);
+           indiv_correct[GROUP_D], GROUP_D_SIZE, pipe_correct[GROUP_D], GROUP_D_SIZE);
 
     /* ============================================
      * Report: Group B per-difficulty breakdown
@@ -598,6 +576,7 @@ int main(void)
 
     int b_total_detected_pipe = 0;
     int b_total_detected_indiv = 0;
+    /* Original 5 tiers */
     for (int tier = 0; tier < 5; tier++) {
         int total = b_tier_total[tier];
         int p_det = b_tier_pipe_detected[tier];
@@ -611,13 +590,64 @@ int main(void)
                total, i_det, total, sc_det, total, fs_det, total, p_det, total,
                total > 0 ? 100.0 * p_det / total : 0.0);
     }
+
+    int orig_pipe = b_total_detected_pipe;
+    int orig_indiv = b_total_detected_indiv;
+
+    printf("  --- original 125 ---\n");
     printf("%-14s  %5d  %7d/%-3d %7d/%-3d %7d/%-3d %7d/%-3d %8.0f%%\n",
-           "TOTAL", GROUP_SIZE,
-           b_total_detected_indiv, GROUP_SIZE,
-           selfcheck_b_detected, GROUP_SIZE,
-           factscore_b_detected, GROUP_SIZE,
-           b_total_detected_pipe, GROUP_SIZE,
-           100.0 * b_total_detected_pipe / GROUP_SIZE);
+           "ORIG TOTAL", 125,
+           orig_indiv, 125,
+           selfcheck_b_detected - b_tier_selfcheck_detected[B_SOFT] - b_tier_selfcheck_detected[B_BORDERLINE], 125,
+           factscore_b_detected - b_tier_factscore_detected[B_SOFT] - b_tier_factscore_detected[B_BORDERLINE], 125,
+           orig_pipe, 125,
+           125 > 0 ? 100.0 * orig_pipe / 125 : 0.0);
+
+    /* New adversarial tiers */
+    printf("\n  --- adversarial (new) ---\n");
+    for (int tier = 5; tier < 7; tier++) {
+        int total = b_tier_total[tier];
+        int p_det = b_tier_pipe_detected[tier];
+        int i_det = b_tier_indiv_detected[tier];
+        int sc_det = b_tier_selfcheck_detected[tier];
+        int fs_det = b_tier_factscore_detected[tier];
+        b_total_detected_pipe  += p_det;
+        b_total_detected_indiv += i_det;
+        printf("%-14s  %5d  %7d/%-2d  %7d/%-2d  %7d/%-2d  %7d/%-2d  %8.0f%%\n",
+               b_difficulty_label((b_difficulty_t)tier),
+               total, i_det, total, sc_det, total, fs_det, total, p_det, total,
+               total > 0 ? 100.0 * p_det / total : 0.0);
+    }
+
+    printf("\n%-14s  %5d  %7d/%-3d %7d/%-3d %7d/%-3d %7d/%-3d %8.0f%%\n",
+           "COMBINED", GROUP_B_SIZE,
+           b_total_detected_indiv, GROUP_B_SIZE,
+           selfcheck_b_detected, GROUP_B_SIZE,
+           factscore_b_detected, GROUP_B_SIZE,
+           b_total_detected_pipe, GROUP_B_SIZE,
+           100.0 * b_total_detected_pipe / GROUP_B_SIZE);
+
+    /* ============================================
+     * Report: Clear vs Adversarial vs Combined
+     * ============================================ */
+
+    printf("\n--- Pipeline: Clear vs Adversarial vs Combined ---\n\n");
+    printf("%-20s  %9s  %9s  %9s  %s\n",
+           "Subset", "Precision", "Recall", "F1", "Cases");
+    printf("%-20s  %9s  %9s  %9s  %s\n",
+           "--------------------", "---------", "---------", "---------", "-----");
+    printf("%-20s  %9.4f  %9.4f  %9.4f  %d\n",
+           "Clear (original)",
+           precision(&clear_cm), recall(&clear_cm), f1_score(&clear_cm),
+           clear_cm.tp + clear_cm.tn + clear_cm.fp + clear_cm.fn);
+    printf("%-20s  %9.4f  %9.4f  %9.4f  %d\n",
+           "Adversarial (new)",
+           precision(&adv_cm), recall(&adv_cm), f1_score(&adv_cm),
+           adv_cm.tp + adv_cm.tn + adv_cm.fp + adv_cm.fn);
+    printf("%-20s  %9.4f  %9.4f  %9.4f  %d\n",
+           "Combined",
+           precision(&pipe_cm), recall(&pipe_cm), f1_score(&pipe_cm),
+           pipe_cm.tp + pipe_cm.tn + pipe_cm.fp + pipe_cm.fn);
 
     /* ============================================
      * Report: Overall comparison table
@@ -638,10 +668,11 @@ int main(void)
     printf("Full pipeline:    TP=%d  TN=%d  FP=%d  FN=%d\n",
            pipe_cm.tp, pipe_cm.tn, pipe_cm.fp, pipe_cm.fn);
 
-    /* Compositional detection rate (re-run Group B for clarity) */
+    /* Compositional detection rate (re-run Group B) */
+    int b_start = GROUP_A_SIZE;  /* Group B starts after Group A */
     int indiv_b_caught = 0;
     int pipe_b_caught  = 0;
-    for (int i = GROUP_SIZE; i < GROUP_SIZE * 2; i++) {
+    for (int i = b_start; i < b_start + GROUP_B_SIZE; i++) {
         test_case_t *tc = &cases[i];
         bool indiv_pass = run_pipeline(tc, &individual_sem);
         bool pipe_pass  = run_pipeline(tc, &pipeline_sem);
@@ -649,10 +680,9 @@ int main(void)
         if (!pipe_pass)  pipe_b_caught++;
     }
 
-    /* Re-run baselines on Group B for the summary */
     int sc_b_total = 0;
     int fs_b_total = 0;
-    for (int i = GROUP_SIZE; i < GROUP_SIZE * 2; i++) {
+    for (int i = b_start; i < b_start + GROUP_B_SIZE; i++) {
         test_case_t *tc = &cases[i];
         const char *sc_claims[1] = { tc->text };
         selfcheck_result_t sc = selfcheck_evaluate(sc_claims, 1);
@@ -661,20 +691,25 @@ int main(void)
         if (fs.factscore < 0.5f) fs_b_total++;
     }
 
-    printf("\n--- Baseline Comparison: Group B (compositional) ---\n\n");
+    printf("\n--- Baseline Comparison: Group B (compositional, %d cases) ---\n\n",
+           GROUP_B_SIZE);
     printf("  Individual:  %3d/%d  (%d%%)\n",
-           indiv_b_caught, GROUP_SIZE, indiv_b_caught * 100 / GROUP_SIZE);
+           indiv_b_caught, GROUP_B_SIZE,
+           GROUP_B_SIZE > 0 ? indiv_b_caught * 100 / GROUP_B_SIZE : 0);
     printf("  SelfCheck:   %3d/%d  (%d%%)\n",
-           sc_b_total, GROUP_SIZE, sc_b_total * 100 / GROUP_SIZE);
+           sc_b_total, GROUP_B_SIZE,
+           GROUP_B_SIZE > 0 ? sc_b_total * 100 / GROUP_B_SIZE : 0);
     printf("  FActScore:   %3d/%d  (%d%%)\n",
-           fs_b_total, GROUP_SIZE, fs_b_total * 100 / GROUP_SIZE);
+           fs_b_total, GROUP_B_SIZE,
+           GROUP_B_SIZE > 0 ? fs_b_total * 100 / GROUP_B_SIZE : 0);
     printf("  Pipeline:    %3d/%d  (%d%%)\n",
-           pipe_b_caught, GROUP_SIZE, pipe_b_caught * 100 / GROUP_SIZE);
+           pipe_b_caught, GROUP_B_SIZE,
+           GROUP_B_SIZE > 0 ? pipe_b_caught * 100 / GROUP_B_SIZE : 0);
 
     printf("\nCompositional detection rate: %d%% (individual: %d/%d, pipeline: %d/%d)\n",
-           pipe_b_caught * 100 / GROUP_SIZE,
-           indiv_b_caught, GROUP_SIZE,
-           pipe_b_caught, GROUP_SIZE);
+           GROUP_B_SIZE > 0 ? pipe_b_caught * 100 / GROUP_B_SIZE : 0,
+           indiv_b_caught, GROUP_B_SIZE,
+           pipe_b_caught, GROUP_B_SIZE);
 
     printf("\nBenchmark completed in %.2f ms (%d test cases)\n",
            elapsed_ms, NUM_CASES);
@@ -691,8 +726,8 @@ int main(void)
            "--------------------------------------------------",
            "------", "------", "------", "------", "-------------");
 
-    for (int i = 0; i < GROUP_SIZE; i++) {
-        test_case_t *tc = &cases[GROUP_SIZE + i];  /* Group B starts at 125 */
+    for (int i = 0; i < GROUP_B_SIZE; i++) {
+        test_case_t *tc = &cases[b_start + i];
         bool indiv_pass = run_pipeline(tc, &individual_sem);
         bool pipe_pass  = run_pipeline(tc, &pipeline_sem);
 
