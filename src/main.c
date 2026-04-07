@@ -681,9 +681,10 @@ static int run_task(const char *task_text)
             }
 
             if (resolved > 0) {
-                char num[16];
+                char num[64];
                 int n = snprintf(num, sizeof(num),
                     "[tardy] llm grounding: %d triples resolved\n", resolved);
+                if (n > (int)sizeof(num)) n = (int)sizeof(num);
                 tardy_write(STDERR_FILENO, num, n);
             }
             tardy_llm_disconnect(&llm_conn);
