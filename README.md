@@ -5,7 +5,7 @@
 [![Deps](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)]()
 
 <p align="center">
-  <img src="docs/tardygrada-logo.png" alt="Tardygrada" width="300">
+  <img src="tardygrada-logo.png" alt="Tardygrada" width="300">
 </p>
 
 <h3 align="center">Formally verified agent runtime — every value is a living agent with cryptographic proof</h3>
