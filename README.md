@@ -204,10 +204,73 @@ Linear scaling. Run `cd evaluation && make && make run` to reproduce all benchma
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Tardygrada["Tardygrada (C, 280KB)"]
+        LANG[".tardy Language"] --> COMP["Compiler"]
+        COMP --> VM["VM Core"]
+        VM --> MCP["MCP Server"]
+        VM --> VERIFY["8-Layer Verification"]
+        VM --> ONTO["Self-Hosted Ontology"]
+        VM --> CRYPTO["Crypto (SHA-256 / ed25519)"]
+        VERIFY --> DECOMP["Decompose (60+ patterns)"]
+        VERIFY --> NUMERIC["Numeric Verification (9 checkers)"]
+        VERIFY --> DOMAIN["Domain Decomposition (14 patterns)"]
+        VERIFY --> WORK["Work Verification (dashcam)"]
+        ONTO --> DATALOG["Datalog Engine (15 rules)"]
+        ONTO --> FRAMES["Minsky Frames + CRDT"]
+    end
+
+    subgraph BITF["brain-in-the-fish (Rust, 25K)"]
+        DEBATE["Multi-Agent Debate"]
+        SCORE["Scoring + Moderation"]
+        GATE["Evidence Gate"]
+    end
+
+    subgraph OO["open-ontologies (Rust, 10K)"]
+        OWL["OWL Reasoning"]
+        SPARQL["SPARQL Engine"]
+        ALIGN["Alignment Engine"]
+    end
+
+    VM -- "coordinate" --> BITF
+    VM -- "grounded_in" --> OO
+    VM -- "Unix socket" --> OO
+
+    style Tardygrada fill:#1a1a2e,color:#fff
+    style BITF fill:#16213e,color:#fff
+    style OO fill:#0f3460,color:#fff
 ```
-Tardygrada (C, 280KB)         — language, compiler, VM, MCP server, Datalog engine
-brain-in-the-fish (Rust, 25K) — debate, scoring, moderation (coordinate connects here)
-open-ontologies (Rust, 10K)   — OWL reasoning, SPARQL (grounded_in connects here)
+
+```mermaid
+graph LR
+    subgraph Pipeline["Verification Pipeline"]
+        direction LR
+        C["Claim"] --> D["Decompose"]
+        D --> G["Ground"]
+        G --> CON["Consistency"]
+        CON --> P["Probabilistic"]
+        P --> PR["Protocol"]
+        PR --> F["Certification"]
+        F --> CR["Cross-Rep"]
+        CR --> W["Work Verify"]
+        W --> V{"VERIFIED /<br>CONFLICT /<br>UNVERIFIABLE"}
+    end
+
+    style Pipeline fill:#1a1a2e,color:#fff
+```
+
+```mermaid
+graph LR
+    subgraph Trust["Immutability Tiers"]
+        direction LR
+        MUT["Mutable<br>0ns"] --> DEF["let<br>mprotect<br>0ns"]
+        DEF --> VER["@verified<br>SHA-256<br>197ns"]
+        VER --> HARD["@hardened<br>Replicas<br>~500ns"]
+        HARD --> SOV["@sovereign<br>ed25519+BFT<br>1,538ns"]
+    end
+
+    style Trust fill:#1a1a2e,color:#fff
 ```
 
 <details>
