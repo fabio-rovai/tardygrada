@@ -28,6 +28,7 @@
 #include "ontology/inference.h"
 #include "daemon.h"
 #include "daemon_client.h"
+#include "mcp_bridge.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
@@ -1245,6 +1246,7 @@ static void print_usage(void)
         "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
         "  tardy spawn <name> [trust]       Spawn agent in daemon\n"
         "  tardy read <agent> [field]       Read agent in daemon\n"
+        "  tardy mcp-bridge                 MCP server bridging to daemon (for Claude Code)\n"
         "  tardy test                       Run built-in tests\n"
         "  tardy bench                      Run benchmarks\n"
         "  tardy                            Run tests (default)\n"
@@ -1404,6 +1406,16 @@ int main(int argc, char **argv)
         }
         tardy_write(STDERR_FILENO, "[tardy] daemon send failed\n", 27);
         return 1;
+    }
+
+    /* tardy mcp-bridge — MCP server proxying to daemon */
+    if (strcmp(cmd, "mcp-bridge") == 0) {
+        if (!tardy_daemon_is_running()) {
+            tardy_write(STDERR_FILENO,
+                "[tardy] mcp-bridge requires running daemon (tardy daemon start)\n", 65);
+            return 1;
+        }
+        return tardy_mcp_bridge_run();
     }
 
     /* tardy terraform path/to/repo */

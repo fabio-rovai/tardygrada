@@ -42,7 +42,8 @@ SRC = src/main.c \
       src/terraform/terraform.c \
       src/coordinate/bridge.c \
       src/daemon.c \
-      src/daemon_client.c
+      src/daemon_client.c \
+      src/mcp_bridge.c
 
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
