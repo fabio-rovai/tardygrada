@@ -165,7 +165,7 @@ graph LR
         W --> V{"VERIFIED /<br>CONFLICT /<br>UNVERIFIABLE"}
     end
 
-    style Pipeline fill:#1a1a2e,color:#fff
+    style Pipeline fill:transparent
 ```
 
 Claims are decomposed into triples, grounded against a knowledge base, checked for consistency, scored probabilistically, and verified for work integrity. Eight layers, all deterministic.
@@ -185,7 +185,7 @@ graph LR
         HARD --> SOV["Sovereign<br>(+ ed25519 + BFT)"]
     end
 
-    style Trust fill:#1a1a2e,color:#fff
+    style Trust fill:transparent
 ```
 
 Values are protected at the operating system level. The OS kernel enforces read-only memory. SHA-256 hashes detect any change. Ed25519 signatures prove authorship. BFT consensus requires corrupting multiple independent replicas.
@@ -208,8 +208,8 @@ graph TB
         DAEMON --> VERIFY["Verification pipeline"]
     end
 
-    style visible fill:#1a1a2e,color:#fff
-    style hidden fill:#0f3460,color:#fff
+    style visible fill:transparent
+    style hidden fill:transparent
 ```
 
 The daemon keeps agents alive between commands. The knowledge base grows as verified claims accumulate. Sovereign agents persist to disk on shutdown and reload on restart.
@@ -241,8 +241,8 @@ graph TB
     VM -- "coordinate" --> BITF
     VM -- "grounded_in" --> OO
 
-    style Tardygrada fill:#1a1a2e,color:#fff
-    style External fill:#16213e,color:#fff
+    style Tardygrada fill:transparent
+    style External fill:transparent
 ```
 
 </details>
