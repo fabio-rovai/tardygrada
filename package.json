@@ -1,0 +1,6 @@
+{
+  "name": "tardygrada",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Formally verified agent runtime — pure C11, zero dependencies"
+}
