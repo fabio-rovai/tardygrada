@@ -7,3 +7,5 @@ docs/
 tardygrada
 tardygrada_dbg
 /tmp/
+*.vo
+*.glob
