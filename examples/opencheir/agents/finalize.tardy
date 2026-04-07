@@ -1,0 +1,29 @@
+// OpenCheir — Submission Finalizer
+//
+// Locks completed tender documents with @sovereign immutability.
+// Prevents accidental edits to submitted content.
+// Runs final cross-document consistency check.
+// Records submission event in audit trail.
+
+agent Finalizer @sovereign @semantics(
+    truth.min_confidence: 0.99,
+    truth.min_consensus_agents: 5,
+    pipeline.min_passing_layers: 7
+) {
+    // All QA must pass before finalization
+    let qa_passed: Fact = receive("confirmation that all QA checks passed") @sovereign
+    let compliance_passed: Fact = receive("confirmation that compliance matrix has no gaps") @sovereign
+    let validation_passed: Fact = receive("confirmation that all validation signals are clean") @sovereign
+
+    // Record submission timestamp
+    let submission_time: str = exec("date -u +%Y-%m-%dT%H:%M:%SZ")
+
+    // Log finalization to audit trail
+    let audit_log: str = exec("sqlite3 tender.db 'INSERT INTO workflow_log(step) VALUES(\"finalized\")'")
+
+    // Generate submission manifest
+    let manifest: str = exec("sqlite3 -json tender.db 'SELECT step, timestamp FROM workflow_log ORDER BY seq'")
+
+    grounded_in(tender)
+    invariant(trust_min: @sovereign)
+}

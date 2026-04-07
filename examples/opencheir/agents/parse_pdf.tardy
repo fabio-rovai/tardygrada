@@ -1,0 +1,28 @@
+// OpenCheir — PDF Parser (PageIndex-style)
+//
+// Extracts text and builds hierarchical tree index from PDF.
+// Uses pdftotext for extraction.
+// Tree building and TOC detection handled by Tardygrada VM (C).
+// Every extracted section becomes a verified claim.
+
+agent PdfParser @verified @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3
+) {
+    let pdf_path: Fact = receive("path to PDF file") @verified
+
+    // Extract full text from PDF
+    let full_text: str = exec("pdftotext -layout document.pdf -")
+
+    // Extract first 10 pages for TOC detection
+    let toc_pages: str = exec("pdftotext -f 1 -l 10 -layout document.pdf -")
+
+    // Get page count
+    let page_count: str = exec("pdfinfo document.pdf | grep Pages")
+
+    // Extract metadata
+    let metadata: str = exec("pdfinfo document.pdf")
+
+    grounded_in(document)
+    invariant(trust_min: @verified)
+}

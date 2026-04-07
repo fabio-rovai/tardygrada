@@ -1,0 +1,289 @@
+DIGEST fcff32c8e6b1bb777ea6d620091096b9
+Fconsensus
+R415:419 Stdlib.Arith.Arith <> <> lib
+R449:452 Stdlib.Lists.List <> <> lib
+R482:485 Stdlib.Bool.Bool <> <> lib
+R515:517 Stdlib.micromega.Lia <> <> lib
+R527:539 Stdlib.Lists.List ListNotations <> mod
+ind 622:628 <> Replica
+constr 644:649 <> Honest
+constr 672:678 <> Corrupt
+R656:659 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R653:655 Corelib.Init.Datatypes <> nat ind
+R660:666 consensus <> Replica:1 ind
+R685:688 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R682:684 Corelib.Init.Datatypes <> nat ind
+R689:695 consensus <> Replica:1 ind
+scheme 622:628 <> Replica_rect
+scheme 622:628 <> Replica_ind
+scheme 622:628 <> Replica_rec
+scheme 622:628 <> Replica_sind
+def 749:761 <> replica_value
+R768:774 consensus <> Replica ind
+binder 764:764 <> r:3
+R779:781 Corelib.Init.Datatypes <> nat ind
+R794:794 consensus <> r:3 var
+R805:810 consensus <> Honest constr
+R823:829 consensus <> Corrupt constr
+def 912:922 <> count_value
+R929:931 Corelib.Init.Datatypes <> nat ind
+binder 925:925 <> v:5
+R946:949 Corelib.Init.Datatypes <> list ind
+R951:957 consensus <> Replica ind
+binder 935:942 <> replicas:6
+R962:964 Corelib.Init.Datatypes <> nat ind
+R977:984 consensus <> replicas:6 var
+R995:996 Stdlib.Lists.List ListNotations ::list_scope:'['_']' not
+R1008:1011 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1027:1033 Stdlib.Arith.PeanoNat Nat eqb def
+R1036:1048 consensus <> replica_value def
+R1053:1053 consensus <> v:5 var
+R1096:1106 consensus <> count_value:7 def
+R1108:1108 consensus <> v:5 var
+R1064:1064 Corelib.Init.Datatypes <> S constr
+R1067:1077 consensus <> count_value:7 def
+R1079:1079 consensus <> v:5 var
+def 1160:1171 <> count_honest
+R1185:1188 Corelib.Init.Datatypes <> list ind
+R1190:1196 consensus <> Replica ind
+binder 1174:1181 <> replicas:9
+R1201:1203 Corelib.Init.Datatypes <> nat ind
+R1216:1223 consensus <> replicas:9 var
+R1234:1235 Stdlib.Lists.List ListNotations ::list_scope:'['_']' not
+R1254:1257 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1246:1251 consensus <> Honest constr
+R1266:1266 Corelib.Init.Datatypes <> S constr
+R1269:1280 consensus <> count_honest:10 def
+R1301:1304 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1292:1298 consensus <> Corrupt constr
+R1313:1324 consensus <> count_honest:10 def
+def 1377:1389 <> count_corrupt
+R1403:1406 Corelib.Init.Datatypes <> list ind
+R1408:1414 consensus <> Replica ind
+binder 1392:1399 <> replicas:12
+R1419:1421 Corelib.Init.Datatypes <> nat ind
+R1434:1441 consensus <> replicas:12 var
+R1452:1453 Stdlib.Lists.List ListNotations ::list_scope:'['_']' not
+R1472:1475 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1464:1469 consensus <> Honest constr
+R1484:1496 consensus <> count_corrupt:13 def
+R1516:1519 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1507:1513 consensus <> Corrupt constr
+R1528:1528 Corelib.Init.Datatypes <> S constr
+R1531:1543 consensus <> count_corrupt:13 def
+def 1623:1638 <> all_honest_agree
+R1645:1647 Corelib.Init.Datatypes <> nat ind
+binder 1641:1641 <> v:15
+R1662:1665 Corelib.Init.Datatypes <> list ind
+R1667:1673 consensus <> Replica ind
+binder 1651:1658 <> replicas:16
+R1694:1701 consensus <> replicas:16 var
+R1712:1713 Stdlib.Lists.List ListNotations ::list_scope:'['_']' not
+R1718:1721 Corelib.Init.Logic <> True ind
+R1736:1739 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1727:1732 consensus <> Honest constr
+R1754:1757 Corelib.Init.Logic <> ::type_scope:x_'/\'_x not
+R1749:1751 Corelib.Init.Logic <> ::type_scope:x_'='_x not
+R1748:1748 consensus <> v:15 var
+R1758:1773 consensus <> all_honest_agree:17 def
+R1775:1775 consensus <> v:15 var
+R1795:1798 Corelib.Init.Datatypes <> ::list_scope:x_'::'_x not
+R1786:1792 consensus <> Corrupt constr
+R1807:1822 consensus <> all_honest_agree:17 def
+R1824:1824 consensus <> v:15 var
+def 1922:1933 <> has_majority
+R1940:1942 Corelib.Init.Datatypes <> nat ind
+binder 1936:1936 <> v:19
+R1957:1960 Corelib.Init.Datatypes <> list ind
+R1962:1968 consensus <> Replica ind
+binder 1946:1953 <> replicas:20
+R2009:2011 Corelib.Init.Peano <> ::nat_scope:x_'>'_x not
+R1984:1986 Corelib.Init.Peano <> ::nat_scope:x_'*'_x not
+R1987:1997 consensus <> count_value def
+R1999:1999 consensus <> v:19 var
+R2001:2008 consensus <> replicas:20 var
+R2012:2017 Corelib.Init.Datatypes <> length def
+R2019:2026 consensus <> replicas:20 var
+prf 2067:2086 <> honest_corrupt_total
+binder 2099:2106 <> replicas:21
+R2157:2159 Corelib.Init.Logic <> ::type_scope:x_'='_x not
+R2132:2134 Corelib.Init.Peano <> ::nat_scope:x_'+'_x not
+R2111:2122 consensus <> count_honest def
+R2124:2131 consensus <> replicas:21 var
+R2135:2147 consensus <> count_corrupt def
+R2149:2156 consensus <> replicas:21 var
+R2160:2165 Corelib.Init.Datatypes <> length def
+R2167:2174 consensus <> replicas:21 var
+prf 2345:2369 <> honest_votes_for_original
+binder 2382:2382 <> v:22
+binder 2384:2391 <> replicas:23
+R2423:2428 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R2396:2411 consensus <> all_honest_agree def
+R2413:2413 consensus <> v:22 var
+R2415:2422 consensus <> replicas:23 var
+R2451:2454 Corelib.Init.Peano <> ::nat_scope:x_'>='_x not
+R2429:2439 consensus <> count_value def
+R2441:2441 consensus <> v:22 var
+R2443:2450 consensus <> replicas:23 var
+R2455:2466 consensus <> count_honest def
+R2468:2475 consensus <> replicas:23 var
+R2651:2662 Stdlib.Arith.PeanoNat Nat eqb_refl thm
+R2651:2662 Stdlib.Arith.PeanoNat Nat eqb_refl thm
+R2651:2662 Stdlib.Arith.PeanoNat Nat eqb_refl thm
+R2677:2682 Corelib.Init.Peano <> le_n_S thm
+R2677:2682 Corelib.Init.Peano <> le_n_S thm
+R2728:2740 consensus <> replica_value def
+R2802:2808 Stdlib.Arith.PeanoNat Nat eqb def
+R2802:2808 Stdlib.Arith.PeanoNat Nat eqb def
+R2831:2834 Corelib.Init.Peano <> le_S constr
+R2831:2834 Corelib.Init.Peano <> le_S constr
+prf 3319:3328 <> bft_safety
+binder 3341:3341 <> v:24
+binder 3343:3350 <> replicas:25
+R3382:3387 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R3355:3370 consensus <> all_honest_agree def
+R3372:3372 consensus <> v:24 var
+R3374:3381 consensus <> replicas:25 var
+R3432:3437 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R3414:3416 Corelib.Init.Peano <> ::nat_scope:x_'<'_x not
+R3389:3391 Corelib.Init.Peano <> ::nat_scope:x_'*'_x not
+R3392:3404 consensus <> count_corrupt def
+R3406:3413 consensus <> replicas:25 var
+R3417:3422 Corelib.Init.Datatypes <> length def
+R3424:3431 consensus <> replicas:25 var
+R3438:3449 consensus <> has_majority def
+R3451:3451 consensus <> v:24 var
+R3453:3460 consensus <> replicas:25 var
+R3516:3527 consensus <> has_majority def
+R3544:3568 consensus <> honest_votes_for_original thm
+R3544:3568 consensus <> honest_votes_for_original thm
+R3615:3634 consensus <> honest_corrupt_total thm
+R3615:3634 consensus <> honest_corrupt_total thm
+prf 3747:3760 <> bft_3_replicas
+binder 3773:3773 <> v:26
+binder 3775:3776 <> r1:27
+binder 3778:3779 <> r2:28
+binder 3781:3782 <> r3:29
+R3818:3823 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R3787:3802 consensus <> all_honest_agree def
+R3804:3804 consensus <> v:26 var
+R3806:3806 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3809:3810 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3813:3814 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3817:3817 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3807:3808 consensus <> r1:27 var
+R3811:3812 consensus <> r2:28 var
+R3815:3816 consensus <> r3:29 var
+R3855:3860 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R3850:3853 Corelib.Init.Peano <> ::nat_scope:x_'<='_x not
+R3824:3836 consensus <> count_corrupt def
+R3838:3838 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3841:3842 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3845:3846 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3849:3849 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3839:3840 consensus <> r1:27 var
+R3843:3844 consensus <> r2:28 var
+R3847:3848 consensus <> r3:29 var
+R3861:3872 consensus <> has_majority def
+R3874:3874 consensus <> v:26 var
+R3876:3876 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3879:3880 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3883:3884 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3887:3887 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R3877:3878 consensus <> r1:27 var
+R3881:3882 consensus <> r2:28 var
+R3885:3886 consensus <> r3:29 var
+R3942:3951 consensus <> bft_safety thm
+R3942:3951 consensus <> bft_safety thm
+prf 4096:4109 <> bft_5_replicas
+binder 4122:4122 <> v:30
+binder 4124:4125 <> r1:31
+binder 4127:4128 <> r2:32
+binder 4130:4131 <> r3:33
+binder 4133:4134 <> r4:34
+binder 4136:4137 <> r5:35
+R4181:4186 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R4142:4157 consensus <> all_honest_agree def
+R4159:4159 consensus <> v:30 var
+R4161:4161 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4164:4165 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4168:4169 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4172:4173 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4176:4177 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4180:4180 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4162:4163 consensus <> r1:31 var
+R4166:4167 consensus <> r2:32 var
+R4170:4171 consensus <> r3:33 var
+R4174:4175 consensus <> r4:34 var
+R4178:4179 consensus <> r5:35 var
+R4226:4231 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R4221:4224 Corelib.Init.Peano <> ::nat_scope:x_'<='_x not
+R4187:4199 consensus <> count_corrupt def
+R4201:4201 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4204:4205 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4208:4209 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4212:4213 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4216:4217 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4220:4220 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4202:4203 consensus <> r1:31 var
+R4206:4207 consensus <> r2:32 var
+R4210:4211 consensus <> r3:33 var
+R4214:4215 consensus <> r4:34 var
+R4218:4219 consensus <> r5:35 var
+R4232:4243 consensus <> has_majority def
+R4245:4245 consensus <> v:30 var
+R4247:4247 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4250:4251 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4254:4255 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4258:4259 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4262:4263 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4266:4266 Stdlib.Lists.List ListNotations ::list_scope:'['_x_';'_x_';'_'..'_';'_x_']' not
+R4248:4249 consensus <> r1:31 var
+R4252:4253 consensus <> r2:32 var
+R4256:4257 consensus <> r3:33 var
+R4260:4261 consensus <> r4:34 var
+R4264:4265 consensus <> r5:35 var
+R4327:4336 consensus <> bft_safety thm
+R4327:4336 consensus <> bft_safety thm
+prf 4473:4487 <> majority_unique
+binder 4500:4501 <> v1:36
+binder 4503:4504 <> v2:37
+binder 4506:4513 <> replicas:38
+R4542:4547 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R4518:4529 consensus <> has_majority def
+R4531:4532 consensus <> v1:36 var
+R4534:4541 consensus <> replicas:38 var
+R4572:4577 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R4548:4559 consensus <> has_majority def
+R4561:4562 consensus <> v2:37 var
+R4564:4571 consensus <> replicas:38 var
+R4586:4591 Corelib.Init.Logic <> ::type_scope:x_'->'_x not
+R4580:4583 Corelib.Init.Logic <> ::type_scope:x_'<>'_x not
+R4578:4579 consensus <> v1:36 var
+R4584:4585 consensus <> v2:37 var
+R4592:4596 Corelib.Init.Logic <> False ind
+R4657:4668 consensus <> has_majority def
+R4743:4746 Corelib.Init.Peano <> ::nat_scope:x_'<='_x not
+R4717:4719 Corelib.Init.Peano <> ::nat_scope:x_'+'_x not
+R4694:4704 consensus <> count_value def
+R4720:4730 consensus <> count_value def
+R4747:4752 Corelib.Init.Datatypes <> length def
+R4743:4746 Corelib.Init.Peano <> ::nat_scope:x_'<='_x not
+R4717:4719 Corelib.Init.Peano <> ::nat_scope:x_'+'_x not
+R4694:4704 consensus <> count_value def
+R4720:4730 consensus <> count_value def
+R4747:4752 Corelib.Init.Datatypes <> length def
+R4876:4882 Stdlib.Arith.PeanoNat Nat eqb def
+R4885:4897 consensus <> replica_value def
+R4930:4936 Stdlib.Arith.PeanoNat Nat eqb def
+R4939:4951 consensus <> replica_value def
+R4876:4882 Stdlib.Arith.PeanoNat Nat eqb def
+R4885:4897 consensus <> replica_value def
+R4930:4936 Stdlib.Arith.PeanoNat Nat eqb def
+R4939:4951 consensus <> replica_value def
+R4930:4936 Stdlib.Arith.PeanoNat Nat eqb def
+R4939:4951 consensus <> replica_value def
+R4982:4991 Stdlib.Arith.PeanoNat Nat eqb_eq thm
+R4982:4991 Stdlib.Arith.PeanoNat Nat eqb_eq thm
+R5006:5015 Stdlib.Arith.PeanoNat Nat eqb_eq thm
+R5006:5015 Stdlib.Arith.PeanoNat Nat eqb_eq thm

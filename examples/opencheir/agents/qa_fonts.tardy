@@ -1,0 +1,24 @@
+// OpenCheir — Font Consistency QA
+//
+// Detects font inconsistencies in DOCX files.
+// Extracts all font declarations from document XML and styles,
+// identifies the primary font, flags deviations.
+
+agent QaFonts @verified {
+    let docx_path: Fact = receive("path to DOCX file for font check") @verified
+
+    // Extract all font references from the document
+    let fonts_in_doc: str = exec("unzip -p document.docx word/document.xml | grep -oP 'w:ascii=\"[^\"]+\"' | sort | uniq -c | sort -rn")
+
+    // Extract default font from styles
+    let default_font: str = exec("unzip -p document.docx word/styles.xml | grep -oP 'w:ascii=\"[^\"]+\"' | head -1")
+
+    // Extract font theme references
+    let theme_fonts: str = exec("unzip -p document.docx word/theme/theme1.xml | grep -oP 'typeface=\"[^\"]+\"'")
+
+    // Count total font variations
+    let font_count: str = exec("unzip -p document.docx word/document.xml | grep -oP 'w:ascii=\"[^\"]+\"' | sort -u | wc -l")
+
+    grounded_in(document)
+    invariant(trust_min: @verified)
+}

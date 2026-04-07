@@ -1,0 +1,118 @@
+@prefix : <http://opencheir.org/document#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# --- Document Structure Ontology ---
+# Models DOCX and PDF document structure for QA and parsing.
+
+:Document a owl:Class ;
+    rdfs:label "Document" ;
+    rdfs:comment "A tender document (DOCX or PDF)" .
+
+:DocxDocument a owl:Class ;
+    rdfs:subClassOf :Document ;
+    rdfs:label "DOCX Document" .
+
+:PdfDocument a owl:Class ;
+    rdfs:subClassOf :Document ;
+    rdfs:label "PDF Document" .
+
+:Section a owl:Class ;
+    rdfs:label "Section" ;
+    rdfs:comment "A document section with heading and content" .
+
+:Paragraph a owl:Class ;
+    rdfs:label "Paragraph" .
+
+:Table a owl:Class ;
+    rdfs:label "Table" .
+
+:TableCell a owl:Class ;
+    rdfs:label "Table Cell" .
+
+:Run a owl:Class ;
+    rdfs:label "Run" ;
+    rdfs:comment "A text run with consistent formatting" .
+
+:Font a owl:Class ;
+    rdfs:label "Font" .
+
+:TocEntry a owl:Class ;
+    rdfs:label "Table of Contents Entry" ;
+    rdfs:comment "A PageIndex tree node from TOC detection" .
+
+# --- Properties ---
+
+:hasSection a owl:ObjectProperty ;
+    rdfs:domain :Document ;
+    rdfs:range :Section .
+
+:hasParagraph a owl:ObjectProperty ;
+    rdfs:domain :Section ;
+    rdfs:range :Paragraph .
+
+:hasTable a owl:ObjectProperty ;
+    rdfs:domain :Section ;
+    rdfs:range :Table .
+
+:hasCell a owl:ObjectProperty ;
+    rdfs:domain :Table ;
+    rdfs:range :TableCell .
+
+:hasRun a owl:ObjectProperty ;
+    rdfs:domain :Paragraph ;
+    rdfs:range :Run .
+
+:usesFont a owl:ObjectProperty ;
+    rdfs:domain :Run ;
+    rdfs:range :Font .
+
+:hasTocEntry a owl:ObjectProperty ;
+    rdfs:domain :Document ;
+    rdfs:range :TocEntry .
+
+:hasChild a owl:ObjectProperty ;
+    rdfs:domain :TocEntry ;
+    rdfs:range :TocEntry ;
+    rdfs:comment "Hierarchical tree structure from PageIndex" .
+
+:fontName a owl:DatatypeProperty ;
+    rdfs:domain :Font ;
+    rdfs:range xsd:string .
+
+:fontSize a owl:DatatypeProperty ;
+    rdfs:domain :Run ;
+    rdfs:range xsd:float .
+
+:isBold a owl:DatatypeProperty ;
+    rdfs:domain :Run ;
+    rdfs:range xsd:boolean .
+
+:pageNumber a owl:DatatypeProperty ;
+    rdfs:domain :Section ;
+    rdfs:range xsd:integer .
+
+:startPage a owl:DatatypeProperty ;
+    rdfs:domain :TocEntry ;
+    rdfs:range xsd:integer .
+
+:endPage a owl:DatatypeProperty ;
+    rdfs:domain :TocEntry ;
+    rdfs:range xsd:integer .
+
+:wordCount a owl:DatatypeProperty ;
+    rdfs:domain :Section ;
+    rdfs:range xsd:integer .
+
+:wordLimit a owl:DatatypeProperty ;
+    rdfs:domain :Section ;
+    rdfs:range xsd:integer .
+
+:title a owl:DatatypeProperty ;
+    rdfs:domain :TocEntry ;
+    rdfs:range xsd:string .
+
+:summary a owl:DatatypeProperty ;
+    rdfs:domain :TocEntry ;
+    rdfs:range xsd:string .

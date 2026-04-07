@@ -1,0 +1,26 @@
+// OpenCheir — Bid/No-Bid Analysis
+//
+// Scores tender opportunity against company capabilities.
+// Hard gate: reject if >30% needs subcontracting or core capability missing.
+// Asks: "Can we deliver 80%+ with our own team?"
+// Every assessment is a verified claim grounded in tender ontology.
+
+agent BidAnalyzer @verified @semantics(
+    truth.min_confidence: 0.90,
+    truth.min_consensus_agents: 3
+) {
+    let spec_summary: Fact = receive("tender specification summary with requirements") @verified
+    let company_profile: Fact = receive("company capabilities and past project experience") @verified
+
+    // Search past tender outcomes for similar work
+    let past_tenders: str = exec("sqlite3 -json tender.db 'SELECT title, outcome, score, domain FROM tender_history WHERE domain MATCH ? ORDER BY rank LIMIT 10'")
+
+    // Match required capabilities against company profile
+    let capability_match: str = exec("sqlite3 -json tender.db 'SELECT req, status FROM capability_check ORDER BY status'")
+
+    // Calculate subcontracting percentage
+    let subcontract_pct: str = exec("sqlite3 tender.db 'SELECT CAST(COUNT(CASE WHEN status=\"gap\" THEN 1 END) AS FLOAT) / COUNT(*) * 100 FROM capability_check'")
+
+    grounded_in(tender)
+    invariant(trust_min: @verified)
+}

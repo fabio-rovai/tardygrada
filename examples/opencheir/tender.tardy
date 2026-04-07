@@ -1,0 +1,60 @@
+// OpenCheir — Verified Tender Pipeline
+//
+// Production-grade document governance in pure .tardy.
+// Orchestrates 15 agents through an 8-step tender workflow:
+//   1. Ingest specs (PDF + DOCX)
+//   2. Extract requirements as verified claims
+//   3. Bid/no-bid analysis
+//   4. Compliance matrix (FTS5 + tag matching)
+//   5. Draft responses grounded in spec
+//   6. QA checks (fonts, dashes, signatures, word counts)
+//   7. Validation (hedging, fallacies, fabrication)
+//   8. Final lock (@sovereign)
+
+agent TenderPipeline @sovereign @semantics(
+    truth.min_confidence: 0.90,
+    truth.min_consensus_agents: 3,
+    pipeline.min_passing_layers: 6
+) {
+    // --- Phase 1: Ingest ---
+    fork "agents/parse_pdf.tardy" as PdfParser
+    fork "agents/parse_docx.tardy" as DocxParser
+
+    // --- Phase 2: Extract requirements ---
+    fork "agents/extract_reqs.tardy" as ReqExtractor
+
+    // --- Phase 3: Bid/no-bid ---
+    fork "agents/bid_analysis.tardy" as BidAnalyzer
+
+    // --- Phase 4: Compliance matrix ---
+    fork "agents/search.tardy" as SearchEngine
+    fork "agents/compliance.tardy" as ComplianceChecker
+
+    // --- Phase 5: Draft responses ---
+    fork "agents/draft.tardy" as Drafter
+
+    // --- Phase 6: QA ---
+    fork "agents/qa_fonts.tardy" as QaFonts
+    fork "agents/qa_dashes.tardy" as QaDashes
+    fork "agents/qa_signatures.tardy" as QaSignatures
+    fork "agents/qa_wordcount.tardy" as QaWordcount
+
+    // --- Phase 7: Validation ---
+    fork "agents/validate.tardy" as Validator
+    fork "agents/source_verify.tardy" as SourceVerifier
+    fork "agents/firewall.tardy" as Firewall
+
+    // --- Phase 8: Finalize ---
+    fork "agents/finalize.tardy" as Finalizer
+
+    // --- Workflow enforcement ---
+    fork "agents/enforcer.tardy" as Enforcer
+
+    // --- Orchestrate the full pipeline ---
+    coordinate {PdfParser, DocxParser, ReqExtractor, BidAnalyzer, ComplianceChecker, Drafter, QaFonts, QaDashes, QaSignatures, QaWordcount, Validator, SourceVerifier, Finalizer} on("execute verified tender pipeline") consensus(ProofWeight)
+
+    let pipeline_name: str = "OpenCheir Tender Pipeline" @sovereign
+    let version: int = 2
+
+    invariant(trust_min: @verified)
+}

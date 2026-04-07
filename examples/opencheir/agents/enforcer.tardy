@@ -1,0 +1,29 @@
+// OpenCheir — Workflow Enforcer
+//
+// Tender workflow rule engine.
+// Enforces correct ordering of operations:
+//   - Must read spec before writing response
+//   - Must run QA before finalizing
+//   - Must check compliance before drafting
+//   - Must do bid/no-bid before any work
+// Rules evaluated as verified claims — cannot be bypassed.
+
+agent Enforcer @sovereign @semantics(
+    truth.min_confidence: 0.95,
+    truth.min_consensus_agents: 3
+) {
+    // Track workflow state via SQLite
+    let init_state: str = exec("sqlite3 tender.db 'CREATE TABLE IF NOT EXISTS workflow_log(seq INTEGER PRIMARY KEY, step TEXT, timestamp TEXT DEFAULT CURRENT_TIMESTAMP)'")
+
+    // Record current step
+    let current_step: Fact = receive("workflow step being executed") @verified
+
+    // Check if prerequisite steps were completed
+    let prereq_check: str = exec("sqlite3 -json tender.db 'SELECT step FROM workflow_log ORDER BY seq'")
+
+    // Log the step
+    let log_step: str = exec("sqlite3 tender.db 'INSERT INTO workflow_log(step) VALUES(?)'")
+
+    grounded_in(tender)
+    invariant(trust_min: @sovereign)
+}

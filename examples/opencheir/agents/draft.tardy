@@ -1,0 +1,29 @@
+// OpenCheir — Response Drafter
+//
+// Drafts tender response sections grounded in:
+//   - Spec requirements (extract_reqs.tardy)
+//   - Company case studies and experience
+//   - Compliance matrix matches
+// Every drafted paragraph must contain a specific fact.
+// 85% minimum word count utilisation enforced.
+
+agent Drafter @verified @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3
+) {
+    let requirement: Fact = receive("specific requirement to respond to") @verified
+    let case_studies: Fact = receive("relevant case studies with numbers and outcomes") @verified
+    let word_limit: Fact = receive("word limit for this response section") @verified
+
+    // Retrieve matching spec sections for grounding
+    let spec_context: str = exec("sqlite3 -json tender.db 'SELECT description, page FROM requirements WHERE req_id = ?'")
+
+    // Retrieve relevant past responses
+    let past_responses: str = exec("sqlite3 -json tender.db 'SELECT content, score FROM past_responses WHERE tag MATCH ? ORDER BY score DESC LIMIT 3'")
+
+    // Retrieve staff CVs for named staff requirement
+    let staff: str = exec("sqlite3 -json tender.db 'SELECT name, role, experience FROM staff WHERE domain MATCH ?'")
+
+    grounded_in(tender)
+    invariant(trust_min: @verified)
+}

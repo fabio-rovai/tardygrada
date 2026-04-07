@@ -1,0 +1,110 @@
+@prefix : <http://opencheir.org/compliance#> .
+@prefix tender: <http://opencheir.org/tender#> .
+@prefix doc: <http://opencheir.org/document#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# --- Compliance Ontology ---
+# Models the relationship between spec requirements and response sections.
+# Used by compliance.tardy for gap detection and coverage analysis.
+
+:ComplianceMatch a owl:Class ;
+    rdfs:label "Compliance Match" ;
+    rdfs:comment "A match between a spec requirement and a response section" .
+
+:CoverageStatus a owl:Class ;
+    rdfs:label "Coverage Status" ;
+    rdfs:comment "How well a requirement is covered" .
+
+:Evidence a owl:Class ;
+    rdfs:label "Evidence" ;
+    rdfs:comment "Supporting evidence for a compliance claim" .
+
+:Gap a owl:Class ;
+    rdfs:label "Gap" ;
+    rdfs:comment "An unmatched requirement — no response section covers it" .
+
+:Quote a owl:Class ;
+    rdfs:label "Quote" ;
+    rdfs:comment "An exact quote from source document backing a claim" .
+
+# --- Coverage Status Individuals ---
+
+:FullyCovered a :CoverageStatus ;
+    rdfs:label "Fully Covered" ;
+    rdfs:comment "Response section directly addresses the requirement" .
+
+:PartiallyCovered a :CoverageStatus ;
+    rdfs:label "Partially Covered" ;
+    rdfs:comment "Response mentions the requirement but lacks detail" .
+
+:NotCovered a :CoverageStatus ;
+    rdfs:label "Not Covered" ;
+    rdfs:comment "No response section addresses this requirement" .
+
+# --- Match Properties ---
+
+:matchesRequirement a owl:ObjectProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range tender:Requirement .
+
+:matchesSection a owl:ObjectProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range doc:Section .
+
+:hasCoverageStatus a owl:ObjectProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range :CoverageStatus .
+
+:matchMethod a owl:DatatypeProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range xsd:string ;
+    rdfs:comment "keyword (FTS5) or tag (category match)" .
+
+:matchConfidence a owl:DatatypeProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range xsd:float .
+
+# --- Evidence Properties ---
+
+:hasEvidence a owl:ObjectProperty ;
+    rdfs:domain :ComplianceMatch ;
+    rdfs:range :Evidence .
+
+:hasQuote a owl:ObjectProperty ;
+    rdfs:domain :Evidence ;
+    rdfs:range :Quote .
+
+:quoteText a owl:DatatypeProperty ;
+    rdfs:domain :Quote ;
+    rdfs:range xsd:string .
+
+:quoteSource a owl:ObjectProperty ;
+    rdfs:domain :Quote ;
+    rdfs:range doc:Document .
+
+:quotePage a owl:DatatypeProperty ;
+    rdfs:domain :Quote ;
+    rdfs:range xsd:integer .
+
+:isVerified a owl:DatatypeProperty ;
+    rdfs:domain :Quote ;
+    rdfs:range xsd:boolean ;
+    rdfs:comment "Quote verified against source document by source_verify.tardy" .
+
+# --- Gap Properties ---
+
+:gapRequirement a owl:ObjectProperty ;
+    rdfs:domain :Gap ;
+    rdfs:range tender:Requirement .
+
+:gapSeverity a owl:DatatypeProperty ;
+    rdfs:domain :Gap ;
+    rdfs:range xsd:string ;
+    rdfs:comment "critical (mandatory req), warning (desirable req)" .
+
+:suggestedAction a owl:DatatypeProperty ;
+    rdfs:domain :Gap ;
+    rdfs:range xsd:string ;
+    rdfs:comment "What to write to fill this gap" .

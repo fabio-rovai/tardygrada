@@ -1,0 +1,21 @@
+// OpenCheir — Signature Placeholder Detection
+//
+// Scans DOCX for unfilled signature placeholders.
+// Catches: [signature], [sign here], [name], [date],
+// [insert signature], and similar patterns.
+
+agent QaSignatures @verified {
+    let docx_path: Fact = receive("path to DOCX file for signature check") @verified
+
+    // Extract all text and search for signature placeholders
+    let placeholders: str = exec("unzip -p document.docx word/document.xml | grep -oiP '\\[sign[^]]*\\]|\\[signature[^]]*\\]|\\[name\\]|\\[date\\]|\\[insert[^]]*\\]|\\[title\\]|\\[position\\]'")
+
+    // Check for empty form fields
+    let empty_fields: str = exec("unzip -p document.docx word/document.xml | grep -c 'w:fldChar'")
+
+    // Check for placeholder text styling (often highlighted or grey)
+    let placeholder_styles: str = exec("unzip -p document.docx word/document.xml | grep -c 'w:highlight'")
+
+    grounded_in(document)
+    invariant(trust_min: @verified)
+}

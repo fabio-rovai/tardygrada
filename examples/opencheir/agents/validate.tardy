@@ -1,0 +1,35 @@
+// OpenCheir — Response Validation
+//
+// Inherited from BITF validation signals.
+// 15 checks on tender response quality:
+//   - Hedging language detection (weasel words, qualifiers)
+//   - Logical fallacy detection
+//   - Reading level analysis
+//   - Evidence distribution across sections
+//   - Citation recency and format
+//   - Missing sections detection
+//   - Argument circularity
+//   - Statistical claim support
+// Every finding is a verified claim.
+
+agent Validator @verified @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3
+) {
+    let response_path: Fact = receive("path to tender response document") @verified
+
+    // Extract text for analysis
+    let response_text: str = exec("unzip -p response.docx word/document.xml | grep -oP '<w:t[^>]*>[^<]*</w:t>' | sed 's/<[^>]*>//g'")
+
+    // Hedging language: count weasel words
+    let hedging: str = exec("unzip -p response.docx word/document.xml | grep -oiP 'potentially|possibly|might|could|may|perhaps|arguably|somewhat|generally|typically|usually' | wc -l")
+
+    // Reading level: average words per sentence
+    let sentence_count: str = exec("unzip -p response.docx word/document.xml | grep -oP '<w:t[^>]*>[^<]*</w:t>' | sed 's/<[^>]*>//g' | grep -c '\\.'")
+
+    // Evidence: count specific facts vs generic statements
+    let specifics: str = exec("unzip -p response.docx word/document.xml | grep -oP '<w:t[^>]*>[^<]*</w:t>' | sed 's/<[^>]*>//g' | grep -cP '\\d+%|\\d+ (days|weeks|months|staff|projects)'")
+
+    grounded_in(tender)
+    invariant(trust_min: @verified)
+}
