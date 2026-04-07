@@ -22,6 +22,8 @@
 #include "verify/pipeline.h"
 #include "compiler/exec.h"
 #include "verify/decompose.h"
+#include "verify/numeric.h"
+#include "verify/llm_decompose.h"
 #include "terraform/terraform.h"
 #include "ontology/inference.h"
 #include <sys/mman.h>
@@ -29,6 +31,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <time.h>
+#include <ctype.h>
+#include <sys/stat.h>
 
 static int is_zero_uuid(tardy_uuid_t id)
 {
@@ -793,6 +798,430 @@ static int check_file(const char *path)
 }
 
 /* ============================================
+ * CLI: tardy verify-doc file.md — scan document for contradictions
+ *
+ * Reads a markdown/text file, splits into sentences, extracts
+ * triples, and checks for internal contradictions using:
+ * 1. Triple consistency (same subject+predicate, different object)
+ * 2. Numeric verification (tardy_numeric_verify)
+ * 3. LLM decomposition (tardy_llm_decompose) for implicit contradictions
+ *
+ * Optimization: groups sentences by shared entities, only checks
+ * pairs within the same topic group — roughly O(n) for most docs.
+ * ============================================ */
+
+/* Maximum sentences and entity groups for verify-doc */
+#define VDOC_MAX_SENTENCES  1024
+#define VDOC_MAX_SENT_LEN   1024
+#define VDOC_MAX_ENTITIES   256
+#define VDOC_MAX_CONFLICTS  64
+
+typedef struct {
+    char text[VDOC_MAX_SENT_LEN];
+    int  line_number;
+    int  len;
+    tardy_triple_t triples[16];
+    int  triple_count;
+} vdoc_sentence_t;
+
+typedef struct {
+    char entity[TARDY_MAX_TRIPLE_LEN];
+    int  sentence_indices[128];
+    int  count;
+} vdoc_entity_group_t;
+
+typedef struct {
+    int  line_a;
+    int  line_b;
+    char sent_a[256];
+    char sent_b[256];
+    char explanation[512];
+    float confidence;
+    int  is_consistent; /* 1 = checked but consistent, 0 = conflict */
+} vdoc_conflict_t;
+
+/* Case-insensitive substring check for verify-doc */
+static const char *vdoc_ci_strstr(const char *haystack, const char *needle)
+{
+    if (!needle[0]) return haystack;
+    int nlen = (int)strlen(needle);
+    for (const char *p = haystack; *p; p++) {
+        int match = 1;
+        for (int i = 0; i < nlen; i++) {
+            if (!p[i] || tolower((unsigned char)p[i]) !=
+                         tolower((unsigned char)needle[i])) {
+                match = 0;
+                break;
+            }
+        }
+        if (match) return p;
+    }
+    return NULL;
+}
+
+/* Truncate a string for display, appending "..." if needed */
+static void vdoc_truncate(char *dst, int dst_size, const char *src)
+{
+    int slen = (int)strlen(src);
+    if (slen < dst_size - 1) {
+        memcpy(dst, src, (size_t)slen);
+        dst[slen] = '\0';
+    } else {
+        int copy = dst_size - 4;
+        if (copy < 0) copy = 0;
+        memcpy(dst, src, (size_t)copy);
+        dst[copy] = '.';
+        dst[copy + 1] = '.';
+        dst[copy + 2] = '.';
+        dst[copy + 3] = '\0';
+    }
+}
+
+static int verify_doc(const char *path)
+{
+    struct timespec t_start, t_end;
+    clock_gettime(CLOCK_MONOTONIC, &t_start);
+
+    /* Read file */
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        fprintf(stderr, "[tardy] error: cannot open %s\n", path);
+        return 1;
+    }
+    struct stat st;
+    if (fstat(fd, &st) != 0 || st.st_size == 0) {
+        fprintf(stderr, "[tardy] error: cannot stat or empty file %s\n", path);
+        close(fd);
+        return 1;
+    }
+
+    size_t file_size = (size_t)st.st_size;
+    char *buf = (char *)mmap(NULL, file_size + 1, PROT_READ | PROT_WRITE,
+                              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (buf == MAP_FAILED) {
+        fprintf(stderr, "[tardy] error: mmap failed\n");
+        close(fd);
+        return 1;
+    }
+    ssize_t rd = read(fd, buf, file_size);
+    close(fd);
+    if (rd <= 0) {
+        fprintf(stderr, "[tardy] error: read failed\n");
+        munmap(buf, file_size + 1);
+        return 1;
+    }
+    buf[rd] = '\0';
+    int buf_len = (int)rd;
+
+    /* ---- Phase 1: Split into sentences with line numbers ---- */
+    vdoc_sentence_t *sentences = (vdoc_sentence_t *)mmap(
+        NULL, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES,
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (sentences == MAP_FAILED) {
+        fprintf(stderr, "[tardy] error: mmap failed for sentences\n");
+        munmap(buf, file_size + 1);
+        return 1;
+    }
+
+    int sent_count = 0;
+    int line_num = 1;
+    int sent_start = 0;
+    int sent_line = 1;
+
+    for (int i = 0; i <= buf_len && sent_count < VDOC_MAX_SENTENCES; i++) {
+        int at_end = (i == buf_len);
+        int at_delim = 0;
+
+        if (!at_end) {
+            char c = buf[i];
+            if (c == '\n') {
+                line_num++;
+                /* Split on double newline (paragraph break) */
+                if (i + 1 < buf_len && buf[i + 1] == '\n')
+                    at_delim = 1;
+            }
+            /* Split on ". ", ".\n", "? ", "! " */
+            if ((c == '.' || c == '?' || c == '!') &&
+                i + 1 < buf_len &&
+                (buf[i + 1] == ' ' || buf[i + 1] == '\n')) {
+                /* Skip abbreviations: single capital letter before dot */
+                if (c == '.' && i >= 1 &&
+                    (buf[i - 1] >= 'A' && buf[i - 1] <= 'Z') &&
+                    (i < 2 || buf[i - 2] == ' ' || buf[i - 2] == '.')) {
+                    /* abbreviation — don't split */
+                } else {
+                    at_delim = 1;
+                }
+            }
+        }
+
+        if (at_delim || at_end) {
+            int slen = i - sent_start;
+            if (at_delim && !at_end) slen++; /* include the delimiter char */
+
+            if (slen > 3) { /* skip very short fragments */
+                /* Trim leading whitespace/newlines */
+                int trim_start = sent_start;
+                while (trim_start < sent_start + slen &&
+                       (buf[trim_start] == ' ' || buf[trim_start] == '\n' ||
+                        buf[trim_start] == '\r' || buf[trim_start] == '\t' ||
+                        buf[trim_start] == '#'))
+                    trim_start++;
+
+                int trim_len = slen - (trim_start - sent_start);
+                /* Trim trailing */
+                while (trim_len > 0 &&
+                       (buf[trim_start + trim_len - 1] == ' ' ||
+                        buf[trim_start + trim_len - 1] == '\n' ||
+                        buf[trim_start + trim_len - 1] == '\r'))
+                    trim_len--;
+
+                if (trim_len > 3 && trim_len < VDOC_MAX_SENT_LEN - 1) {
+                    memcpy(sentences[sent_count].text,
+                           buf + trim_start, (size_t)trim_len);
+                    sentences[sent_count].text[trim_len] = '\0';
+                    sentences[sent_count].line_number = sent_line;
+                    sentences[sent_count].len = trim_len;
+                    sentences[sent_count].triple_count = 0;
+                    sent_count++;
+                }
+            }
+            sent_start = i + 1;
+            sent_line = line_num;
+        }
+    }
+
+    /* ---- Phase 2: Decompose each sentence into triples ---- */
+    int total_triples = 0;
+    for (int i = 0; i < sent_count; i++) {
+        sentences[i].triple_count = tardy_decompose(
+            sentences[i].text, sentences[i].len,
+            sentences[i].triples, 16);
+        total_triples += sentences[i].triple_count;
+    }
+
+    /* ---- Phase 3: Group by shared entities ---- */
+    vdoc_entity_group_t *groups = (vdoc_entity_group_t *)mmap(
+        NULL, sizeof(vdoc_entity_group_t) * VDOC_MAX_ENTITIES,
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (groups == MAP_FAILED) {
+        fprintf(stderr, "[tardy] error: mmap failed for groups\n");
+        munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
+        munmap(buf, file_size + 1);
+        return 1;
+    }
+    int group_count = 0;
+
+    for (int i = 0; i < sent_count; i++) {
+        for (int t = 0; t < sentences[i].triple_count; t++) {
+            const char *subj = sentences[i].triples[t].subject;
+            /* Skip fallback/generic triples */
+            if (strcmp(subj, "claim") == 0 &&
+                strcmp(sentences[i].triples[t].predicate, "states") == 0)
+                continue;
+            if (strcmp(subj, "subject") == 0)
+                continue;
+            /* Find or create group for this subject */
+            int found = -1;
+            for (int g = 0; g < group_count; g++) {
+                if (vdoc_ci_strstr(groups[g].entity, subj) ||
+                    vdoc_ci_strstr(subj, groups[g].entity)) {
+                    found = g;
+                    break;
+                }
+            }
+            if (found < 0 && group_count < VDOC_MAX_ENTITIES) {
+                found = group_count++;
+                strncpy(groups[found].entity, subj, TARDY_MAX_TRIPLE_LEN - 1);
+                groups[found].entity[TARDY_MAX_TRIPLE_LEN - 1] = '\0';
+                groups[found].count = 0;
+            }
+            if (found >= 0 && groups[found].count < 128) {
+                /* Avoid duplicate sentence indices */
+                int dup = 0;
+                for (int k = 0; k < groups[found].count; k++) {
+                    if (groups[found].sentence_indices[k] == i) {
+                        dup = 1; break;
+                    }
+                }
+                if (!dup)
+                    groups[found].sentence_indices[groups[found].count++] = i;
+            }
+        }
+    }
+
+    /* ---- Phase 4: Check pairs within each group ---- */
+    vdoc_conflict_t conflicts[VDOC_MAX_CONFLICTS];
+    int conflict_count = 0;
+    int pairs_checked = 0;
+
+    for (int g = 0; g < group_count && conflict_count < VDOC_MAX_CONFLICTS; g++) {
+        for (int a = 0; a < groups[g].count && conflict_count < VDOC_MAX_CONFLICTS; a++) {
+            for (int b = a + 1; b < groups[g].count && conflict_count < VDOC_MAX_CONFLICTS; b++) {
+                int si = groups[g].sentence_indices[a];
+                int sj = groups[g].sentence_indices[b];
+                if (si == sj) continue;
+                pairs_checked++;
+
+                /* 4a: Triple consistency — same subject+predicate, different object */
+                for (int ti = 0; ti < sentences[si].triple_count; ti++) {
+                    for (int tj = 0; tj < sentences[sj].triple_count; tj++) {
+                        tardy_triple_t *ta = &sentences[si].triples[ti];
+                        tardy_triple_t *tb = &sentences[sj].triples[tj];
+
+                        /* Skip fallback triples — "claim/states" and
+                         * "subject" are catch-alls for unparseable sentences */
+                        if (strcmp(ta->subject, "claim") == 0 &&
+                            strcmp(ta->predicate, "states") == 0)
+                            continue;
+                        if (strcmp(tb->subject, "claim") == 0 &&
+                            strcmp(tb->predicate, "states") == 0)
+                            continue;
+                        if (strcmp(ta->subject, "subject") == 0)
+                            continue;
+                        if (strcmp(tb->subject, "subject") == 0)
+                            continue;
+                        /* Skip generic "located_in"/"located_at" with
+                         * vague subjects — these match too broadly */
+                        if ((strcmp(ta->predicate, "located_at") == 0 ||
+                             strcmp(ta->predicate, "located_in") == 0) &&
+                            strlen(ta->subject) < 5)
+                            continue;
+
+                        if (vdoc_ci_strstr(ta->subject, tb->subject) &&
+                            vdoc_ci_strstr(ta->predicate, tb->predicate) &&
+                            !vdoc_ci_strstr(ta->object, tb->object) &&
+                            ta->object[0] && tb->object[0]) {
+                            /* Same subject+predicate, different object = potential conflict */
+                            vdoc_conflict_t *c = &conflicts[conflict_count];
+                            c->line_a = sentences[si].line_number;
+                            c->line_b = sentences[sj].line_number;
+                            vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                          sentences[si].text);
+                            vdoc_truncate(c->sent_b, (int)sizeof(c->sent_b),
+                                          sentences[sj].text);
+                            snprintf(c->explanation, sizeof(c->explanation),
+                                     "Triple conflict: (%s, %s) has objects "
+                                     "\"%s\" vs \"%s\"",
+                                     ta->subject, ta->predicate,
+                                     ta->object, tb->object);
+                            c->confidence = 0.85f;
+                            c->is_consistent = 0;
+                            conflict_count++;
+                        }
+                    }
+                }
+
+                /* 4b: Numeric verification across sentence pair */
+                {
+                    const char *pair[2];
+                    pair[0] = sentences[si].text;
+                    pair[1] = sentences[sj].text;
+                    tardy_numeric_check_t nc = tardy_numeric_verify(pair, 2);
+                    if (nc.has_contradiction && conflict_count < VDOC_MAX_CONFLICTS) {
+                        vdoc_conflict_t *c = &conflicts[conflict_count];
+                        c->line_a = sentences[si].line_number;
+                        c->line_b = sentences[sj].line_number;
+                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                      sentences[si].text);
+                        vdoc_truncate(c->sent_b, (int)sizeof(c->sent_b),
+                                      sentences[sj].text);
+                        snprintf(c->explanation, sizeof(c->explanation),
+                                 "Numeric: %s", nc.explanation);
+                        c->confidence = 0.95f;
+                        c->is_consistent = 0;
+                        conflict_count++;
+                    }
+                }
+
+                /* 4c: LLM decomposition for implicit contradictions */
+                {
+                    const char *pair[2];
+                    pair[0] = sentences[si].text;
+                    pair[1] = sentences[sj].text;
+
+                    /* Build a basic decomposition for context */
+                    tardy_decomposition_t basic;
+                    memset(&basic, 0, sizeof(basic));
+                    int tc = 0;
+                    for (int t = 0; t < sentences[si].triple_count &&
+                         tc < TARDY_MAX_TRIPLES; t++)
+                        basic.triples[tc++] = sentences[si].triples[t];
+                    for (int t = 0; t < sentences[sj].triple_count &&
+                         tc < TARDY_MAX_TRIPLES; t++)
+                        basic.triples[tc++] = sentences[sj].triples[t];
+                    basic.count = tc;
+
+                    tardy_llm_decomposition_t llm =
+                        tardy_llm_decompose(pair, 2, &basic);
+
+                    if (llm.found_implicit_contradiction &&
+                        conflict_count < VDOC_MAX_CONFLICTS) {
+                        vdoc_conflict_t *c = &conflicts[conflict_count];
+                        c->line_a = sentences[si].line_number;
+                        c->line_b = sentences[sj].line_number;
+                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                      sentences[si].text);
+                        vdoc_truncate(c->sent_b, (int)sizeof(c->sent_b),
+                                      sentences[sj].text);
+                        snprintf(c->explanation, sizeof(c->explanation),
+                                 "Implicit: %s", llm.reasoning);
+                        c->confidence = 0.90f;
+                        c->is_consistent = 0;
+                        conflict_count++;
+                    }
+                }
+            }
+        }
+    }
+
+    /* ---- Phase 5: Output ---- */
+    clock_gettime(CLOCK_MONOTONIC, &t_end);
+    long elapsed_ms = (t_end.tv_sec - t_start.tv_sec) * 1000 +
+                      (t_end.tv_nsec - t_start.tv_nsec) / 1000000;
+
+    printf("\n=== Tardygrada Document Verification ===\n");
+    printf("File: %s\n", path);
+    printf("Sentences: %d\n", sent_count);
+    printf("Triples extracted: %d\n", total_triples);
+    printf("Entity groups: %d\n", group_count);
+    printf("Pairs checked: %d\n\n", pairs_checked);
+
+    int real_conflicts = 0;
+    for (int i = 0; i < conflict_count; i++) {
+        vdoc_conflict_t *c = &conflicts[i];
+        if (c->is_consistent) {
+            printf("[CONSISTENT] Lines %d vs %d:\n", c->line_a, c->line_b);
+            printf("  \"%s\"\n", c->sent_a);
+            printf("  \"%s\"\n", c->sent_b);
+            printf("  -> Not a contradiction\n");
+            printf("  Confidence: N/A\n\n");
+        } else {
+            real_conflicts++;
+            printf("[CONFLICT] Lines %d vs %d:\n", c->line_a, c->line_b);
+            printf("  \"%s\"\n", c->sent_a);
+            printf("  \"%s\"\n", c->sent_b);
+            printf("  -> %s\n", c->explanation);
+            printf("  Confidence: %.2f\n\n", (double)c->confidence);
+        }
+    }
+
+    printf("Summary: %d contradiction%s found, %d potential conflict%s checked, "
+           "%d sentences verified\n",
+           real_conflicts, real_conflicts == 1 ? "" : "s",
+           pairs_checked, pairs_checked == 1 ? "" : "s",
+           sent_count);
+    printf("Time: %ldms\n\n", elapsed_ms);
+
+    /* Cleanup */
+    munmap(groups, sizeof(vdoc_entity_group_t) * VDOC_MAX_ENTITIES);
+    munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
+    munmap(buf, file_size + 1);
+
+    return real_conflicts > 0 ? 1 : 0;
+}
+
+/* ============================================
  * Usage
  * ============================================ */
 
@@ -806,6 +1235,7 @@ static void print_usage(void)
         "  tardy verify \"claim\"            Alias for run\n"
         "  tardy serve file.tardy           Compile and serve as MCP server\n"
         "  tardy check file.tardy           Compile check only\n"
+        "  tardy verify-doc file.md          Scan document for contradictions\n"
         "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
         "  tardy test                       Run built-in tests\n"
         "  tardy bench                      Run benchmarks\n"
@@ -843,6 +1273,10 @@ int main(int argc, char **argv)
     /* tardy check file.tardy */
     if (strcmp(cmd, "check") == 0 && argc >= 3)
         return check_file(argv[2]);
+
+    /* tardy verify-doc file.md */
+    if (strcmp(cmd, "verify-doc") == 0 && argc >= 3)
+        return verify_doc(argv[2]);
 
     /* tardy terraform path/to/repo */
     if (strcmp(cmd, "terraform") == 0 && argc >= 3) {
