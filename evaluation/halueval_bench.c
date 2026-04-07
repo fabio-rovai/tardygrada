@@ -261,15 +261,52 @@ static void build_honest_work(tardy_work_log_t *wl, tardy_work_spec_t *ws,
     tardy_sha256(wl, sizeof(*wl) - sizeof(tardy_hash_t), &wl->operations_hash);
 }
 
+/* Case-insensitive substring check (mirrors verify_doc in main.c) */
+static const char *ci_strstr(const char *haystack, const char *needle)
+{
+    if (!needle[0]) return haystack;
+    int nlen = (int)strlen(needle);
+    for (const char *p = haystack; *p; p++) {
+        int match = 1;
+        for (int i = 0; i < nlen; i++) {
+            if (!p[i] || tolower((unsigned char)p[i]) !=
+                         tolower((unsigned char)needle[i])) {
+                match = 0;
+                break;
+            }
+        }
+        if (match) return p;
+    }
+    return NULL;
+}
+
+/* Per-sentence triple storage for entity grouping */
+#define MAX_TRIPLES_PER_SENT 8
+
+typedef struct {
+    tardy_triple_t triples[MAX_TRIPLES_PER_SENT];
+    int            triple_count;
+} sent_triples_t;
+
+/* Entity group: tracks which sentence indices share a subject */
+#define MAX_ENTITY_GROUPS 256
+#define MAX_SENTS_PER_GROUP 64
+
+typedef struct {
+    char entity[TARDY_MAX_TRIPLE_LEN];
+    int  sentence_indices[MAX_SENTS_PER_GROUP];
+    int  count;
+} entity_group_t;
+
 /* Run the full Tardygrada pipeline on a response text.
  *
- * Runs all three detection layers:
- *   1. SelfCheck-style consistency (pairwise sentence comparison)
- *      -- shared with the baseline, but integrated into the pipeline
- *   2. Numeric verification (tardy_numeric_verify)
- *   3. LLM decomposition (tardy_llm_decompose)
+ * Replicates the verify_doc() logic from src/main.c:
+ *   1. Split into sentences
+ *   2. Decompose each sentence into triples
+ *   3. Group sentences by shared entity (subject)
+ *   4. For each pair in a group: triple consistency + numeric + LLM decompose
+ *   5. If ANY check fires -> hallucination detected
  *
- * Plus the pipeline's own decomposition and grounding layers.
  * Returns true if hallucination detected by ANY layer. */
 static bool run_tardygrada(const char *response, const tardy_semantics_t *sem)
 {
@@ -280,100 +317,193 @@ static bool run_tardygrada(const char *response, const tardy_semantics_t *sem)
                                 sentences, MAX_SENTENCES);
     if (nsent == 0) return false;
 
-    /* --- Layer 1: Decompose into triples --- */
-    tardy_decomposition_t decomps[3];
-    tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
-    int total_triples = 0;
-
-    /* Keep a separate copy of sentence text for decomposition
-     * (split_sentences modifies the buffer in place) */
+    /* --- Phase 1: Decompose each sentence into triples --- */
     char dbuf[SENTENCE_BUF_SIZE];
     const char *dsent[MAX_SENTENCES];
     int dnsent = split_sentences(response, dbuf, sizeof(dbuf),
                                  dsent, MAX_SENTENCES);
 
-    for (int s = 0; s < dnsent && total_triples < TARDY_MAX_TRIPLES - 4; s++) {
-        tardy_triple_t triples[8];
-        int nt = tardy_decompose(dsent[s], (int)strlen(dsent[s]),
-                                 triples, 8);
-        for (int t = 0; t < nt && total_triples < TARDY_MAX_TRIPLES; t++) {
-            all_triples[total_triples++] = triples[t];
+    sent_triples_t *per_sent = calloc(dnsent, sizeof(sent_triples_t));
+    if (!per_sent) return false;
+
+    tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
+    int total_triples = 0;
+
+    for (int s = 0; s < dnsent; s++) {
+        per_sent[s].triple_count = tardy_decompose(
+            dsent[s], (int)strlen(dsent[s]),
+            per_sent[s].triples, MAX_TRIPLES_PER_SENT);
+        for (int t = 0; t < per_sent[s].triple_count &&
+             total_triples < TARDY_MAX_TRIPLES; t++) {
+            all_triples[total_triples++] = per_sent[s].triples[t];
         }
     }
 
-    /* Build 3 agreeing decompositions */
-    for (int d = 0; d < 3; d++) {
-        decomps[d].count     = total_triples > 0 ? total_triples : 0;
-        decomps[d].agreement = 1.0f;
-        memset(&decomps[d].decomposer, (uint8_t)(d + 1), sizeof(tardy_uuid_t));
-        for (int i = 0; i < total_triples; i++) {
-            decomps[d].triples[i] = all_triples[i];
+    /* --- Phase 2: Group sentences by shared entity (subject) --- */
+    entity_group_t *groups = calloc(MAX_ENTITY_GROUPS, sizeof(entity_group_t));
+    if (!groups) { free(per_sent); return false; }
+    int group_count = 0;
+
+    for (int i = 0; i < dnsent; i++) {
+        for (int t = 0; t < per_sent[i].triple_count; t++) {
+            const char *subj = per_sent[i].triples[t].subject;
+            if (strcmp(subj, "claim") == 0 &&
+                strcmp(per_sent[i].triples[t].predicate, "states") == 0)
+                continue;
+            if (strcmp(subj, "subject") == 0)
+                continue;
+
+            int found = -1;
+            for (int g = 0; g < group_count; g++) {
+                if (ci_strstr(groups[g].entity, subj) ||
+                    ci_strstr(subj, groups[g].entity)) {
+                    found = g;
+                    break;
+                }
+            }
+            if (found < 0 && group_count < MAX_ENTITY_GROUPS) {
+                found = group_count++;
+                strncpy(groups[found].entity, subj, TARDY_MAX_TRIPLE_LEN - 1);
+                groups[found].entity[TARDY_MAX_TRIPLE_LEN - 1] = '\0';
+                groups[found].count = 0;
+            }
+            if (found >= 0 && groups[found].count < MAX_SENTS_PER_GROUP) {
+                int dup = 0;
+                for (int k = 0; k < groups[found].count; k++) {
+                    if (groups[found].sentence_indices[k] == i) {
+                        dup = 1; break;
+                    }
+                }
+                if (!dup)
+                    groups[found].sentence_indices[groups[found].count++] = i;
+            }
         }
     }
 
-    /* --- Layer 2: Grounding (all UNKNOWN -- no KB) --- */
-    tardy_grounding_t grounding;
-    memset(&grounding, 0, sizeof(grounding));
-    grounding.count   = total_triples;
-    grounding.unknown = total_triples;
-    for (int i = 0; i < total_triples; i++) {
-        grounding.results[i].status         = TARDY_KNOWLEDGE_UNKNOWN;
-        grounding.results[i].evidence_count = 0;
-        grounding.results[i].confidence     = 0.0f;
-        grounding.results[i].triple         = all_triples[i];
+    /* --- Phase 3: Check pairs within each entity group --- */
+    bool detected = false;
+    int contradiction_count = 0;
+
+    for (int g = 0; g < group_count && !detected; g++) {
+        for (int a = 0; a < groups[g].count && !detected; a++) {
+            for (int b = a + 1; b < groups[g].count && !detected; b++) {
+                int si = groups[g].sentence_indices[a];
+                int sj = groups[g].sentence_indices[b];
+                if (si == sj) continue;
+
+                /* 3a: Triple consistency -- same subject+predicate, different object */
+                for (int ti = 0; ti < per_sent[si].triple_count && !detected; ti++) {
+                    for (int tj = 0; tj < per_sent[sj].triple_count && !detected; tj++) {
+                        tardy_triple_t *ta = &per_sent[si].triples[ti];
+                        tardy_triple_t *tb = &per_sent[sj].triples[tj];
+
+                        if (strcmp(ta->subject, "claim") == 0 &&
+                            strcmp(ta->predicate, "states") == 0) continue;
+                        if (strcmp(tb->subject, "claim") == 0 &&
+                            strcmp(tb->predicate, "states") == 0) continue;
+                        if (strcmp(ta->subject, "subject") == 0) continue;
+                        if (strcmp(tb->subject, "subject") == 0) continue;
+                        if ((strcmp(ta->predicate, "located_at") == 0 ||
+                             strcmp(ta->predicate, "located_in") == 0) &&
+                            strlen(ta->subject) < 5) continue;
+
+                        if (ci_strstr(ta->subject, tb->subject) &&
+                            ci_strstr(ta->predicate, tb->predicate) &&
+                            !ci_strstr(ta->object, tb->object) &&
+                            ta->object[0] && tb->object[0]) {
+                            detected = true;
+                            contradiction_count++;
+                        }
+                    }
+                }
+
+                /* 3b: Numeric verification on the sentence pair */
+                if (!detected) {
+                    const char *pair[2] = { dsent[si], dsent[sj] };
+                    tardy_numeric_check_t nc = tardy_numeric_verify(pair, 2);
+                    if (nc.has_contradiction) {
+                        detected = true;
+                        contradiction_count++;
+                    }
+                }
+
+                /* 3c: LLM decomposition for implicit contradictions */
+                if (!detected) {
+                    const char *pair[2] = { dsent[si], dsent[sj] };
+                    tardy_decomposition_t basic;
+                    memset(&basic, 0, sizeof(basic));
+                    int tc = 0;
+                    for (int t = 0; t < per_sent[si].triple_count &&
+                         tc < TARDY_MAX_TRIPLES; t++)
+                        basic.triples[tc++] = per_sent[si].triples[t];
+                    for (int t = 0; t < per_sent[sj].triple_count &&
+                         tc < TARDY_MAX_TRIPLES; t++)
+                        basic.triples[tc++] = per_sent[sj].triples[t];
+                    basic.count = tc;
+
+                    tardy_llm_decomposition_t llm =
+                        tardy_llm_decompose(pair, 2, &basic);
+                    if (llm.found_implicit_contradiction) {
+                        detected = true;
+                        contradiction_count++;
+                    }
+                }
+            }
+        }
     }
 
-    /* --- Layer 3: Consistency check via SelfCheck on extracted triples ---
-     * Unlike the standalone SelfCheck baseline which works on raw text,
-     * the pipeline first decomposes into triples, THEN checks consistency.
-     * This catches contradictions between decomposed claims. */
-    selfcheck_result_t sc = selfcheck_evaluate((const char **)&response, 1);
-    tardy_consistency_t consistency;
-    if (sc.consistency_score < 0.5f) {
-        consistency.consistent          = false;
-        consistency.contradiction_count = sc.flagged_hallucinated > 0 ? sc.flagged_hallucinated : 1;
-        snprintf(consistency.explanation, sizeof(consistency.explanation),
-                 "pairwise sentence contradiction detected (score=%.2f)",
-                 sc.consistency_score);
-    } else {
-        consistency.consistent          = true;
-        consistency.contradiction_count = 0;
-        snprintf(consistency.explanation, sizeof(consistency.explanation),
-                 "consistent (score=%.2f)", sc.consistency_score);
-    }
-
-    /* --- Build work log --- */
-    tardy_work_log_t  wl;
-    tardy_work_spec_t ws;
-    build_honest_work(&wl, &ws, sem);
-
-    /* --- Run full pipeline --- */
-    tardy_pipeline_result_t r = tardy_pipeline_verify(
-        response, (int)strlen(response),
-        decomps, 3,
-        &grounding,
-        &consistency,
-        &wl, &ws, sem);
-
-    bool detected = !r.passed;
-
-    /* --- Layer 4: Numeric verification ---
-     * Catches numeric contradictions the consistency layer missed. */
+    /* --- Also feed through the pipeline for protocol/work verification --- */
     if (!detected) {
-        const char *claims[1] = { response };
-        tardy_numeric_check_t nc = tardy_numeric_verify(claims, 1);
-        if (nc.has_contradiction) detected = true;
+        tardy_decomposition_t decomps[3];
+        for (int d = 0; d < 3; d++) {
+            decomps[d].count     = total_triples > 0 ? total_triples : 0;
+            decomps[d].agreement = 1.0f;
+            memset(&decomps[d].decomposer, (uint8_t)(d + 1), sizeof(tardy_uuid_t));
+            for (int i = 0; i < total_triples; i++)
+                decomps[d].triples[i] = all_triples[i];
+        }
+
+        tardy_grounding_t grounding;
+        memset(&grounding, 0, sizeof(grounding));
+        grounding.count   = total_triples;
+        grounding.unknown = total_triples;
+        for (int i = 0; i < total_triples; i++) {
+            grounding.results[i].status         = TARDY_KNOWLEDGE_UNKNOWN;
+            grounding.results[i].evidence_count = 0;
+            grounding.results[i].confidence     = 0.0f;
+            grounding.results[i].triple         = all_triples[i];
+        }
+
+        tardy_consistency_t consistency;
+        if (contradiction_count > 0) {
+            consistency.consistent          = false;
+            consistency.contradiction_count = contradiction_count;
+            snprintf(consistency.explanation, sizeof(consistency.explanation),
+                     "triple-based contradiction detected (%d conflicts)",
+                     contradiction_count);
+        } else {
+            consistency.consistent          = true;
+            consistency.contradiction_count = 0;
+            snprintf(consistency.explanation, sizeof(consistency.explanation),
+                     "no triple contradictions found");
+        }
+
+        tardy_work_log_t  wl;
+        tardy_work_spec_t ws;
+        build_honest_work(&wl, &ws, sem);
+
+        tardy_pipeline_result_t r = tardy_pipeline_verify(
+            response, (int)strlen(response),
+            decomps, 3,
+            &grounding,
+            &consistency,
+            &wl, &ws, sem);
+
+        if (!r.passed) detected = true;
     }
 
-    /* --- Layer 5: LLM decomposition ---
-     * Catches implicit domain contradictions. */
-    if (!detected && total_triples > 0) {
-        const char *claims[1] = { response };
-        tardy_llm_decomposition_t llm = tardy_llm_decompose(
-            claims, 1, &decomps[0]);
-        if (llm.found_implicit_contradiction) detected = true;
-    }
-
+    free(groups);
+    free(per_sent);
     return detected;
 }
 
