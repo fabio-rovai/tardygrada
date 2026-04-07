@@ -7,10 +7,6 @@
 
 <h3 align="center">Catch lazy agents, contradicting claims, and tampered data</h3>
 
-<p align="center">
-  <img src="assets/demo.svg" alt="Tardygrada demo" width="750">
-</p>
-
 ---
 
 ## Your agent says it checked three sources. Did it?
@@ -148,10 +144,6 @@ The gap: perspective shifts and emotional contradictions need world knowledge. G
 | 5,000 | 97 ms |
 
 ---
-
-<p align="center">
-  <img src="assets/pipeline-3d.svg" alt="Tardygrada pipeline" width="900">
-</p>
 
 ## Under the hood
 
