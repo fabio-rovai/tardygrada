@@ -1,246 +1,162 @@
 [![CI](https://github.com/fabio-rovai/tardygrada/actions/workflows/ci.yml/badge.svg)](https://github.com/fabio-rovai/tardygrada/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![C11](https://img.shields.io/badge/C11-Pure-green.svg)]()
-[![Binary](https://img.shields.io/badge/Binary-280KB-orange.svg)]()
-[![Deps](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)]()
 
 <p align="center">
-  <img src="tardygrada-logo.png" alt="Tardygrada" width="300">
+  <img src="assets/logo-animated.svg" alt="Tardygrada" width="300">
 </p>
 
-<h3 align="center">Formally verified agent runtime — every value is a living agent with cryptographic proof</h3>
+<h3 align="center">Catch lazy agents, contradicting claims, and tampered data</h3>
 
 <p align="center">
-  280KB binary. Zero dependencies. Pure C11. Programs compile to MCP servers.<br>
-  Laziness detection. Compositional hallucination catching. OS-enforced immutability.
+  <img src="assets/demo.svg" alt="Tardygrada demo" width="750">
 </p>
 
 ---
 
-## The Problem
+## Your agent says it checked three sources. Did it?
 
-Pass a value through 100 agents in Python: it might be intact, but you have **0% proof**. In Tardygrada: 100 handoffs, 100 hash-verified reads, tampering blocked by the OS kernel.
+Your document says "completed on time" on page 2 and "delayed 3 months" on page 7. Did anyone notice?
 
-| | Python / CrewAI / LangGraph | Tardygrada |
-|---|---|---|
-| 100 handoffs, no tampering | Value intact, **0% proof** | Value intact, **100% proof** |
-| 100 handoffs, tamper at #50 | Value changed, **not detected** | **Blocked by OS kernel** |
-| "Just hash it yourself" | Attacker recomputes hash too | Hash in **read-only memory** (mprotect) |
-| "Did the agent do its work?" | No way to know | **VM dashcam catches lazy agents** |
-| "Are claims consistent?" | Check one by one (miss contradictions) | **OWL consistency catches 95%** |
-
----
-
-## Quick Start
+Your scoring pipeline passed through 5 agents. Can you prove the scores weren't changed along the way?
 
 ```bash
 git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
-# Built: tardygrada (280KB), < 1 second
 
-tardy run "Python was created by Guido van Rossum"   # VERIFIED (85%)
-tardy run "Paris is in France"                        # VERIFIED via Datalog chain
-tardy run "The speed of light is 299792458 m/s"       # VERIFIED via computational check
-tardy serve examples/medical.tardy                    # MCP server with 13 tools
-tardy terraform /path/to/crewai                       # 153K lines -> 53 instructions
+tardy run "Paris is in France"                    # verified
+tardy verify-doc report.md                        # 2 contradictions found
+tardy daemon start && tardy run "check this"      # persistent, remembers everything
 ```
 
 ---
 
-## How It Works
+## What it does
 
-| Path | Description |
-|------|-------------|
-| **Language** | Every value is an agent. `let x = 5` spawns an immutable micro-agent. Programs compile to MCP servers. |
-| **Verification** | 8-layer pipeline: decompose → ground → consistency → probabilistic → protocol → certification → cross-rep → work verify |
-| **Immutability** | 5 tiers enforced by OS: mprotect → SHA-256 → replicas → ed25519 → BFT consensus |
-| **Laziness** | VM independently observes all operations (dashcam model). Catches: NoWork, ShallowWork, FakeProof, CopiedWork, CircularVerification |
-| **Hallucination** | OWL consistency + numeric verification + LLM decomposition. Catches contradictions between individually plausible claims |
+### Catches lazy agents
 
-<details>
-<summary><b>The Language</b></summary>
+Your agent claims it queried the knowledge base, consulted sources, and cross-checked. Tardygrada records every operation independently — like a dashcam. If the agent faked it, you'll know.
 
-```
-agent MedicalAdvisor @sovereign @semantics(truth.min_confidence: 0.99) {
-    invariant(trust_min: @verified)
-    let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
-    let data: str = exec("sqlite3 patients.db 'SELECT * FROM current'")
-    coordinate {analyzer, validator} on("verify diagnosis") consensus(ProofWeight)
-}
-```
+| Laziness type | What it means | Caught? |
+|---|---|:-:|
+| Did nothing, produced output anyway | NoWork | Yes |
+| Skimmed instead of analyzing | ShallowWork | Yes |
+| Fabricated evidence of work | FakeProof | Yes |
+| Copied another agent's answer | CopiedWork | Yes |
+| "Verified" itself in a circle | CircularVerification | Yes |
 
-- `receive()` accepts claims from external agents via MCP
-- `exec()` runs shell commands, captures stdout
-- `@sovereign` = mprotect + ed25519 + 5 BFT replicas
-- `invariant()` checked on every operation
-- `coordinate` dispatches to the [brain-in-the-fish](https://github.com/fabio-rovai/brain-in-the-fish) debate engine
+### Catches contradicting claims
 
-</details>
+"The project was completed on time." and "The project was delayed by 3 months." — both sound fine alone. Together, they're a contradiction. Existing tools check claims one by one and miss this.
 
-<details>
-<summary><b>Verification Pipeline</b></summary>
-
-```
-Claim arrives → decompose (60+ patterns) → Datalog inference engine
-    → frame matching (structural constraints) → CRDT merge check
-    → 8-layer pipeline → BFT 3-pass consensus
-    → VERIFIED / CONSISTENT / CONFLICT / UNVERIFIABLE
-```
-
-Four outcomes, all deterministic:
-
-- **VERIFIED**: Datalog derives it from known facts
-- **CONSISTENT**: structurally valid, no conflicts (CRDT merge passes)
-- **CONFLICT**: violates a functional dependency or contradicts known facts
-- **UNVERIFIABLE**: no frame matches, honest "I can't check this"
-
-The Datalog engine has 15 backbone inference rules. `capitalOf(Paris, France)` automatically derives `locatedIn(Paris, France)`. Self-growing: verified claims become new Datalog facts.
-
-</details>
-
-<details>
-<summary><b>Immutability Tiers</b></summary>
-
-| Level | Enforcement | Verification Cost | What Breaks It |
-|-------|-------------|-------------------|----------------|
-| `let x = 5` | mprotect(PROT_READ) | 0ns | Kernel exploit |
-| `@verified` | mprotect + SHA-256 | 197ns | Kernel + hash preimage |
-| `@hardened` | mprotect + N replicas + majority vote | ~500ns | Corrupt majority + hash |
-| `@sovereign` | mprotect + ed25519 + 5 replicas + BFT | 1,538ns | All above + forge signature |
-
-</details>
-
-<details>
-<summary><b>Terraform — Convert Any Agent Framework</b></summary>
+Tardygrada checks them together. Three layers:
+- Logical contradictions (direct opposites, impossible combinations)
+- Numeric contradictions (the math doesn't add up)
+- Domain contradictions (the science doesn't work)
 
 ```bash
-tardy terraform /path/to/any-agent-framework
-# CrewAI:     153,245 lines → 53 instructions
-# LlamaIndex: 237,414 lines → 15 instructions
-# MiroFish:    21,016 lines → 15 lines
+tardy verify-doc paper.md
+# [CONFLICT] Lines 42 vs 89:
+#   "We used no external APIs"
+#   "API costs totalled $2,400"
+#   → claims no APIs but reports API costs
 ```
 
-Reads entire agent framework codebases, extracts the logic, converts to Tardygrada instructions.
+### Catches tampered data
 
-</details>
+A score of 8.5 stored in a Python dict — any agent can silently change it to 9.5. In Tardygrada, values are locked by the operating system. Tampering requires breaking SHA-256 or forging an ed25519 signature.
 
 ---
 
-## Evaluation Results
+## Get started
 
-### Laziness Detection
+**Just the CLI:**
+```bash
+make                                    # builds in < 1 second
+tardy run "your claim here"             # verify anything
+tardy verify-doc your-file.md           # scan for contradictions
+```
 
-How do you know your agent actually did its work? The VM observes every operation independently. Five laziness types, all detected:
+**Persistent mode** (remembers between runs):
+```bash
+tardy daemon start                      # start background service
+tardy run "claim"                       # uses persistent knowledge base
+tardy daemon status                     # see what it knows
+tardy daemon stop                       # clean shutdown
+```
 
-| Type | What It Catches | Detection |
-|------|-----------------|:---------:|
-| NoWork | Agent produces output without doing anything | **100%** |
-| ShallowWork | Minimal work below thresholds | **100%** |
-| FakeProof | Claims work but operations hash is invalid | **100%** |
-| CopiedWork | Copies another agent's output (similarity > 0.95) | **100%** |
-| CircularVerification | Verifies itself in a circular chain | **100%** |
+**Inside Claude Code:**
+```json
+{
+  "mcpServers": {
+    "tardygrada": {
+      "command": "tardygrada",
+      "args": ["mcp-bridge"]
+    }
+  }
+}
+```
+Then just ask: *"verify this document for contradictions"*
 
-> **F1: 1.00** — 60 traces, 10 edge cases, zero false positives on honest agents. No prior work formalizes agent laziness detection.
+**Convert your existing agents:**
+```bash
+tardy terraform /path/to/crewai         # 153K lines → 53 instructions
+tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
+```
 
-### Compositional Hallucination Detection
+---
 
-Existing detectors check claims one by one. They miss contradictions between individually plausible claims. Three detection layers: OWL consistency, numeric verification, LLM-assisted decomposition.
+## How well does it work?
 
-| | Individual | SelfCheck | FActScore | **Tardygrada** |
-|---|:-:|:-:|:-:|:-:|
-| Synthetic (125 compositional) | 0% | 59% | 0% | **95%** |
-| ContraDoc (449 real documents) | — | 9% | 5% | **10%** |
-| HaluEval (500 real responses) | — | F1: 0.32 | F1: 0.00 | **F1: 0.32** |
-| "Are you sure?" (LLM baseline) | — | — | — | — |
-| ContraDoc 50-doc subset | — | — | — | **10% vs LLM 4%** |
+### Laziness detection
 
-> **On designed compositional contradictions**: 95% detection where individual checking gets 0%.
-> **On external data (ContraDoc)**: modest 10% recall — but deterministic, 12ms/doc, no LLM calls needed. GPT-4 gets 34.7% on the same dataset.
+| | Precision | Recall |
+|---|:-:|:-:|
+| All 5 laziness types | **1.00** | **1.00** |
+
+60 traces, 10 edge cases. Zero false positives on honest agents. No existing tool does this.
+
+### Contradiction detection
+
+| Dataset | What it is | Tardygrada | Best alternative |
+|---|---|:-:|:-:|
+| Synthetic (500 cases) | Designed compositional contradictions | **95%** | SelfCheck: 59% |
+| ContraDoc (891 docs) | Real documents, human-annotated | **10%** | SelfCheck: 9% |
+| HaluEval (500 responses) | Individual factual errors | F1: 0.32 | SelfCheck: 0.32 |
+
+The sweet spot: logical, numeric, and structural contradictions. No LLM calls needed. 12ms per document.
+
+The gap: perspective shifts and emotional contradictions need world knowledge. GPT-4 gets 34.7% on ContraDoc — but costs orders of magnitude more per document.
 
 <details>
-<summary><b>Per-difficulty breakdown (synthetic)</b></summary>
+<summary>Detailed breakdown</summary>
 
-| Difficulty | Pipeline |
+| Difficulty | Detection |
 |---|:-:|
 | Easy (direct opposites) | 100% |
-| Medium (logical contradictions) | 100% |
+| Medium (logical) | 100% |
 | Hard (math/physics) | 96% |
 | Subtle (domain knowledge) | 92% |
 | Very subtle (statistical) | 88% |
 
 </details>
 
-<details>
-<summary><b>Ablation study</b></summary>
+### Scaling
 
-| Configuration | Accuracy |
-|---|:-:|
-| Full pipeline (8 layers) | 100% |
-| Remove probabilistic scoring | 75% |
-| Remove consistency checking | 75% |
-
-The probabilistic layer is the critical differentiator for partial-evidence cases.
-
-</details>
-
-### Performance
-
-| Operation | Speed |
-|-----------|------:|
-| Read @verified (SHA-256 check) | 197ns / 5M ops/sec |
-| Read @sovereign (BFT + sig) | 1,538ns / 650K ops/sec |
-| Full verification pipeline | 692ns / 1.4M ops/sec |
-| Message send between agents | 190ns / 5.3M ops/sec |
-
-| Agents | Total Time |
-|-------:|-----------:|
+| Agents | Time |
+|-------:|-----:|
 | 5 | 0.6 ms |
-| 50 | 3.3 ms |
 | 500 | 21 ms |
 | 5,000 | 97 ms |
 
-Linear scaling. Run `cd evaluation && make && make run` to reproduce all benchmarks.
-
 ---
 
-## Architecture
+<p align="center">
+  <img src="assets/pipeline-3d.svg" alt="Tardygrada pipeline" width="900">
+</p>
 
-```mermaid
-graph TB
-    subgraph Tardygrada["Tardygrada (C, 280KB)"]
-        LANG[".tardy Language"] --> COMP["Compiler"]
-        COMP --> VM["VM Core"]
-        VM --> MCP["MCP Server"]
-        VM --> VERIFY["8-Layer Verification"]
-        VM --> ONTO["Self-Hosted Ontology"]
-        VM --> CRYPTO["Crypto (SHA-256 / ed25519)"]
-        VERIFY --> DECOMP["Decompose (60+ patterns)"]
-        VERIFY --> NUMERIC["Numeric Verification (9 checkers)"]
-        VERIFY --> DOMAIN["Domain Decomposition (14 patterns)"]
-        VERIFY --> WORK["Work Verification (dashcam)"]
-        ONTO --> DATALOG["Datalog Engine (15 rules)"]
-        ONTO --> FRAMES["Minsky Frames + CRDT"]
-    end
+## Under the hood
 
-    subgraph BITF["brain-in-the-fish (Rust, 25K)"]
-        DEBATE["Multi-Agent Debate"]
-        SCORE["Scoring + Moderation"]
-        GATE["Evidence Gate"]
-    end
-
-    subgraph OO["open-ontologies (Rust, 10K)"]
-        OWL["OWL Reasoning"]
-        SPARQL["SPARQL Engine"]
-        ALIGN["Alignment Engine"]
-    end
-
-    VM -- "coordinate" --> BITF
-    VM -- "grounded_in" --> OO
-    VM -- "Unix socket" --> OO
-
-    style Tardygrada fill:#1a1a2e,color:#fff
-    style BITF fill:#16213e,color:#fff
-    style OO fill:#0f3460,color:#fff
-```
+<details>
+<summary><b>How verification works</b></summary>
 
 ```mermaid
 graph LR
@@ -260,153 +176,105 @@ graph LR
     style Pipeline fill:#1a1a2e,color:#fff
 ```
 
+Claims are decomposed into triples, grounded against a knowledge base, checked for consistency, scored probabilistically, and verified for work integrity. Eight layers, all deterministic.
+
+</details>
+
+<details>
+<summary><b>How tamper protection works</b></summary>
+
 ```mermaid
 graph LR
-    subgraph Trust["Immutability Tiers"]
+    subgraph Trust["Protection Levels"]
         direction LR
-        MUT["Mutable<br>0ns"] --> DEF["let<br>mprotect<br>0ns"]
-        DEF --> VER["@verified<br>SHA-256<br>197ns"]
-        VER --> HARD["@hardened<br>Replicas<br>~500ns"]
-        HARD --> SOV["@sovereign<br>ed25519+BFT<br>1,538ns"]
+        MUT["Mutable"] --> DEF["Default<br>(OS-locked)"]
+        DEF --> VER["Verified<br>(+ SHA-256)"]
+        VER --> HARD["Hardened<br>(+ replicas)"]
+        HARD --> SOV["Sovereign<br>(+ ed25519 + BFT)"]
     end
 
     style Trust fill:#1a1a2e,color:#fff
 ```
 
+Values are protected at the operating system level. The OS kernel enforces read-only memory. SHA-256 hashes detect any change. Ed25519 signatures prove authorship. BFT consensus requires corrupting multiple independent replicas.
+
+</details>
+
 <details>
-<summary><b>Project structure</b></summary>
+<summary><b>How the daemon works</b></summary>
 
 ```mermaid
 graph TB
-    subgraph src["src/"]
-        direction TB
-        subgraph vm["vm/"]
-            VM_C["vm.c — spawn, read, write, kill, GC"]
-            MEM["memory.c — mmap, mprotect, replicas"]
-            CTX["context.c — agent pointers, provenance"]
-            CRYPTO_C["crypto.c — SHA-256, ed25519"]
-            CONST["constitution.c — invariant enforcement"]
-            PERSIST["persist.c — sovereign dump to disk"]
-        end
-        subgraph verify["verify/"]
-            PIPE["pipeline.c — 8-layer verification"]
-            DECOMP_C["decompose.c — 60+ sentence patterns"]
-            NUM["numeric.c — 9 numeric checkers"]
-            LLM_D["llm_decompose.c — 14 domain patterns"]
-        end
-        subgraph ontology["ontology/"]
-            SELF["self.c — triples as sovereign agents"]
-            DL["datalog.c — 15 inference rules"]
-            FR["frames.c — Minsky frames + CRDT"]
-            INF["inference.c — self-healing, rule mining"]
-        end
-        subgraph compiler["compiler/"]
-            LEX["lexer.c — .tardy tokenizer"]
-            COMP_C["compiler.c — 10 opcodes"]
-            TF["terraform.c — framework converter"]
-        end
-        subgraph mcp["mcp/"]
-            SRV["server.c — JSON-RPC, MCP protocol"]
-            JSON["json.c — minimal JSON parser"]
-        end
-    end
-    subgraph eval["evaluation/"]
-        LAZY["laziness_bench.c"]
-        HALLU["hallucination_bench.c"]
-        SCALE["scaling_bench.c"]
-        ABLAT["ablation_bench.c"]
-        CONTRA["contradoc_bench.c"]
-        HALU["halueval_bench.c"]
+    subgraph visible["What you see"]
+        USER["You"] --> CLI["tardy run / verify-doc"]
     end
 
-    style src fill:#1a1a2e,color:#fff
-    style vm fill:#16213e,color:#fff
-    style verify fill:#0f3460,color:#fff
-    style ontology fill:#1a1a2e,color:#fff
-    style compiler fill:#16213e,color:#fff
-    style mcp fill:#0f3460,color:#fff
-    style eval fill:#2a2a3e,color:#fff
+    subgraph hidden["What happens"]
+        CLI --> DAEMON["Persistent daemon"]
+        DAEMON --> AGENTS["Living agents"]
+        DAEMON --> KB["Growing knowledge base"]
+        DAEMON --> VERIFY["Verification pipeline"]
+    end
+
+    style visible fill:#1a1a2e,color:#fff
+    style hidden fill:#0f3460,color:#fff
 ```
+
+The daemon keeps agents alive between commands. The knowledge base grows as verified claims accumulate. Sovereign agents persist to disk on shutdown and reload on restart.
 
 </details>
 
 <details>
-<summary><b>How users interact</b></summary>
+<summary><b>Architecture</b></summary>
 
 ```mermaid
 graph TB
-    subgraph tier1["Tier 1: Chat (everyone)"]
-        USER1["User"] -- "Verify this document" --> CC["Claude Code"]
-        CC -- "MCP tool call" --> MCP_S["Tardygrada MCP Server"]
-        MCP_S -- "result" --> CC
-        CC -- "2 contradictions found" --> USER1
+    subgraph Tardygrada["Tardygrada"]
+        CLI_CMD["CLI"] --> DAEMON_S["Daemon"]
+        DAEMON_S --> VM["VM Core"]
+        VM --> VERIFY_S["Verification"]
+        VM --> ONTO["Knowledge Base"]
+        VM --> CRYPTO_S["Cryptography"]
+        VERIFY_S --> DECOMP_S["Decompose"]
+        VERIFY_S --> NUMERIC_S["Numeric Check"]
+        VERIFY_S --> DOMAIN_S["Domain Check"]
+        VERIFY_S --> WORK_S["Work Verify"]
     end
 
-    subgraph tier2["Tier 2: CLI (developers)"]
-        USER2["Developer"] -- "tardy verify-doc paper.md" --> CLI["Tardygrada Binary"]
-        CLI -- "CONFLICT line 42 vs 89" --> USER2
-        USER2 -- "tardy run 'Paris is in France'" --> CLI
-        CLI -- "VERIFIED via Datalog" --> USER2
+    subgraph External["Optional integrations"]
+        BITF["brain-in-the-fish<br>(multi-agent debate)"]
+        OO["open-ontologies<br>(OWL reasoning)"]
     end
 
-    subgraph tier3["Tier 3: Language (power users)"]
-        USER3["Engineer"] -- "writes .tardy" --> TARDY[".tardy Program"]
-        TARDY -- "make && tardy serve" --> MCP_OUT["MCP Server"]
-        MCP_OUT -- "13 verified tools" --> AGENTS["Other Agents"]
-    end
+    VM -- "coordinate" --> BITF
+    VM -- "grounded_in" --> OO
 
-    style tier1 fill:#1a1a2e,color:#fff
-    style tier2 fill:#16213e,color:#fff
-    style tier3 fill:#0f3460,color:#fff
+    style Tardygrada fill:#1a1a2e,color:#fff
+    style External fill:#16213e,color:#fff
 ```
 
 </details>
 
 <details>
-<summary><b>VM internals</b></summary>
+<summary><b>The language (for power users)</b></summary>
 
-| Component | Lines | What It Does |
-|-----------|------:|--------------|
-| VM core | 6,229 | Agent spawn/read/write/kill, GC, lifecycle |
-| Verification | 2,163 | 8-layer pipeline, decomposition, work verification |
-| Ontology | 2,487 | Datalog inference, Minsky frames, CRDT merge |
-| Compiler | 1,598 | .tardy → VM instructions, terraform converter |
-| MCP server | 2,133 | JSON-RPC, MCP protocol, tool exposure |
-| Crypto | — | SHA-256, ed25519 via Monocypher (embedded) |
+```
+agent MedicalAdvisor @sovereign @semantics(truth.min_confidence: 0.99) {
+    invariant(trust_min: @verified)
+    let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
+    let data: str = exec("sqlite3 patients.db 'SELECT * FROM current'")
+    coordinate {analyzer, validator} on("verify diagnosis") consensus(ProofWeight)
+}
+```
+
+Every value is an agent. Programs compile to servers. `receive()` accepts claims from external systems. `@sovereign` means the value is cryptographically signed and replicated. `coordinate` dispatches to multi-agent debate.
+
+You don't need to learn this to use Tardygrada. The CLI and daemon handle everything.
 
 </details>
 
 <details>
-<summary><b>Ontology configuration</b></summary>
-
-Tardygrada supports two ontology engines:
-
-| Engine | What It Is | When To Use |
-|--------|------------|-------------|
-| **open-ontologies** (bridge) | Full OWL reasoning via Unix socket | Production — needs open-ontologies running |
-| **Self-hosted** (built-in) | Datalog inference + Minsky frames | Standalone — no external deps |
-
-Control via `TARDY_ONTOLOGY` env var:
-- `both` (default) — open-ontologies preferred, self-hosted fallback
-- `bridge` — open-ontologies only, fail if unavailable
-- `self` — self-hosted only
-- `none` — skip ontology
-
-</details>
-
----
-
-## Building
-
-```bash
-make            # < 1 second, 280KB binary
-make run        # tests
-make bench      # benchmarks
-```
-
-C11 compiler. No malloc. Direct syscalls. Zero external libraries.
-
-### Reproduce Evaluation
+<summary><b>Reproduce all evaluations</b></summary>
 
 ```bash
 cd evaluation && make
@@ -418,17 +286,17 @@ cd evaluation && make
 ./halueval_bench           # 500 HaluEval examples (external)
 ```
 
+</details>
+
 ---
 
 ## Research
 
-Built on: [ARIA Safeguarded AI](https://www.aria.org.uk/programme/safeguarded-ai/), [AgentSpec](https://arxiv.org/abs/2503.18666) (ICSE 2026), [Agent Behavioral Contracts](https://arxiv.org/abs/2602.22302) (2026), [Bythos](https://arxiv.org/abs/2302.01527) (Coq BFT), Minsky frames (1974), CRDTs (Shapiro 2011), Datalog (1986).
+Built on: [AgentSpec](https://arxiv.org/abs/2503.18666) (ICSE 2026), [Bythos](https://arxiv.org/abs/2302.01527) (Coq BFT), Minsky frames (1974), CRDTs (Shapiro 2011), Datalog (1986).
 
 Evaluated against: [SelfCheckGPT](https://arxiv.org/abs/2303.08896) (EMNLP 2023), [FActScore](https://aclanthology.org/2023.emnlp-main.741/) (EMNLP 2023), [ContraDoc](https://aclanthology.org/2024.naacl-long.362/) (NAACL 2024), [HaluEval](https://huggingface.co/datasets/pminervini/HaluEval).
 
-Related: [Mundler et al.](https://arxiv.org/abs/2305.15852) (ICLR 2024) — self-contradiction detection, [Fang et al.](https://arxiv.org/abs/2409.11283) (AAAI 2025) — graph-based triple consistency, [He et al.](https://arxiv.org/abs/2601.13600) (2026) — global consistency theory.
-
----
+Related: [Mundler et al.](https://arxiv.org/abs/2305.15852) (ICLR 2024), [Fang et al.](https://arxiv.org/abs/2409.11283) (AAAI 2025), [He et al.](https://arxiv.org/abs/2601.13600) (2026).
 
 ## License
 

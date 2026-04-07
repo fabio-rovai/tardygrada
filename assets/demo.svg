@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 420" width="750" height="420">
+  <defs>
+    <linearGradient id="tbg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#282a36"/>
+      <stop offset="100%" style="stop-color:#1e1f29"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Terminal window -->
+  <rect width="750" height="420" rx="10" fill="url(#tbg)"/>
+
+  <!-- Title bar -->
+  <rect width="750" height="32" rx="10" fill="#21222c"/>
+  <rect y="22" width="750" height="10" fill="#21222c"/>
+  <circle cx="20" cy="16" r="6" fill="#ff5f56"/>
+  <circle cx="40" cy="16" r="6" fill="#ffbd2e"/>
+  <circle cx="60" cy="16" r="6" fill="#27c93f"/>
+  <text x="375" y="20" text-anchor="middle" fill="#6272a4" font-family="monospace" font-size="12">tardygrada</text>
+
+  <!-- Terminal content with typing animation -->
+  <g font-family="'SF Mono','Fira Code',monospace" font-size="13">
+
+    <!-- Line 1: prompt + command -->
+    <text x="20" y="60" fill="#50fa7b">$</text>
+    <text x="35" y="60" fill="#f8f8f2">
+      tardy verify-doc proposal.md
+      <animate attributeName="opacity" values="0;1" dur="0.5s" fill="freeze"/>
+    </text>
+
+    <!-- Line 2: header -->
+    <text x="20" y="90" fill="#8be9fd">
+      === Tardygrada Document Verification ===
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="0.6s" fill="freeze"/>
+    </text>
+
+    <!-- Line 3-4: stats -->
+    <text x="20" y="115" fill="#6272a4">
+      Sentences: 94  |  Triples: 106  |  Time: 3ms
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="0.9s" fill="freeze"/>
+    </text>
+
+    <!-- Line 5: conflict found -->
+    <text x="20" y="150" fill="#ff5555" font-weight="bold">
+      [CONFLICT] Lines 42 vs 89:
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1.3s" fill="freeze"/>
+    </text>
+
+    <!-- Line 6-7: the claims -->
+    <text x="40" y="172" fill="#f1fa8c">
+      "We used no external API calls"
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1.5s" fill="freeze"/>
+    </text>
+    <text x="40" y="194" fill="#f1fa8c">
+      "API costs totalled $2,400 this quarter"
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1.7s" fill="freeze"/>
+    </text>
+
+    <!-- Line 8: explanation -->
+    <text x="40" y="220" fill="#ff79c6">
+      → claims no APIs but reports API costs
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.0s" fill="freeze"/>
+    </text>
+
+    <!-- Line 9: summary -->
+    <text x="20" y="255" fill="#8be9fd">
+      Summary: 1 contradiction found in 94 sentences
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.5s" fill="freeze"/>
+    </text>
+
+    <!-- Blank line then second command -->
+    <text x="20" y="290" fill="#50fa7b">$</text>
+    <text x="35" y="290" fill="#f8f8f2">
+      tardy run "The speed of light is 299792458 m/s"
+      <animate attributeName="opacity" values="0;1" dur="0.5s" begin="3.2s" fill="freeze"/>
+    </text>
+
+    <!-- Verification output -->
+    <text x="20" y="315" fill="#6272a4">
+      [tardy] decomposed: 1 triple
+      <animate attributeName="opacity" values="0;1" dur="0.2s" begin="3.8s" fill="freeze"/>
+    </text>
+    <text x="20" y="335" fill="#6272a4">
+      [tardy] computational check: MATCH
+      <animate attributeName="opacity" values="0;1" dur="0.2s" begin="4.0s" fill="freeze"/>
+    </text>
+    <text x="20" y="358" fill="#50fa7b" font-weight="bold" font-size="14">
+      VERIFIED (confidence: 100%)
+      <animate attributeName="opacity" values="0;1" dur="0.3s" begin="4.3s" fill="freeze"/>
+    </text>
+
+    <!-- Cursor blinking -->
+    <text x="20" y="393" fill="#50fa7b">$</text>
+    <rect x="35" y="381" width="8" height="15" fill="#f8f8f2">
+      <animate attributeName="opacity" values="1;0;1" dur="1s" begin="4.8s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>
