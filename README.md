@@ -104,26 +104,30 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 
 ### Laziness detection
 
-| | Precision | Recall |
-|---|:-:|:-:|
-| All 5 laziness types | **1.00** | **1.00** |
+| | Precision | Recall | F1 |
+|---|:-:|:-:|:-:|
+| Clear cases (60 traces) | 1.00 | 1.00 | 1.00 |
+| + Adversarial (40 traces) | 1.00 | 0.85 | **0.92** |
 
-60 traces, 10 edge cases. Zero false positives on honest agents. No existing tool does this.
+100 traces total. Zero false positives. Smart copiers who change 10-15% of the text slip through (similarity below threshold) — a known limitation. No existing tool does any of this.
 
 ### Contradiction detection
 
 | Dataset | What it is | Tardygrada | Best alternative |
 |---|---|:-:|:-:|
-| Synthetic (500 cases) | Designed compositional contradictions | **95%** | SelfCheck: 59% |
+| Clear contradictions (125) | Designed compositional | **95%** | SelfCheck: 59% |
+| + Borderline cases (100) | Soft/ambiguous contradictions | **68%** | SelfCheck: ~40% |
 | ContraDoc (891 docs) | Real documents, human-annotated | **10%** | SelfCheck: 9% |
 | HaluEval (500 responses) | Individual factual errors | F1: 0.32 | SelfCheck: 0.32 |
 
-The sweet spot: logical, numeric, and structural contradictions. No LLM calls needed. 12ms per document.
+No LLM calls needed. 12ms per document.
+
+The sweet spot: logical, numeric, and structural contradictions. Borderline cases ("mostly on time" vs "minor delays") are genuinely ambiguous — the detector gets some right and reasonably misses others.
 
 The gap: perspective shifts and emotional contradictions need world knowledge. GPT-4 gets 34.7% on ContraDoc — but costs orders of magnitude more per document.
 
 <details>
-<summary>Detailed breakdown</summary>
+<summary>Detailed breakdown (clear cases)</summary>
 
 | Difficulty | Detection |
 |---|:-:|
