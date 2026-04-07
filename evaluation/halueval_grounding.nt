@@ -1,0 +1,48 @@
+# HaluEval grounding KB — fact-checked by Claude subagents
+# Load with: tardy_self_ontology_load_ttl() or tardy_dl_add_fact()
+
+# Homophones (TRUE)
+<allowed> <is_homophone_of> <aloud> .
+<weather> <is_homophone_of> <whether> .
+<gate> <is_homophone_of> <gait> .
+<their> <is_homophone_of> <there> .
+<pair> <is_homophone_of> <pear> .
+
+# Geometry (TRUE + FALSE)
+<decagon> <has_sides> "10" .
+<decagon> <has_vertices> "10" .
+<decagon> <has_interior_angle> "144" .
+# FALSE: decagon does NOT have five pairs of parallel sides in the general case
+# FALSE: decagon cannot be made from two overlapping pentagons
+
+# Animal speeds (TRUE)
+<peregrine_falcon> <max_speed_kmh> "389" .
+<pronghorn_antelope> <max_speed_kmh> "98" .
+<blue_wildebeest> <max_speed_kmh> "80" .
+
+# CVE (TRUE/FALSE)
+<CVE-2021-30559> <vulnerability_type> "Type confusion" .
+<CVE-2021-30559> <affects> "V8" .
+# FALSE: CVE-2021-30560 is Blink XSLT, NOT WebRTC
+<CVE-2021-30560> <vulnerability_type> "Use after free" .
+<CVE-2021-30560> <affects> "Blink_XSLT" .
+# FALSE: CVE-2021-30561 is V8 Type Confusion, NOT Sharing
+<CVE-2021-30561> <vulnerability_type> "Type confusion" .
+<CVE-2021-30561> <affects> "V8" .
+
+# Movies (TRUE)
+<The_Social_Network> <year> "2010" .
+<The_Social_Network> <genre> "Drama" .
+
+# CS concepts (TRUE)
+<max_heap> <property> "largest_value_at_root" .
+<max_heap> <property> "parent_geq_children" .
+
+# Grammar (TRUE)
+<sentence_b> <punctuation> "correct" .
+<Im> <punctuation> "missing_apostrophe" .
+
+# DOI (FALSE — mismatch)
+# DOI 10.1021/acs.jcim.9b00626 points to "Deep Transferable Compound Representation"
+# NOT "Incorporating Adversarial and Uncertainty Techniques into Deep Learning for Molecule Generation"
+<DOI_10.1021_acs.jcim.9b00626> <actual_title> "Deep Transferable Compound Representation across Domains and Tasks" .
