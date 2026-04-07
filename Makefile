@@ -29,6 +29,7 @@ SRC = src/main.c \
       src/verify/preprocess.c \
       src/verify/numeric.c \
       src/verify/llm_decompose.c \
+      src/verify/llm_ground.c \
       src/ontology/bridge.c \
       src/ontology/self.c \
       src/ontology/datalog.c \

@@ -24,6 +24,7 @@
 #include "verify/decompose.h"
 #include "verify/numeric.h"
 #include "verify/llm_decompose.h"
+#include "verify/llm_ground.h"
 #include "terraform/terraform.h"
 #include "ontology/inference.h"
 #include "daemon.h"
@@ -596,7 +597,101 @@ static int run_task(const char *task_text)
         consistency.consistent = true;
     }
 
-    /* Work log -- CLI does real work, record it */
+    /* LLM grounding fallback — try for any UNKNOWN triples */
+    if (grounding.unknown > 0 && tardy_llm_ground_enabled()) {
+        tardy_llm_conn_t llm_conn;
+        if (tardy_llm_connect(&llm_conn) == 0) {
+            tardy_write(STDERR_FILENO, "[tardy] llm grounding: connected\n", 33);
+            int resolved = 0;
+            for (int i = 0; i < grounding.count; i++) {
+                if (grounding.results[i].status != TARDY_KNOWLEDGE_UNKNOWN)
+                    continue;
+
+                tardy_llm_ground_result_t lr = tardy_llm_ground_triple(
+                    &llm_conn,
+                    grounding.results[i].triple.subject,
+                    grounding.results[i].triple.predicate,
+                    grounding.results[i].triple.object);
+
+                if (lr.confidence > 0.0f) {
+                    if (lr.grounded) {
+                        grounding.results[i].status = TARDY_KNOWLEDGE_GROUNDED;
+                        grounding.results[i].confidence = lr.confidence;
+                        grounding.results[i].evidence_count = 1;
+                        grounding.grounded++;
+                    } else {
+                        grounding.results[i].status = TARDY_KNOWLEDGE_CONTRADICTED;
+                        grounding.results[i].confidence = 0.0f;
+                        grounding.contradicted++;
+                    }
+                    grounding.unknown--;
+                    resolved++;
+
+                    /* Cache in Datalog KB for future instant hits */
+                    if (lr.grounded) {
+                        tardy_dl_add_fact(
+                            &srv.self_ontology.datalog,
+                            grounding.results[i].triple.predicate,
+                            grounding.results[i].triple.subject,
+                            grounding.results[i].triple.object);
+                        srv.self_ontology.triple_count++;
+                    }
+                }
+            }
+
+            /* Also ground the full claim */
+            if (grounding.unknown > 0 || triple_count == 0) {
+                tardy_llm_ground_result_t cr = tardy_llm_ground_claim(
+                    &llm_conn, task_text);
+                if (cr.confidence > 0.0f && triple_count == 0) {
+                    /* No triples extracted but LLM can judge the claim */
+                    grounding.count = 1;
+                    grounding.results[0].confidence = cr.confidence;
+                    grounding.results[0].evidence_count = 1;
+                    if (cr.grounded) {
+                        grounding.results[0].status = TARDY_KNOWLEDGE_GROUNDED;
+                        grounding.grounded = 1;
+                        grounding.unknown = 0;
+                    } else {
+                        grounding.results[0].status = TARDY_KNOWLEDGE_CONTRADICTED;
+                        grounding.contradicted = 1;
+                        grounding.unknown = 0;
+                    }
+                }
+            }
+
+            /* Store in palace memory if daemon is running */
+            {
+                tardy_palace_t palace;
+                tardy_palace_init(&palace);
+                if (tardy_palace_load(&palace, NULL) == 0) {
+                    for (int i = 0; i < grounding.count; i++) {
+                        if (grounding.results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
+                            tardy_uuid_t root = {0, 0};
+                            tardy_palace_remember(&palace,
+                                "llm_grounding", "knowledge",
+                                grounding.results[i].triple.subject,
+                                grounding.results[i].triple.predicate,
+                                grounding.results[i].triple.object,
+                                grounding.results[i].confidence, root);
+                        }
+                    }
+                    tardy_palace_save(&palace, NULL);
+                }
+            }
+
+            if (resolved > 0) {
+                char num[16];
+                int n = snprintf(num, sizeof(num),
+                    "[tardy] llm grounding: %d triples resolved\n", resolved);
+                tardy_write(STDERR_FILENO, num, n);
+            }
+            tardy_llm_disconnect(&llm_conn);
+        }
+    }
+
+    /* Work log -- CLI does real work, record it.
+     * LLM grounding counts: each resolved triple = 1 ontology query. */
     tardy_work_log_t work_log;
     tardy_worklog_init(&work_log);
     if (comp_result == 1) {
@@ -606,8 +701,11 @@ static int run_task(const char *task_text)
         work_log.agents_spawned = 1;
         work_log.compute_ns = 10000000; /* 10ms minimum */
     } else {
-        work_log.ontology_queries = (srv.bridge_connected ||
-            srv.self_ontology.triple_count > 0) ? triple_count : 0;
+        int known_sources = (srv.bridge_connected ||
+            srv.self_ontology.triple_count > 0);
+        int llm_resolved = grounding.grounded + grounding.contradicted;
+        work_log.ontology_queries = known_sources ?
+            triple_count : (llm_resolved > 0 ? llm_resolved : 0);
         work_log.context_reads = triple_count;
         work_log.agents_spawned = 1;
         work_log.compute_ns = 10000000; /* 10ms minimum */
@@ -1004,6 +1102,61 @@ static int verify_doc(const char *path)
         total_triples += sentences[i].triple_count;
     }
 
+    /* ---- Phase 2b: LLM factual grounding per triple ---- */
+    vdoc_conflict_t llm_conflicts[VDOC_MAX_CONFLICTS];
+    int llm_conflict_count = 0;
+
+    if (tardy_llm_ground_enabled()) {
+        tardy_llm_conn_t llm_conn;
+        if (tardy_llm_connect(&llm_conn) == 0) {
+            fprintf(stderr, "[tardy] llm grounding: connected (verify-doc)\n");
+            int llm_checked = 0;
+            int llm_false = 0;
+
+            for (int i = 0; i < sent_count; i++) {
+                for (int t = 0; t < sentences[i].triple_count; t++) {
+                    tardy_triple_t *tr = &sentences[i].triples[t];
+
+                    /* Skip fallback triples */
+                    if (strcmp(tr->subject, "claim") == 0 ||
+                        strcmp(tr->subject, "subject") == 0)
+                        continue;
+
+                    tardy_llm_ground_result_t lr = tardy_llm_ground_triple(
+                        &llm_conn, tr->subject, tr->predicate, tr->object);
+                    llm_checked++;
+
+                    if (lr.confidence > 0.0f && !lr.grounded &&
+                        llm_conflict_count < VDOC_MAX_CONFLICTS) {
+                        vdoc_conflict_t *c = &llm_conflicts[llm_conflict_count];
+                        c->line_a = sentences[i].line_number;
+                        c->line_b = 0; /* LLM, not a document line */
+                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                      sentences[i].text);
+                        snprintf(c->sent_b, sizeof(c->sent_b),
+                                 "[LLM] %s (confidence: %.2f)",
+                                 lr.explanation, (double)lr.confidence);
+                        snprintf(c->explanation, sizeof(c->explanation),
+                                 "Factual error: (%s, %s, %s) — %s",
+                                 tr->subject, tr->predicate, tr->object,
+                                 lr.explanation);
+                        c->confidence = lr.confidence;
+                        c->is_consistent = 0;
+                        llm_conflict_count++;
+                        llm_false++;
+                    }
+                }
+            }
+
+            if (llm_checked > 0) {
+                fprintf(stderr,
+                    "[tardy] llm grounding: %d triples checked, %d factual errors\n",
+                    llm_checked, llm_false);
+            }
+            tardy_llm_disconnect(&llm_conn);
+        }
+    }
+
     /* ---- Phase 3: Group by shared entities ---- */
     vdoc_entity_group_t *groups = (vdoc_entity_group_t *)mmap(
         NULL, sizeof(vdoc_entity_group_t) * VDOC_MAX_ENTITIES,
@@ -1264,11 +1417,26 @@ static int verify_doc(const char *path)
         }
     }
 
+    /* LLM factual errors */
+    for (int i = 0; i < llm_conflict_count; i++) {
+        vdoc_conflict_t *c = &llm_conflicts[i];
+        real_conflicts++;
+        printf("[FACTUAL ERROR] Line %d:\n", c->line_a);
+        printf("  \"%s\"\n", c->sent_a);
+        printf("  %s\n", c->sent_b);
+        printf("  -> %s\n", c->explanation);
+        printf("  Confidence: %.2f\n\n", (double)c->confidence);
+    }
+
     printf("Summary: %d contradiction%s found, %d potential conflict%s checked, "
-           "%d sentences verified\n",
+           "%d sentences verified",
            real_conflicts, real_conflicts == 1 ? "" : "s",
            pairs_checked, pairs_checked == 1 ? "" : "s",
            sent_count);
+    if (llm_conflict_count > 0)
+        printf(", %d factual error%s (LLM)",
+               llm_conflict_count, llm_conflict_count == 1 ? "" : "s");
+    printf("\n");
     printf("Time: %ldms\n\n", elapsed_ms);
 
     /* Cleanup */
