@@ -1,0 +1,19 @@
+// Same task as the Python version.
+// Fetch Doctor Who data, extract facts, verify against ontology.
+// No API. No Python. No dependencies.
+
+agent DrWhoFacts @sovereign @semantics(
+    truth.min_confidence: 0.70,
+) {
+    invariant(non_empty)
+
+    // Fetch the same Wikipedia data
+    let wiki: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | head -c 2000")
+
+    // Extract facts via shell (same as Python's keyword matching, but as agents)
+    let has_bbc: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | grep -o 'BBC[^\"]*' | head -1")
+    let has_1963: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | grep -o '1963' | head -1")
+    let has_newman: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | grep -o 'Sydney Newman' | head -1")
+
+    let source: str = "wikipedia" @sovereign
+}

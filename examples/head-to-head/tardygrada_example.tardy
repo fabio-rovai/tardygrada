@@ -1,0 +1,24 @@
+// Tardygrada equivalent of the CrewAI example.
+// Same task: research, verify, report on Doctor Who's creation.
+// No API calls. Real verification. Provenance on every value.
+
+agent DrWhoResearch @sovereign @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3,
+) {
+    invariant(trust_min: @verified)
+    invariant(non_empty)
+
+    // Research: fetch data via shell commands (no LLM API needed)
+    let wiki_data: str = exec("curl -s 'https://en.wikipedia.org/api/rest_v1/page/summary/Doctor_Who' | head -c 2000")
+
+    // Claims to verify -- external agents or exec() fill these
+    let origin: Fact = receive("Where was Doctor Who created?") grounded_in(bbc) @verified
+    let creator: Fact = receive("Who created Doctor Who?") grounded_in(bbc) @verified
+    let year: Fact = receive("When was Doctor Who first aired?") grounded_in(bbc) @verified
+
+    // Coordinate verification across multiple agents
+    coordinate {origin, creator, year} on("verify Doctor Who facts") consensus(ProofWeight)
+
+    let report_name: str = "Doctor Who Research Report" @sovereign
+}
