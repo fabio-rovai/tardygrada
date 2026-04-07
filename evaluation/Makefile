@@ -4,7 +4,7 @@ TARDY = ../src
 
 TARDY_SRC = $(filter-out $(TARDY)/main.c, $(wildcard $(TARDY)/vm/*.c $(TARDY)/coordinate/*.c $(TARDY)/compiler/*.c $(TARDY)/ontology/*.c $(TARDY)/verify/*.c $(TARDY)/mcp/*.c))
 
-all: laziness_bench scaling_bench ablation_bench hallucination_bench halueval_bench contradoc_bench vitaminc_bench
+all: laziness_bench scaling_bench ablation_bench hallucination_bench halueval_bench contradoc_bench vitaminc_bench agenthallu_bench
 
 laziness_bench: laziness_bench.c
 	$(CC) $(CFLAGS) -I$(TARDY) $< $(TARDY_SRC) -o $@
@@ -27,6 +27,9 @@ contradoc_bench: contradoc_bench.c baselines.c
 vitaminc_bench: vitaminc_bench.c baselines.c
 	$(CC) $(CFLAGS) -I$(TARDY) vitaminc_bench.c baselines.c $(TARDY_SRC) -o $@
 
+agenthallu_bench: agenthallu_bench.c baselines.c
+	$(CC) $(CFLAGS) -I$(TARDY) agenthallu_bench.c baselines.c $(TARDY_SRC) -o $@
+
 run: all
 	./laziness_bench
 	./scaling_bench
@@ -37,4 +40,4 @@ run: all
 	./vitaminc_bench
 
 clean:
-	rm -f laziness_bench scaling_bench ablation_bench hallucination_bench halueval_bench contradoc_bench vitaminc_bench
+	rm -f laziness_bench scaling_bench ablation_bench hallucination_bench halueval_bench contradoc_bench vitaminc_bench agenthallu_bench
