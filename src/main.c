@@ -26,6 +26,8 @@
 #include "verify/llm_decompose.h"
 #include "terraform/terraform.h"
 #include "ontology/inference.h"
+#include "daemon.h"
+#include "daemon_client.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
@@ -1231,20 +1233,26 @@ static void print_usage(void)
         "Tardygrada — formally verified agent programming language\n"
         "\n"
         "Usage:\n"
-        "  tardy run \"claim to verify\"     Verify a claim (exit 0=verified, 1=not)\n"
-        "  tardy verify \"claim\"            Alias for run\n"
+        "  tardy daemon start [config]      Start persistent daemon\n"
+        "  tardy daemon start --foreground   Start daemon in foreground\n"
+        "  tardy daemon stop                Stop the daemon\n"
+        "  tardy daemon status              Show daemon status\n"
+        "  tardy run \"claim\"                Verify a claim (uses daemon if running)\n"
+        "  tardy verify \"claim\"             Alias for run\n"
         "  tardy serve file.tardy           Compile and serve as MCP server\n"
         "  tardy check file.tardy           Compile check only\n"
-        "  tardy verify-doc file.md          Scan document for contradictions\n"
+        "  tardy verify-doc file.md         Scan document for contradictions\n"
         "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
+        "  tardy spawn <name> [trust]       Spawn agent in daemon\n"
+        "  tardy read <agent> [field]       Read agent in daemon\n"
         "  tardy test                       Run built-in tests\n"
         "  tardy bench                      Run benchmarks\n"
         "  tardy                            Run tests (default)\n"
         "\n"
         "Examples:\n"
         "  tardy run \"Doctor Who was created at BBC Television Centre\"\n"
+        "  tardy daemon start agents.conf\n"
         "  tardy serve examples/medical.tardy\n"
-        "  tardy check examples/receive.tardy\n"
         "  tardy terraform ~/projects/crewai-example\n"
         "\n";
     tardy_write(STDERR_FILENO, usage, strlen(usage));
@@ -1262,9 +1270,57 @@ int main(int argc, char **argv)
 
     const char *cmd = argv[1];
 
-    /* tardy run "claim" / tardy verify "claim" */
-    if ((strcmp(cmd, "run") == 0 || strcmp(cmd, "verify") == 0) && argc >= 3)
+    /* tardy daemon start|stop|status */
+    if (strcmp(cmd, "daemon") == 0 && argc >= 3) {
+        if (strcmp(argv[2], "start") == 0) {
+            const char *config = NULL;
+            int fg = 0;
+            for (int i = 3; i < argc; i++) {
+                if (strcmp(argv[i], "--foreground") == 0 ||
+                    strcmp(argv[i], "-f") == 0)
+                    fg = 1;
+                else
+                    config = argv[i];
+            }
+            return tardy_daemon_start(config, fg);
+        }
+        if (strcmp(argv[2], "stop") == 0)
+            return tardy_daemon_stop();
+        if (strcmp(argv[2], "status") == 0)
+            return tardy_daemon_status();
+        print_usage();
+        return 1;
+    }
+
+    /* tardy run "claim" / tardy verify "claim" — try daemon first */
+    if ((strcmp(cmd, "run") == 0 || strcmp(cmd, "verify") == 0) && argc >= 3) {
+        if (tardy_daemon_is_running()) {
+            /* Send to daemon */
+            char request[4096];
+            char escaped[2048];
+            /* Escape the claim for JSON */
+            const char *src = argv[2];
+            int w = 0;
+            for (int i = 0; src[i] && w < (int)sizeof(escaped) - 2; i++) {
+                if (src[i] == '"' || src[i] == '\\') {
+                    escaped[w++] = '\\';
+                }
+                escaped[w++] = src[i];
+            }
+            escaped[w] = '\0';
+            snprintf(request, sizeof(request),
+                     "{\"cmd\":\"run\",\"claim\":\"%s\"}", escaped);
+            char response[4096];
+            int len = tardy_daemon_send(request, response, sizeof(response));
+            if (len > 0) {
+                tardy_write(STDOUT_FILENO, response, len);
+                tardy_write(STDOUT_FILENO, "\n", 1);
+                return 0;
+            }
+            tardy_write(STDERR_FILENO, "[tardy] daemon send failed, running standalone\n", 47);
+        }
         return run_task(argv[2]);
+    }
 
     /* tardy serve file.tardy */
     if (strcmp(cmd, "serve") == 0 && argc >= 3)
@@ -1274,9 +1330,81 @@ int main(int argc, char **argv)
     if (strcmp(cmd, "check") == 0 && argc >= 3)
         return check_file(argv[2]);
 
-    /* tardy verify-doc file.md */
-    if (strcmp(cmd, "verify-doc") == 0 && argc >= 3)
+    /* tardy verify-doc file.md — try daemon first */
+    if (strcmp(cmd, "verify-doc") == 0 && argc >= 3) {
+        if (tardy_daemon_is_running()) {
+            char request[1024];
+            char escaped[512];
+            const char *src = argv[2];
+            int w = 0;
+            for (int i = 0; src[i] && w < (int)sizeof(escaped) - 2; i++) {
+                if (src[i] == '"' || src[i] == '\\') {
+                    escaped[w++] = '\\';
+                }
+                escaped[w++] = src[i];
+            }
+            escaped[w] = '\0';
+            snprintf(request, sizeof(request),
+                     "{\"cmd\":\"verify-doc\",\"path\":\"%s\"}", escaped);
+            char response[4096];
+            int len = tardy_daemon_send(request, response, sizeof(response));
+            if (len > 0) {
+                tardy_write(STDOUT_FILENO, response, len);
+                tardy_write(STDOUT_FILENO, "\n", 1);
+                return 0;
+            }
+            tardy_write(STDERR_FILENO, "[tardy] daemon send failed, running standalone\n", 47);
+        }
         return verify_doc(argv[2]);
+    }
+
+    /* tardy spawn <name> [trust] — daemon only */
+    if (strcmp(cmd, "spawn") == 0 && argc >= 3) {
+        if (!tardy_daemon_is_running()) {
+            tardy_write(STDERR_FILENO, "[tardy] spawn requires running daemon (tardy daemon start)\n", 59);
+            return 1;
+        }
+        char request[1024];
+        const char *trust = argc >= 4 ? argv[3] : "default";
+        snprintf(request, sizeof(request),
+                 "{\"cmd\":\"spawn\",\"name\":\"%s\",\"trust\":\"%s\"}",
+                 argv[2], trust);
+        char response[4096];
+        int len = tardy_daemon_send(request, response, sizeof(response));
+        if (len > 0) {
+            tardy_write(STDOUT_FILENO, response, len);
+            tardy_write(STDOUT_FILENO, "\n", 1);
+            return 0;
+        }
+        tardy_write(STDERR_FILENO, "[tardy] daemon send failed\n", 27);
+        return 1;
+    }
+
+    /* tardy read <agent> [field] — daemon only */
+    if (strcmp(cmd, "read") == 0 && argc >= 3) {
+        if (!tardy_daemon_is_running()) {
+            tardy_write(STDERR_FILENO, "[tardy] read requires running daemon (tardy daemon start)\n", 58);
+            return 1;
+        }
+        char request[1024];
+        if (argc >= 4)
+            snprintf(request, sizeof(request),
+                     "{\"cmd\":\"read\",\"agent\":\"%s\",\"field\":\"%s\"}",
+                     argv[2], argv[3]);
+        else
+            snprintf(request, sizeof(request),
+                     "{\"cmd\":\"read\",\"agent\":\"%s\"}",
+                     argv[2]);
+        char response[4096];
+        int len = tardy_daemon_send(request, response, sizeof(response));
+        if (len > 0) {
+            tardy_write(STDOUT_FILENO, response, len);
+            tardy_write(STDOUT_FILENO, "\n", 1);
+            return 0;
+        }
+        tardy_write(STDERR_FILENO, "[tardy] daemon send failed\n", 27);
+        return 1;
+    }
 
     /* tardy terraform path/to/repo */
     if (strcmp(cmd, "terraform") == 0 && argc >= 3) {
