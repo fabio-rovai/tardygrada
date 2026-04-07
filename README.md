@@ -19,6 +19,8 @@
 
 ## The Problem
 
+[![SafeSkill 92/100](https://img.shields.io/badge/SafeSkill-92%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/fabio-rovai-tardygrada)
+
 Pass a value through 100 agents in Python: it might be intact, but you have **0% proof**. In Tardygrada: 100 handoffs, 100 hash-verified reads, tampering blocked by the OS kernel.
 
 | | Python / CrewAI / LangGraph | Tardygrada |
