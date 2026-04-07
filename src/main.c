@@ -29,6 +29,7 @@
 #include "daemon.h"
 #include "daemon_client.h"
 #include "mcp_bridge.h"
+#include "memory/palace.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string.h>
@@ -1178,6 +1179,60 @@ static int verify_doc(const char *path)
         }
     }
 
+    /* ---- Phase 4e: Cross-check against memory palace ---- */
+    {
+        tardy_palace_t palace;
+        tardy_palace_init(&palace);
+        int palace_loaded = (tardy_palace_load(&palace, NULL) == 0);
+
+        if (palace_loaded && palace.total_facts > 0) {
+            int palace_conflicts = 0;
+            for (int i = 0; i < sent_count && conflict_count < VDOC_MAX_CONFLICTS; i++) {
+                for (int t = 0; t < sentences[i].triple_count; t++) {
+                    tardy_triple_t *tr = &sentences[i].triples[t];
+
+                    /* Skip fallback triples */
+                    if (strcmp(tr->subject, "claim") == 0 ||
+                        strcmp(tr->subject, "subject") == 0)
+                        continue;
+
+                    /* Check if palace has a different current value */
+                    tardy_memory_fact_t palace_conflict;
+                    if (tardy_palace_check(&palace,
+                            tr->subject, tr->predicate, tr->object,
+                            &palace_conflict)) {
+                        /* Palace says something different */
+                        vdoc_conflict_t *c = &conflicts[conflict_count];
+                        c->line_a = sentences[i].line_number;
+                        c->line_b = 0; /* palace, not a document line */
+                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                      sentences[i].text);
+                        snprintf(c->sent_b, sizeof(c->sent_b),
+                                 "[palace] %s %s %s (confidence: %.2f)",
+                                 palace_conflict.subject,
+                                 palace_conflict.predicate,
+                                 palace_conflict.object,
+                                 (double)palace_conflict.confidence);
+                        snprintf(c->explanation, sizeof(c->explanation),
+                                 "Palace conflict: document says \"%s\" but "
+                                 "palace knows \"%s\" for (%s, %s)",
+                                 tr->object, palace_conflict.object,
+                                 tr->subject, tr->predicate);
+                        c->confidence = palace_conflict.confidence;
+                        c->is_consistent = 0;
+                        conflict_count++;
+                        palace_conflicts++;
+                    }
+                }
+            }
+            if (palace_conflicts > 0) {
+                fprintf(stderr, "[palace] found %d conflict%s with known facts\n",
+                        palace_conflicts,
+                        palace_conflicts == 1 ? "" : "s");
+            }
+        }
+    }
+
     /* ---- Phase 5: Output ---- */
     clock_gettime(CLOCK_MONOTONIC, &t_end);
     long elapsed_ms = (t_end.tv_sec - t_start.tv_sec) * 1000 +
@@ -1246,6 +1301,8 @@ static void print_usage(void)
         "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
         "  tardy spawn <name> [trust]       Spawn agent in daemon\n"
         "  tardy read <agent> [field]       Read agent in daemon\n"
+        "  tardy remember <wing> \"fact\"     Store a fact in the memory palace\n"
+        "  tardy recall <wing> [--room R]   Recall facts from the memory palace\n"
         "  tardy mcp-bridge                 MCP server bridging to daemon (for Claude Code)\n"
         "  tardy test                       Run built-in tests\n"
         "  tardy bench                      Run benchmarks\n"
@@ -1256,6 +1313,9 @@ static void print_usage(void)
         "  tardy daemon start agents.conf\n"
         "  tardy serve examples/medical.tardy\n"
         "  tardy terraform ~/projects/crewai-example\n"
+        "  tardy remember project-alpha \"The team has 8 members\"\n"
+        "  tardy recall project-alpha\n"
+        "  tardy recall project-alpha --room team\n"
         "\n";
     tardy_write(STDERR_FILENO, usage, strlen(usage));
 }
@@ -1406,6 +1466,283 @@ int main(int argc, char **argv)
         }
         tardy_write(STDERR_FILENO, "[tardy] daemon send failed\n", 27);
         return 1;
+    }
+
+    /* tardy remember <wing> "fact" — store a fact in the palace */
+    if (strcmp(cmd, "remember") == 0 && argc >= 4) {
+        const char *wing = argv[2];
+        const char *fact = argv[3];
+
+        /* If daemon is running, send to daemon */
+        if (tardy_daemon_is_running()) {
+            char request[4096];
+            char esc_wing[256], esc_fact[2048];
+            {
+                const char *src = wing;
+                int w = 0;
+                for (int i = 0; src[i] && w < (int)sizeof(esc_wing) - 2; i++) {
+                    if (src[i] == '"' || src[i] == '\\') esc_wing[w++] = '\\';
+                    esc_wing[w++] = src[i];
+                }
+                esc_wing[w] = '\0';
+            }
+            {
+                const char *src = fact;
+                int w = 0;
+                for (int i = 0; src[i] && w < (int)sizeof(esc_fact) - 2; i++) {
+                    if (src[i] == '"' || src[i] == '\\') esc_fact[w++] = '\\';
+                    esc_fact[w++] = src[i];
+                }
+                esc_fact[w] = '\0';
+            }
+            snprintf(request, sizeof(request),
+                     "{\"cmd\":\"remember\",\"wing\":\"%s\",\"fact\":\"%s\"}",
+                     esc_wing, esc_fact);
+            char response[4096];
+            int len = tardy_daemon_send(request, response, sizeof(response));
+            if (len > 0) {
+                /* Pretty-print the response */
+                tardy_write(STDOUT_FILENO, response, len);
+                tardy_write(STDOUT_FILENO, "\n", 1);
+                return 0;
+            }
+            tardy_write(STDERR_FILENO, "[tardy] daemon send failed, using standalone palace\n", 52);
+        }
+
+        /* Standalone mode: load palace, remember, save */
+        {
+            static tardy_palace_t palace;
+            tardy_palace_init(&palace);
+            tardy_palace_load(&palace, NULL); /* ok if fails — fresh palace */
+
+            char subject[128], predicate[64], object[256];
+            tardy_palace_parse_sentence(fact,
+                subject, sizeof(subject),
+                predicate, sizeof(predicate),
+                object, sizeof(object));
+
+            char room[64];
+            tardy_palace_auto_room(predicate, subject, room, sizeof(room));
+
+            /* Check for superseding */
+            tardy_memory_fact_t conflict;
+            int had_conflict = tardy_palace_check(&palace, subject, predicate, object, &conflict);
+
+            tardy_uuid_t source = {0, 0};
+            int rc = tardy_palace_remember(&palace, wing, NULL,
+                                            subject, predicate, object,
+                                            0.85f, source);
+            if (rc != 0) {
+                tardy_write(STDERR_FILENO, "[palace] capacity exceeded\n", 27);
+                return 1;
+            }
+
+            tardy_palace_save(&palace, NULL);
+
+            /* Print result */
+            char msg[1024];
+            int mlen = snprintf(msg, sizeof(msg),
+                "[palace] stored in wing:%s room:%s (confidence: 0.85)\n",
+                wing, room);
+            tardy_write(STDOUT_FILENO, msg, mlen);
+
+            if (had_conflict) {
+                mlen = snprintf(msg, sizeof(msg),
+                    "[palace] superseded: \"%s\" (was valid until now)\n",
+                    conflict.object);
+                tardy_write(STDOUT_FILENO, msg, mlen);
+            }
+        }
+        return 0;
+    }
+
+    /* tardy recall <wing> [--room <room>] [--query <query>] */
+    if (strcmp(cmd, "recall") == 0 && argc >= 3) {
+        const char *wing = argv[2];
+        const char *room = NULL;
+        const char *query = NULL;
+
+        /* Parse optional flags */
+        for (int i = 3; i < argc; i++) {
+            if (strcmp(argv[i], "--room") == 0 && i + 1 < argc) {
+                room = argv[++i];
+            } else if (strcmp(argv[i], "--query") == 0 && i + 1 < argc) {
+                query = argv[++i];
+            } else {
+                /* Treat as query */
+                query = argv[i];
+            }
+        }
+
+        /* If daemon is running, send to daemon */
+        if (tardy_daemon_is_running()) {
+            char request[4096];
+            char esc_wing[256];
+            {
+                const char *src = wing;
+                int w = 0;
+                for (int i = 0; src[i] && w < (int)sizeof(esc_wing) - 2; i++) {
+                    if (src[i] == '"' || src[i] == '\\') esc_wing[w++] = '\\';
+                    esc_wing[w++] = src[i];
+                }
+                esc_wing[w] = '\0';
+            }
+            int rlen;
+            if (room && query) {
+                char esc_room[128], esc_query[512];
+                {
+                    const char *src = room;
+                    int w = 0;
+                    for (int i = 0; src[i] && w < (int)sizeof(esc_room) - 2; i++) {
+                        if (src[i] == '"' || src[i] == '\\') esc_room[w++] = '\\';
+                        esc_room[w++] = src[i];
+                    }
+                    esc_room[w] = '\0';
+                }
+                {
+                    const char *src = query;
+                    int w = 0;
+                    for (int i = 0; src[i] && w < (int)sizeof(esc_query) - 2; i++) {
+                        if (src[i] == '"' || src[i] == '\\') esc_query[w++] = '\\';
+                        esc_query[w++] = src[i];
+                    }
+                    esc_query[w] = '\0';
+                }
+                rlen = snprintf(request, sizeof(request),
+                    "{\"cmd\":\"recall\",\"wing\":\"%s\",\"room\":\"%s\",\"query\":\"%s\"}",
+                    esc_wing, esc_room, esc_query);
+            } else if (room) {
+                char esc_room[128];
+                {
+                    const char *src = room;
+                    int w = 0;
+                    for (int i = 0; src[i] && w < (int)sizeof(esc_room) - 2; i++) {
+                        if (src[i] == '"' || src[i] == '\\') esc_room[w++] = '\\';
+                        esc_room[w++] = src[i];
+                    }
+                    esc_room[w] = '\0';
+                }
+                rlen = snprintf(request, sizeof(request),
+                    "{\"cmd\":\"recall\",\"wing\":\"%s\",\"room\":\"%s\"}",
+                    esc_wing, esc_room);
+            } else if (query) {
+                char esc_query[512];
+                {
+                    const char *src = query;
+                    int w = 0;
+                    for (int i = 0; src[i] && w < (int)sizeof(esc_query) - 2; i++) {
+                        if (src[i] == '"' || src[i] == '\\') esc_query[w++] = '\\';
+                        esc_query[w++] = src[i];
+                    }
+                    esc_query[w] = '\0';
+                }
+                rlen = snprintf(request, sizeof(request),
+                    "{\"cmd\":\"recall\",\"wing\":\"%s\",\"query\":\"%s\"}",
+                    esc_wing, esc_query);
+            } else {
+                rlen = snprintf(request, sizeof(request),
+                    "{\"cmd\":\"recall\",\"wing\":\"%s\"}",
+                    esc_wing);
+            }
+            (void)rlen;
+
+            char response[TARDY_DAEMON_BUF];
+            int len = tardy_daemon_send(request, response, sizeof(response));
+            if (len > 0) {
+                tardy_write(STDOUT_FILENO, response, len);
+                tardy_write(STDOUT_FILENO, "\n", 1);
+                return 0;
+            }
+            tardy_write(STDERR_FILENO, "[tardy] daemon send failed, using standalone palace\n", 52);
+        }
+
+        /* Standalone mode */
+        {
+            static tardy_palace_t palace;
+            tardy_palace_init(&palace);
+            if (tardy_palace_load(&palace, NULL) != 0) {
+                tardy_write(STDERR_FILENO, "[palace] no palace data found\n", 30);
+                return 1;
+            }
+
+            tardy_memory_fact_t results[64];
+            int count = tardy_palace_recall(&palace, wing, room, query,
+                                             results, 64);
+
+            char msg[1024];
+            int current = 0, superseded = 0;
+            for (int i = 0; i < count; i++) {
+                if (results[i].valid_to == 0) current++;
+                else superseded++;
+            }
+
+            int mlen;
+            if (room) {
+                mlen = snprintf(msg, sizeof(msg),
+                    "[palace] %d facts (%d current, %d superseded) in wing:%s room:%s\n",
+                    count, current, superseded, wing, room);
+            } else {
+                mlen = snprintf(msg, sizeof(msg),
+                    "[palace] %d facts in wing:%s\n", count, wing);
+            }
+            tardy_write(STDOUT_FILENO, msg, mlen);
+
+            for (int i = 0; i < count; i++) {
+                const char *status_tag;
+                char time_info[128];
+
+                if (results[i].valid_to == 0) {
+                    status_tag = "current";
+                    /* Format since-date */
+                    time_t from = (time_t)results[i].valid_from;
+                    struct tm *tm = gmtime(&from);
+                    if (tm) {
+                        snprintf(time_info, sizeof(time_info),
+                            "since %04d-%02d-%02d",
+                            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
+                    } else {
+                        snprintf(time_info, sizeof(time_info), "since epoch+%llu",
+                                 (unsigned long long)results[i].valid_from);
+                    }
+                } else {
+                    status_tag = "history";
+                    time_t from = (time_t)results[i].valid_from;
+                    time_t to = (time_t)results[i].valid_to;
+                    struct tm tfrom, tto;
+                    struct tm *pf = gmtime(&from);
+                    if (pf) tfrom = *pf;
+                    struct tm *pt = gmtime(&to);
+                    if (pt) tto = *pt;
+                    if (pf && pt) {
+                        snprintf(time_info, sizeof(time_info),
+                            "%04d-%02d-%02d to %04d-%02d-%02d",
+                            tfrom.tm_year + 1900, tfrom.tm_mon + 1, tfrom.tm_mday,
+                            tto.tm_year + 1900, tto.tm_mon + 1, tto.tm_mday);
+                    } else {
+                        snprintf(time_info, sizeof(time_info),
+                            "epoch+%llu to epoch+%llu",
+                            (unsigned long long)results[i].valid_from,
+                            (unsigned long long)results[i].valid_to);
+                    }
+                }
+
+                /* Reconstruct the sentence: "subject predicate object" */
+                mlen = snprintf(msg, sizeof(msg),
+                    "  [%s] %s %s %s (%s, confidence: %.2f)\n",
+                    status_tag,
+                    results[i].subject,
+                    results[i].predicate,
+                    results[i].object,
+                    time_info,
+                    (double)results[i].confidence);
+                tardy_write(STDOUT_FILENO, msg, mlen);
+            }
+
+            if (count == 0) {
+                tardy_write(STDOUT_FILENO, "  (no facts found)\n", 19);
+            }
+        }
+        return 0;
     }
 
     /* tardy mcp-bridge — MCP server proxying to daemon */

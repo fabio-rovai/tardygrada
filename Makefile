@@ -43,7 +43,8 @@ SRC = src/main.c \
       src/coordinate/bridge.c \
       src/daemon.c \
       src/daemon_client.c \
-      src/mcp_bridge.c
+      src/mcp_bridge.c \
+      src/memory/palace.c
 
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada

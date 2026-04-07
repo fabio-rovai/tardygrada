@@ -21,6 +21,7 @@
 #include "verify/llm_decompose.h"
 #include "ontology/inference.h"
 #include "compiler/exec.h"
+#include "memory/palace.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/mman.h>
@@ -39,6 +40,7 @@
 static volatile sig_atomic_t daemon_running = 1;
 static tardy_vm_t           *daemon_vm      = NULL;
 static tardy_mcp_server_t   *daemon_srv     = NULL;
+static tardy_palace_t       *daemon_palace  = NULL;
 static int                   listen_fd      = -1;
 static time_t                boot_time      = 0;
 
@@ -366,6 +368,103 @@ static int handle_read(tardy_vm_t *vm, const char *agent_name, const char *field
 }
 
 /* ============================================
+ * Handle "remember" command — store a fact in the palace
+ * ============================================ */
+
+static int handle_remember(tardy_palace_t *palace,
+                           const char *wing, const char *fact_text,
+                           char *resp, int resp_size)
+{
+    if (!palace)
+        return json_error(resp, resp_size, "palace not initialized");
+    if (!wing || !wing[0])
+        return json_error(resp, resp_size, "missing wing");
+    if (!fact_text || !fact_text[0])
+        return json_error(resp, resp_size, "missing fact");
+
+    /* Parse natural language into subject/predicate/object */
+    char subject[128], predicate[64], object[256];
+    tardy_palace_parse_sentence(fact_text,
+        subject, sizeof(subject),
+        predicate, sizeof(predicate),
+        object, sizeof(object));
+
+    /* Auto-detect room */
+    char room[64];
+    tardy_palace_auto_room(predicate, subject, room, sizeof(room));
+
+    /* Check for superseding before storing */
+    tardy_memory_fact_t conflict;
+    int had_conflict = tardy_palace_check(palace, subject, predicate, object, &conflict);
+
+    tardy_uuid_t source = {0, 0};
+    int rc = tardy_palace_remember(palace, wing, NULL,
+                                    subject, predicate, object,
+                                    0.85f, source);
+    if (rc != 0)
+        return json_error(resp, resp_size, "palace capacity exceeded");
+
+    char escaped_room[128];
+    json_escape(room, escaped_room, sizeof(escaped_room));
+    char escaped_subj[256];
+    json_escape(subject, escaped_subj, sizeof(escaped_subj));
+
+    if (had_conflict) {
+        char escaped_old[512];
+        json_escape(conflict.object, escaped_old, sizeof(escaped_old));
+        return snprintf(resp, resp_size,
+            "{\"ok\":true,\"wing\":\"%s\",\"room\":\"%s\","
+            "\"subject\":\"%s\",\"superseded\":\"%s\"}",
+            wing, escaped_room, escaped_subj, escaped_old);
+    }
+
+    return snprintf(resp, resp_size,
+        "{\"ok\":true,\"wing\":\"%s\",\"room\":\"%s\","
+        "\"subject\":\"%s\"}",
+        wing, escaped_room, escaped_subj);
+}
+
+/* ============================================
+ * Handle "recall" command — query facts from the palace
+ * ============================================ */
+
+static int handle_recall(tardy_palace_t *palace,
+                         const char *wing, const char *room, const char *query,
+                         char *resp, int resp_size)
+{
+    if (!palace)
+        return json_error(resp, resp_size, "palace not initialized");
+    if (!wing || !wing[0])
+        return json_error(resp, resp_size, "missing wing");
+
+    tardy_memory_fact_t results[64];
+    int count = tardy_palace_recall(palace, wing, room, query,
+                                     results, 64);
+
+    /* Build JSON array response */
+    int w = snprintf(resp, resp_size, "{\"ok\":true,\"count\":%d,\"facts\":[", count);
+
+    for (int i = 0; i < count && w < resp_size - 256; i++) {
+        char esc_subj[256], esc_pred[128], esc_obj[512];
+        json_escape(results[i].subject, esc_subj, sizeof(esc_subj));
+        json_escape(results[i].predicate, esc_pred, sizeof(esc_pred));
+        json_escape(results[i].object, esc_obj, sizeof(esc_obj));
+
+        w += snprintf(resp + w, resp_size - w,
+            "%s{\"subject\":\"%s\",\"predicate\":\"%s\",\"object\":\"%s\","
+            "\"valid_from\":%llu,\"valid_to\":%llu,\"confidence\":%.2f}",
+            i > 0 ? "," : "",
+            esc_subj, esc_pred, esc_obj,
+            (unsigned long long)results[i].valid_from,
+            (unsigned long long)results[i].valid_to,
+            (double)results[i].confidence);
+    }
+
+    w += snprintf(resp + w, resp_size - w, "]}");
+    return w;
+}
+
+/* ============================================
  * Request dispatcher
  * ============================================ */
 
@@ -402,6 +501,45 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
         char claim[2048];
         tardy_json_str(&parser, claim_tok, claim, sizeof(claim));
         return handle_run(vm, srv, claim, resp, resp_size);
+    }
+
+    if (strcmp(cmd, "remember") == 0) {
+        int wing_tok = tardy_json_find(&parser, 0, "wing");
+        if (wing_tok < 0)
+            return json_error(resp, resp_size, "missing wing field");
+        char wing[128];
+        tardy_json_str(&parser, wing_tok, wing, sizeof(wing));
+
+        int fact_tok = tardy_json_find(&parser, 0, "fact");
+        if (fact_tok < 0)
+            return json_error(resp, resp_size, "missing fact field");
+        char fact[2048];
+        tardy_json_str(&parser, fact_tok, fact, sizeof(fact));
+
+        return handle_remember(daemon_palace, wing, fact, resp, resp_size);
+    }
+
+    if (strcmp(cmd, "recall") == 0) {
+        int wing_tok = tardy_json_find(&parser, 0, "wing");
+        if (wing_tok < 0)
+            return json_error(resp, resp_size, "missing wing field");
+        char wing[128];
+        tardy_json_str(&parser, wing_tok, wing, sizeof(wing));
+
+        char room[128] = "";
+        int room_tok = tardy_json_find(&parser, 0, "room");
+        if (room_tok >= 0)
+            tardy_json_str(&parser, room_tok, room, sizeof(room));
+
+        char query[512] = "";
+        int query_tok = tardy_json_find(&parser, 0, "query");
+        if (query_tok >= 0)
+            tardy_json_str(&parser, query_tok, query, sizeof(query));
+
+        return handle_recall(daemon_palace, wing,
+                              room[0] ? room : NULL,
+                              query[0] ? query : NULL,
+                              resp, resp_size);
     }
 
     if (strcmp(cmd, "verify-doc") == 0) {
@@ -458,6 +596,12 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
 
 static void daemon_cleanup(void)
 {
+    /* Save memory palace before shutdown */
+    if (daemon_palace && daemon_palace->total_facts > 0) {
+        tardy_palace_save(daemon_palace, NULL);
+        daemon_palace = NULL;
+    }
+
     if (daemon_vm) {
         tardy_write(STDERR_FILENO, "[daemon] persisting agents...\n", 30);
 
@@ -563,6 +707,21 @@ int tardy_daemon_start(const char *config_path, int foreground)
 
     tardy_vm_init(vm, NULL);
     daemon_vm = vm;
+
+    /* Initialize memory palace */
+    {
+        static tardy_palace_t palace;
+        tardy_palace_init(&palace);
+        daemon_palace = &palace;
+
+        /* Try to load persisted palace */
+        if (tardy_palace_load(&palace, NULL) == 0) {
+            /* loaded — message already printed by palace_load */
+        } else {
+            tardy_write(STDERR_FILENO,
+                "[daemon] palace: starting fresh (no prior data)\n", 49);
+        }
+    }
 
     /* Initialize MCP server (for ontology bridge) */
     tardy_mcp_server_t *srv = (tardy_mcp_server_t *)mmap(NULL, sizeof(tardy_mcp_server_t),
