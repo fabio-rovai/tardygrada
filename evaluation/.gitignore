@@ -4,3 +4,5 @@ laziness_bench
 scaling_bench
 ablation_bench
 halueval_bench
+contradoc_bench
+vitaminc_bench
