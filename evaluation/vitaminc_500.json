@@ -1,0 +1,3002 @@
+[
+  {
+    "id": 0,
+    "claim": "Westlife made under 23.5 million sales in the UK .",
+    "evidence": "According to the British Phonographic Industry ( BPI ) , Westlife has been certified for 13 million albums and 9.8\ufffdmillion singles , with a total of more than 23 million combined sales in the UK .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 1,
+    "claim": "Westlife made under 23.5 million sales in the UK .",
+    "evidence": "According to the British Phonographic Industry ( BPI ) , Westlife has been certified for 13 million albums , 1.3 million video albums , and 9.8\ufffdmillion singles , with a total of more than 24 million combined sales in the UK .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 2,
+    "claim": "Westlife sold more than 1 million video albums and made over 23.5 million sales in the UK .",
+    "evidence": "According to the British Phonographic Industry ( BPI ) , Westlife has been certified for 13 million albums and 9.8\ufffdmillion singles , with a total of more than 23 million combined sales in the UK .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 3,
+    "claim": "Westlife sold more than 1 million video albums and made over 23.5 million sales in the UK .",
+    "evidence": "According to the British Phonographic Industry ( BPI ) , Westlife has been certified for 13 million albums , 1.3 million video albums , and 9.8\ufffdmillion singles , with a total of more than 24 million combined sales in the UK .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 4,
+    "claim": "African countries have outlawed gatherings of more than 100 people .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 100 people and the entry of people from countries deemed high-risk.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 5,
+    "claim": "African countries have outlawed gatherings of more than 100 people .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 50 people and the entry of people from countries deemed high-risk.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 6,
+    "claim": "African countries have outlawed gatherings of more than 50 people .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 100 people and the entry of people from countries deemed high-risk.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 7,
+    "claim": "African countries have outlawed gatherings of more than 50 people .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 50 people and the entry of people from countries deemed high-risk.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 8,
+    "claim": "As a precautionary measure , the government has banned gatherings of more than 100 people in Burkina Faso , Africa .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 100 people and the entry of people from countries deemed high-risk.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 9,
+    "claim": "As a precautionary measure , the government has banned gatherings of more than 100 people in Burkina Faso , Africa .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 50 people and the entry of people from countries deemed high-risk.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 10,
+    "claim": "As a precautionary measure , the government has banned gatherings of less than 100 people in Burkina Faso , Africa .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 100 people and the entry of people from countries deemed high-risk.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 11,
+    "claim": "As a precautionary measure , the government has banned gatherings of less than 100 people in Burkina Faso , Africa .",
+    "evidence": "As a precautionary measure the government has banned gatherings of more than 50 people and the entry of people from countries deemed high-risk.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 12,
+    "claim": "The YouTube channel Chuchu TV is placed 42nd and has more than 25 million subscribers .",
+    "evidence": "ChuChu TV is the 42nd most subscribed YouTube channel in the world , with more than 26 million subscribers across 8 channels .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 13,
+    "claim": "The YouTube channel Chuchu TV is placed 42nd and has more than 25 million subscribers .",
+    "evidence": "ChuChu TV is the 43rd most subscribed YouTube channel in the world , with over 20 million subscribers .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 14,
+    "claim": "The YouTube channel Chuchu TV is placed 43rd and has less than 25 million subscribers .",
+    "evidence": "ChuChu TV is the 42nd most subscribed YouTube channel in the world , with more than 26 million subscribers across 8 channels .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 15,
+    "claim": "The YouTube channel Chuchu TV is placed 43rd and has less than 25 million subscribers .",
+    "evidence": "ChuChu TV is the 43rd most subscribed YouTube channel in the world , with over 20 million subscribers .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 16,
+    "claim": "Thrift Shop has less than 670 million views on YouTube and is ranked 13 .",
+    "evidence": "Furthermore , the video has garnered more than 600 million views on YouTube , and it is the site 's 13th most-watched video .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 17,
+    "claim": "Thrift Shop has less than 670 million views on YouTube and is ranked 13 .",
+    "evidence": "Furthermore , the video has garnered more than 670 million views on YouTube , and it is the site 's 15th most-watched video .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 18,
+    "claim": "Thrift Shop commands more than 670 million views on YouTube and is ranked 15 .",
+    "evidence": "Furthermore , the video has garnered more than 600 million views on YouTube , and it is the site 's 13th most-watched video .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 19,
+    "claim": "Thrift Shop commands more than 670 million views on YouTube and is ranked 15 .",
+    "evidence": "Furthermore , the video has garnered more than 670 million views on YouTube , and it is the site 's 15th most-watched video .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 20,
+    "claim": "Henry Schein has less than 14,000 employees .",
+    "evidence": "Headquartered in Melville , New York , Henry Schein employs more than 13,500 people and has operations in the United States , Australia , Austria , Belgium , Canada , China , the Czech Republic , France , Germany , Ireland , Italy , Luxembourg , the Netherlands , New Zealand , Portugal , Slovakia , Spain , Switzerland and the United Kingdom .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 21,
+    "claim": "Henry Schein has less than 14,000 employees .",
+    "evidence": "Headquartered in Melville , New York , Henry Schein employs about 15,000 people and has operations in the United States , Australia , Austria , Belgium , Canada , China , the Czech Republic , France , Germany , Ireland , Italy , Luxembourg , the Netherlands , New Zealand , Portugal , Slovakia , Spain , Switzerland and the United Kingdom .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 22,
+    "claim": "Henry Schein has more than 14,000 employees .",
+    "evidence": "Headquartered in Melville , New York , Henry Schein employs more than 13,500 people and has operations in the United States , Australia , Austria , Belgium , Canada , China , the Czech Republic , France , Germany , Ireland , Italy , Luxembourg , the Netherlands , New Zealand , Portugal , Slovakia , Spain , Switzerland and the United Kingdom .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 23,
+    "claim": "Henry Schein has more than 14,000 employees .",
+    "evidence": "Headquartered in Melville , New York , Henry Schein employs about 15,000 people and has operations in the United States , Australia , Austria , Belgium , Canada , China , the Czech Republic , France , Germany , Ireland , Italy , Luxembourg , the Netherlands , New Zealand , Portugal , Slovakia , Spain , Switzerland and the United Kingdom .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 24,
+    "claim": "In a match against The Houston Texans , Dan Orlovsky drove a 78-yard with less than 1 minute remaining in the game .",
+    "evidence": "On December 22 , 2011 , Orlovskly led a 12 play , 78 yard drive in the 4th quarter to beat the Houston Texans with 19 seconds left to win their second game of the season.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 25,
+    "claim": "In a match against The Houston Texans , Dan Orlovsky drove a 78-yard with less than 1 minute remaining in the game .",
+    "evidence": "On December 22 , 2011 , Orlovskly led the Colts on a 12 play , 78 yard drive in a comeback victory over the Houston Texans with less than 2 minutes remaining in the game.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 26,
+    "claim": "In a match against The Houston Texans , Dan Orlovsky drove a 78-yard with more than 1 minute remaining in the game .",
+    "evidence": "On December 22 , 2011 , Orlovskly led a 12 play , 78 yard drive in the 4th quarter to beat the Houston Texans with 19 seconds left to win their second game of the season.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 27,
+    "claim": "In a match against The Houston Texans , Dan Orlovsky drove a 78-yard with more than 1 minute remaining in the game .",
+    "evidence": "On December 22 , 2011 , Orlovskly led the Colts on a 12 play , 78 yard drive in a comeback victory over the Houston Texans with less than 2 minutes remaining in the game.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 28,
+    "claim": "Blended was rated 14 % based on fewer than 127 critics .",
+    "evidence": "On Rotten Tomatoes , it holds a 14 % rating based on 126 critics , with the consensus : `` Lurching between slapstick and schmaltz without showing much of a commitment to either , Blended commits the rare Sandler sin of provoking little more than boredom . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 29,
+    "claim": "Blended was rated 14 % based on fewer than 127 critics .",
+    "evidence": "On Rotten Tomatoes , it holds a 14 % rating based on 128 critics , with the consensus : `` Lurching between slapstick and schmaltz without showing much of a commitment to either , Blended commits the rare Sandler sin of provoking little more than boredom . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 30,
+    "claim": "Blended was rated 14 % based on more than 127 critics .",
+    "evidence": "On Rotten Tomatoes , it holds a 14 % rating based on 126 critics , with the consensus : `` Lurching between slapstick and schmaltz without showing much of a commitment to either , Blended commits the rare Sandler sin of provoking little more than boredom . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 31,
+    "claim": "Blended was rated 14 % based on more than 127 critics .",
+    "evidence": "On Rotten Tomatoes , it holds a 14 % rating based on 128 critics , with the consensus : `` Lurching between slapstick and schmaltz without showing much of a commitment to either , Blended commits the rare Sandler sin of provoking little more than boredom . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 32,
+    "claim": "As of October 2018 , Ozuna 's `` Se Prepar\ufffd '' had more than 940 million views on YouTube .",
+    "evidence": "Se Prepar\ufffd '' was released on August 10 , 2017 and , as of October 2018 , has more than 940 million views on YouTube .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 33,
+    "claim": "As of October 2018 , Ozuna 's `` Se Prepar\ufffd '' had more than 940 million views on YouTube .",
+    "evidence": "Se Prepar\ufffd '' was released on August 10 , 2017 and , as of November 2018 , has more than 950 million views on YouTube .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 34,
+    "claim": "As of November 2018 , Ozuna 's `` Se Prepar\ufffd '' had more than 950 million views on YouTube .",
+    "evidence": "Se Prepar\ufffd '' was released on August 10 , 2017 and , as of October 2018 , has more than 940 million views on YouTube .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 35,
+    "claim": "As of November 2018 , Ozuna 's `` Se Prepar\ufffd '' had more than 950 million views on YouTube .",
+    "evidence": "Se Prepar\ufffd '' was released on August 10 , 2017 and , as of November 2018 , has more than 950 million views on YouTube .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 36,
+    "claim": "Thrift shop has garnered more than 1.06 billion views .",
+    "evidence": "The video has garnered more than 1.06 billion views on YouTube .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 37,
+    "claim": "Thrift shop has garnered more than 1.06 billion views .",
+    "evidence": "The video has garnered more than 1.0 billion views on YouTube .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 38,
+    "claim": "Thrift shop has garnered more than 1.0 billion views .",
+    "evidence": "The video has garnered more than 1.06 billion views on YouTube .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 39,
+    "claim": "Thrift shop has garnered more than 1.0 billion views .",
+    "evidence": "The video has garnered more than 1.0 billion views on YouTube .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 40,
+    "claim": "T-Series YouTube channel has under 7 million more subscribers than PewDieDie .",
+    "evidence": "The YouTube channel has exceeded 105 million subscribers , making it the most-subscribed YouTube channel , with more than 6 million more subscribers than Swedish YouTuber PewDiePie .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 41,
+    "claim": "T-Series YouTube channel has under 7 million more subscribers than PewDieDie .",
+    "evidence": "The YouTube channel has exceeded 105 million subscribers , making it the most-subscribed YouTube channel , with more than 7 million more subscribers than Swedish YouTuber PewDiePie .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 42,
+    "claim": "T-Series YouTube channel has over 7 million more subscribers than PewDieDie .",
+    "evidence": "The YouTube channel has exceeded 105 million subscribers , making it the most-subscribed YouTube channel , with more than 6 million more subscribers than Swedish YouTuber PewDiePie .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 43,
+    "claim": "T-Series YouTube channel has over 7 million more subscribers than PewDieDie .",
+    "evidence": "The YouTube channel has exceeded 105 million subscribers , making it the most-subscribed YouTube channel , with more than 7 million more subscribers than Swedish YouTuber PewDiePie .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 44,
+    "claim": "Earliest bags were made of cotton .",
+    "evidence": "The use of bags predates recorded history , with the earliest bags being no more than lengths of animal skin or woven plant fibers , folded up at the edges and secured in that shape with strings of the same material .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 45,
+    "claim": "Earliest bags were made of cotton .",
+    "evidence": "The use of bags predates recorded history , with the earliest bags being no more than lengths of animal skin , Cotton , or woven plant fibers , folded up at the edges and secured in that shape with strings of the same material .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 46,
+    "claim": "Will Forte Portrayed the character of Hamilton Whiteman .",
+    "evidence": "Forte featured as a number of recurring characters over the years , including his Groundlings ' character Tim Calhoun , The Falconer , MacGruber , Mr. Dillon in the Gilly sketches , Greg Stink , and as one of the characters in the Song Memories sketches .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 47,
+    "claim": "Will Forte Portrayed the character of Hamilton Whiteman .",
+    "evidence": "Forte featured as a number of recurring characters over the years , including his Groundlings ' character Tim Calhoun , The Falconer , Hamilton Whiteman , MacGruber , Mr. Dillon in the Gilly sketches , Greg Stink , and as one of the characters in the Song Memories sketches .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 48,
+    "claim": "King Abdullah Sports City 's biggest attendance was over 70,000 people during a ceremony in 2014 .",
+    "evidence": "The biggest attendance was 84,115 fans in the opening ceremony between Al-Ahli and Al-Shabab on May 1 , 2014 . *",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 49,
+    "claim": "King Abdullah Sports City 's biggest attendance was over 70,000 people during a ceremony in 2014 .",
+    "evidence": "The biggest attendance was 62,241fans in the opening ceremony between Al-Ahli and Al-Shabab on May 1 , 2014 . *",
+    "label": "REFUTES"
+  },
+  {
+    "id": 50,
+    "claim": "King Abdullah Sports City 's biggest attendance was under 70,000 people during a ceremony in 2014 .",
+    "evidence": "The biggest attendance was 84,115 fans in the opening ceremony between Al-Ahli and Al-Shabab on May 1 , 2014 . *",
+    "label": "REFUTES"
+  },
+  {
+    "id": 51,
+    "claim": "King Abdullah Sports City 's biggest attendance was under 70,000 people during a ceremony in 2014 .",
+    "evidence": "The biggest attendance was 62,241fans in the opening ceremony between Al-Ahli and Al-Shabab on May 1 , 2014 . *",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 52,
+    "claim": "Edwin Wright played in Slow West as a bounty hunter .",
+    "evidence": "Victor the Hawk ( Edwin Wright ) , a bounty hunter disguised as a priest , tracks down the family and kills John with a sniper rifle .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 53,
+    "claim": "Edwin Wright played in Slow West as a bounty hunter .",
+    "evidence": "Victor the Hawk , disguised as a priest , tracks down the family and kills John with a sniper rifle .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 54,
+    "claim": "Before 2016 , Arsenal contested in less than 18 UEFA Champions League seasons .",
+    "evidence": "From between 1998\ufffd99 and 2014\ufffd15 , Arsenal contested in seventeen successive UEFA Champions League seasons , a feat only surpassed by Real Madrid and Manchester United .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 55,
+    "claim": "Before 2016 , Arsenal contested in less than 18 UEFA Champions League seasons .",
+    "evidence": "From between 1998\ufffd99 and 2015\ufffd16 , Arsenal contested in eighteen successive UEFA Champions League seasons , a feat only surpassed by Real Madrid and shared with Manchester United ; this is a record in English football .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 56,
+    "claim": "After 2015 , Arsenal contested in more than 17 UEFA Champions League seasons , which is a record in English football .",
+    "evidence": "From between 1998\ufffd99 and 2014\ufffd15 , Arsenal contested in seventeen successive UEFA Champions League seasons , a feat only surpassed by Real Madrid and Manchester United .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 57,
+    "claim": "After 2015 , Arsenal contested in more than 17 UEFA Champions League seasons , which is a record in English football .",
+    "evidence": "From between 1998\ufffd99 and 2015\ufffd16 , Arsenal contested in eighteen successive UEFA Champions League seasons , a feat only surpassed by Real Madrid and shared with Manchester United ; this is a record in English football .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 58,
+    "claim": "Nilsen recorded a 20 minutes video to say she was gay .",
+    "evidence": "On June 9 , 2015 , Nilsen uploaded a video on her YouTube channel , in which she came out as gay.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 59,
+    "claim": "Nilsen recorded a 20 minutes video to say she was gay .",
+    "evidence": "On June 9 , 2015 , Nilsen uploaded a 20 minute video on her YouTube channel , in which she came out as gay.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 60,
+    "claim": "The film X-Mas was renamed to The Night Before .",
+    "evidence": "The Night Before is an upcoming American Christmas comedy film written and directed by Jonathan Levine and produced by Seth Rogen and Evan Goldberg .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 61,
+    "claim": "The film X-Mas was renamed to The Night Before .",
+    "evidence": "The Night Before , previously known as X-Mas , is an upcoming American Christmas comedy film written and directed by Jonathan Levine and produced by Seth Rogen and Evan Goldberg .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 62,
+    "claim": "Tejas Networks is among 10 largest mobile handset sellers in the world .",
+    "evidence": "Alcatel-Lucent # Juniper Networks # Tejas NetworksThe world 's 10 largest mobile phone handset vendors measured by unit sales in the second quarter of 2013 are ( global market share shown in parentheses ) :",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 63,
+    "claim": "Tejas Networks is among 10 largest mobile handset sellers in the world .",
+    "evidence": "Alcatel-Lucent # Juniper Networks # Indus TowersThe world 's 10 largest mobile phone handset vendors measured by unit sales in the second quarter of 2013 are ( global market share shown in parentheses ) :",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 64,
+    "claim": "Indus Towers is one of the 10 largest mobile handset sellers in the world .",
+    "evidence": "Alcatel-Lucent # Juniper Networks # Tejas NetworksThe world 's 10 largest mobile phone handset vendors measured by unit sales in the second quarter of 2013 are ( global market share shown in parentheses ) :",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 65,
+    "claim": "Indus Towers is one of the 10 largest mobile handset sellers in the world .",
+    "evidence": "Alcatel-Lucent # Juniper Networks # Indus TowersThe world 's 10 largest mobile phone handset vendors measured by unit sales in the second quarter of 2013 are ( global market share shown in parentheses ) :",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 66,
+    "claim": "Less than 20 reviewers rated the film Stonehearst Assylum at 5.7/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 50 % of 28 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 67,
+    "claim": "Less than 20 reviewers rated the film Stonehearst Assylum at 5.7/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 68,
+    "claim": "More than 20 reviewers rated the film Stonehearst Assylum at 5.7/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 50 % of 28 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 69,
+    "claim": "More than 20 reviewers rated the film Stonehearst Assylum at 5.7/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 70,
+    "claim": "The film Stonehearst Assylum got a rating of less than 5.6 from over 20 critics .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 71,
+    "claim": "The film Stonehearst Assylum got a rating of less than 5.6 from over 20 critics .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.5/10 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 72,
+    "claim": "The film Stonehearst Assylum got a rating of more than 5.6 from less than 20 critics .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.7/10 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 73,
+    "claim": "The film Stonehearst Assylum got a rating of more than 5.6 from less than 20 critics .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 52 % of 48 surveyed critics gave the film a positive review ; the average rating was 5.5/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 74,
+    "claim": "Averaged over 12 reviewers , the film Stonehearst Assylum scored 50 % .",
+    "evidence": "Metacritic rated it 50/100 based on twelve reviews .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 75,
+    "claim": "Averaged over 12 reviewers , the film Stonehearst Assylum scored 50 % .",
+    "evidence": "Metacritic rated it 52/100 based on fourteen reviews .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 76,
+    "claim": "Averaged over 14 reviewers , the film Stonehearst Assylum scored more 50 %",
+    "evidence": "Metacritic rated it 50/100 based on twelve reviews .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 77,
+    "claim": "Averaged over 14 reviewers , the film Stonehearst Assylum scored more 50 %",
+    "evidence": "Metacritic rated it 52/100 based on fourteen reviews .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 78,
+    "claim": "Averaged over 100 critics , the film Paranoia rated under 3.75/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 6 % of 100 critics have given Paranoia a positive review , with an average rating of 3.7/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 79,
+    "claim": "Averaged over 100 critics , the film Paranoia rated under 3.75/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 6 % of 100 critics have given Paranoia a positive review , with an average rating of 3.8/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 80,
+    "claim": "Averaged over 100 critics , the film Paranoia rated over 3.75/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 6 % of 100 critics have given Paranoia a positive review , with an average rating of 3.7/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 81,
+    "claim": "Averaged over 100 critics , the film Paranoia rated over 3.75/10 .",
+    "evidence": "Rotten Tomatoes , a review aggregator , reports that 6 % of 100 critics have given Paranoia a positive review , with an average rating of 3.8/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 82,
+    "claim": "Any injury to the skin is likely to leave a keloid scar .",
+    "evidence": "Most skin injury types can contribute to keloid scarring .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 83,
+    "claim": "Any injury to the skin is likely to leave a keloid scar .",
+    "evidence": "Most skin injury types can contibute to scarring .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 84,
+    "claim": "Musician Thundercat was born after October 18th 1984 .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 85,
+    "claim": "Musician Thundercat was born after October 18th 1984 .",
+    "evidence": "Stephen Bruner ( born October 18 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 86,
+    "claim": "Musician Thundercat was born before October 19th 1984 .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 87,
+    "claim": "Musician Thundercat was born before October 19th 1984 .",
+    "evidence": "Stephen Bruner ( born October 18 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 88,
+    "claim": "Nigel Pearson 's son James was caught up in a sex scandal involving three Leicester City reserve players .",
+    "evidence": "The sacking was linked to his son James ' role in a racist sex tape in Thailand during a post-season tour by Leicester City.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 89,
+    "claim": "Nigel Pearson 's son James was caught up in a sex scandal involving three Leicester City reserve players .",
+    "evidence": "The sacking was linked to his son James ' role in a racist sex tape in by three Leicester City reserve players in Thailand during a post-season tour.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 90,
+    "claim": "Sky Sports Mexico has the rights to a couple of live matches .",
+    "evidence": "Mexico : Sky Sports Mexico has exclusive rights to broadcast live two matches . *",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 91,
+    "claim": "Sky Sports Mexico has the rights to a couple of live matches .",
+    "evidence": "Mexico : SKY M\ufffdxico has exclusive rights to broadcast live two matches . *",
+    "label": "REFUTES"
+  },
+  {
+    "id": 92,
+    "claim": "Sky Mexico has the rights to a couple of live matches .",
+    "evidence": "Mexico : Sky Sports Mexico has exclusive rights to broadcast live two matches . *",
+    "label": "REFUTES"
+  },
+  {
+    "id": 93,
+    "claim": "Sky Mexico has the rights to a couple of live matches .",
+    "evidence": "Mexico : SKY M\ufffdxico has exclusive rights to broadcast live two matches . *",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 94,
+    "claim": "Jonathan Levine directed the film The Night Before and co- wrote it with Kyle Hunter and Ariel Shaffir .",
+    "evidence": "The Night Before ( initially in production as X-Mas ) is an upcoming American Christmas comedy film written and directed by Jonathan Levine and produced by Seth Rogen and Evan Goldberg .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 95,
+    "claim": "Jonathan Levine directed the film The Night Before and co- wrote it with Kyle Hunter and Ariel Shaffir .",
+    "evidence": "The Night Before ( initially in production as X-Mas ) is an upcoming American Christmas comedy film directed by Jonathan Levine and written by Levine , Evan Goldberg , Kyle Hunter , and Ariel Shaffir and produced by Seth Rogen and Evan Goldberg .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 96,
+    "claim": "Jason Richardson played for Philadelphia 76ers of the National Basketball Association .",
+    "evidence": "Consensus second-team All-American ( 2001 ) } } Jason Anthoney Richardson ( born January 20 , 1981 ) is an American professional basketball player who last played for the Philadelphia 76ers of the National Basketball Association ( NBA ) .Richardson was taken by the Golden State Warriors as the fifth overall pick in the 2001 NBA Draft after playing college basketball at Michigan State University .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 97,
+    "claim": "Jason Richardson played for Philadelphia 76ers of the National Basketball Association .",
+    "evidence": "Consensus second-team All-American ( 2001 ) } } Jason Anthoney Richardson ( born January 20 , 1981 ) is an American professional basketball player who currently plays for the Atlanta Hawks of the National Basketball Association ( NBA ) .Richardson was taken by the Golden State Warriors as the fifth overall pick in the 2001 NBA Draft after playing college basketball at Michigan State University .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 98,
+    "claim": "Jason Richardson now plays for Atlanta Hawks of the National Basketball Association .",
+    "evidence": "Consensus second-team All-American ( 2001 ) } } Jason Anthoney Richardson ( born January 20 , 1981 ) is an American professional basketball player who last played for the Philadelphia 76ers of the National Basketball Association ( NBA ) .Richardson was taken by the Golden State Warriors as the fifth overall pick in the 2001 NBA Draft after playing college basketball at Michigan State University .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 99,
+    "claim": "Jason Richardson now plays for Atlanta Hawks of the National Basketball Association .",
+    "evidence": "Consensus second-team All-American ( 2001 ) } } Jason Anthoney Richardson ( born January 20 , 1981 ) is an American professional basketball player who currently plays for the Atlanta Hawks of the National Basketball Association ( NBA ) .Richardson was taken by the Golden State Warriors as the fifth overall pick in the 2001 NBA Draft after playing college basketball at Michigan State University .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 100,
+    "claim": "The Ramus has sold at more than 4.5 million albums worldwide .",
+    "evidence": "The Rasmus has sold 5 million albums worldwide , 310,000 copies in their native Finland alone .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 101,
+    "claim": "The Ramus has sold at more than 4.5 million albums worldwide .",
+    "evidence": "The Rasmus has sold 4 million albums worldwide , 310,000 copies in their native Finland alone .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 102,
+    "claim": "The Ramus has sold less than 4.5 million albums worldwide .",
+    "evidence": "The Rasmus has sold 5 million albums worldwide , 310,000 copies in their native Finland alone .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 103,
+    "claim": "The Ramus has sold less than 4.5 million albums worldwide .",
+    "evidence": "The Rasmus has sold 4 million albums worldwide , 310,000 copies in their native Finland alone .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 104,
+    "claim": "Astravyets is near Vilnius .",
+    "evidence": "His father may have migrated to the US in the 1860s from Astravyets near Vilnius .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 105,
+    "claim": "Astravyets is near Vilnius .",
+    "evidence": "His father may have migrated to the US in the 1860s from Astravyets ( Ostrowiec ) near Wilno .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 106,
+    "claim": "Astravyets is near Wilno .",
+    "evidence": "His father may have migrated to the US in the 1860s from Astravyets near Vilnius .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 107,
+    "claim": "Astravyets is near Wilno .",
+    "evidence": "His father may have migrated to the US in the 1860s from Astravyets ( Ostrowiec ) near Wilno .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 108,
+    "claim": "Suburgatory was a weak , inaccurate and unfunny .",
+    "evidence": "It ] begins with a tenuous premise , uses it to leap to an inaccurate dichotomy and supports that with tired , unfunny stereotypes .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 109,
+    "claim": "Suburgatory was a weak , inaccurate and unfunny .",
+    "evidence": "`` Metacritic gives the first season an initial score of 71 out of 100 , calculated from reviews from 25 critics , implying `` '' generally favorable reviews '' '' . ''",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 110,
+    "claim": "Suburgotory received favorable reviews .",
+    "evidence": "It ] begins with a tenuous premise , uses it to leap to an inaccurate dichotomy and supports that with tired , unfunny stereotypes .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 111,
+    "claim": "Suburgotory received favorable reviews .",
+    "evidence": "`` Metacritic gives the first season an initial score of 71 out of 100 , calculated from reviews from 25 critics , implying `` '' generally favorable reviews '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 112,
+    "claim": "Neil Genzlinger panned the show Suburgatory .",
+    "evidence": "`` On the other end , Neil Genzlinger of The New York Times blasted the show . `` `` [ ``",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 113,
+    "claim": "Neil Genzlinger panned the show Suburgatory .",
+    "evidence": "`` Its consensus reads : `` '' Suburban satiries are nothing new , but Suburgatory offers enough abrasive wit and left-field jokes to keep it fresh . '' '' ''",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 114,
+    "claim": "The show Suburgatory is liked for its freshness .",
+    "evidence": "`` On the other end , Neil Genzlinger of The New York Times blasted the show . `` `` [ ``",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 115,
+    "claim": "The show Suburgatory is liked for its freshness .",
+    "evidence": "`` Its consensus reads : `` '' Suburban satiries are nothing new , but Suburgatory offers enough abrasive wit and left-field jokes to keep it fresh . '' '' ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 116,
+    "claim": "The show Suburgatory received an initial score of 70 out of 100 .",
+    "evidence": "``  The show was met with generally positive reviews , with an initial score of 70 out of 100 from Metacritic. `` '' ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 117,
+    "claim": "The show Suburgatory received an initial score of 70 out of 100 .",
+    "evidence": "Suburgatory was met with generally positive reviews .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 118,
+    "claim": "Yudh is a television mini-series .",
+    "evidence": "The following year , he served as the creative director in the television mini-series Yudh ( 2014 ) starring Amitabh Bachchan .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 119,
+    "claim": "Yudh is a television mini-series .",
+    "evidence": "The following year , he served as the creative director in the mini-series Yudh ( 2014 ) starring Amitabh Bachchan .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 120,
+    "claim": "PlayStation 3 and Xbox 360 versions of the game WWE 2K15 run at less than 45 fps .",
+    "evidence": "The PlayStation 4 and Xbox One versions are displayed in 1080p resolution and run at 60 fps , while PlayStation 3 and Xbox 360 version are displayed in 720p resolution and run at its usual 30 fps .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 121,
+    "claim": "PlayStation 3 and Xbox 360 versions of the game WWE 2K15 run at less than 45 fps .",
+    "evidence": "The PlayStation 4 and Xbox One versions are displayed in 1080p resolution and run at 60 fps , while PlayStation 3 and Xbox 360 version are displayed in 720p resolution and run at 60 fps .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 122,
+    "claim": "PlayStation 3 and Xbox 360 versions of the game WWE 2K15 run at more than 45 fps .",
+    "evidence": "The PlayStation 4 and Xbox One versions are displayed in 1080p resolution and run at 60 fps , while PlayStation 3 and Xbox 360 version are displayed in 720p resolution and run at its usual 30 fps .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 123,
+    "claim": "PlayStation 3 and Xbox 360 versions of the game WWE 2K15 run at more than 45 fps .",
+    "evidence": "The PlayStation 4 and Xbox One versions are displayed in 1080p resolution and run at 60 fps , while PlayStation 3 and Xbox 360 version are displayed in 720p resolution and run at 60 fps .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 124,
+    "claim": "The pace controlling stamina meter is a new feature in the game series .",
+    "evidence": "New to the series is a three-tier stamina meter which controls the pace of a match .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 125,
+    "claim": "The pace controlling stamina meter is a new feature in the game series .",
+    "evidence": "This game also has a three-tier stamina meter which controls the pace of a match .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 126,
+    "claim": "The pace controlling stamina meter is feature in the game .",
+    "evidence": "New to the series is a three-tier stamina meter which controls the pace of a match .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 127,
+    "claim": "The pace controlling stamina meter is feature in the game .",
+    "evidence": "This game also has a three-tier stamina meter which controls the pace of a match .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 128,
+    "claim": "Kingdom Hearts HD 2.5 Remix is a video game .",
+    "evidence": "is a video game HD remastered collection of the Kingdom Hearts series , developed by Square Enix exclusively for the PlayStation 3 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 129,
+    "claim": "Kingdom Hearts HD 2.5 Remix is a video game .",
+    "evidence": "is an HD remastered collection of the Kingdom Hearts series , developed by Square Enix exclusively for the PlayStation 3 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 130,
+    "claim": "The service is used by Uber .",
+    "evidence": "The service is used by international and multinationals companies including Facebook , Evernote , Spotify , Airbnb , Mango , Vodafone , Booking.com , KLM , Greenpeace , Soundcloud , Superdry and Groupon.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 131,
+    "claim": "The service is used by Uber .",
+    "evidence": "The service is used by international and multinationals companies including , Uber , Facebook , Evernote , Spotify , Airbnb , Mango , Vodafone , Booking.com , KLM , Greenpeace , Soundcloud , Superdry and Groupon.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 132,
+    "claim": "Bjorn Agren plays guitar in the group Razorlight .",
+    "evidence": "On 17 September 2002 they played their first show with all four founder members , Johnny Borrell ( vocals , guitar ) Carl Dalemo ( bass ) , Christian Smith-Pancorvo ( drums ) and Bj\ufffdrn \ufffdgren ( guitar ) , at Dingwalls , supporting The Von Bondies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 133,
+    "claim": "Bjorn Agren plays guitar in the group Razorlight .",
+    "evidence": "On 17 September 2002 they played their first show with all four founder members , Johnny Borrell ( vocals , guitar ) Carl Dalemo ( bass ) , Christian Smith-Pancorvo ( drums ) and Martin Hope ( guitar ) , at Dingwalls , supporting The Von Bondies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 134,
+    "claim": "Martin Hope plays guitar in the group Razorlight .",
+    "evidence": "On 17 September 2002 they played their first show with all four founder members , Johnny Borrell ( vocals , guitar ) Carl Dalemo ( bass ) , Christian Smith-Pancorvo ( drums ) and Bj\ufffdrn \ufffdgren ( guitar ) , at Dingwalls , supporting The Von Bondies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 135,
+    "claim": "Martin Hope plays guitar in the group Razorlight .",
+    "evidence": "On 17 September 2002 they played their first show with all four founder members , Johnny Borrell ( vocals , guitar ) Carl Dalemo ( bass ) , Christian Smith-Pancorvo ( drums ) and Martin Hope ( guitar ) , at Dingwalls , supporting The Von Bondies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 136,
+    "claim": "The movie will be released on 25 November 2015 .",
+    "evidence": "Good Universe and Point Grey Pictures are producing the film which Columbia Pictures will release on November 25 , 2015.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 137,
+    "claim": "The movie will be released on 25 November 2015 .",
+    "evidence": "Good Universe and Point Grey Pictures are producing the film which Columbia Pictures will release on November 20 , 2015.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 138,
+    "claim": "The movie will be released on 20 November 2015 .",
+    "evidence": "Good Universe and Point Grey Pictures are producing the film which Columbia Pictures will release on November 25 , 2015.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 139,
+    "claim": "The movie will be released on 20 November 2015 .",
+    "evidence": "Good Universe and Point Grey Pictures are producing the film which Columbia Pictures will release on November 20 , 2015.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 140,
+    "claim": "Stephen Bruner was born on October 18 , 1984 .",
+    "evidence": "Stephen Bruner ( born October 18 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 141,
+    "claim": "Stephen Bruner was born on October 18 , 1984 .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 142,
+    "claim": "Stephen Bruner was born on October 19 , 1984 .",
+    "evidence": "Stephen Bruner ( born October 18 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 143,
+    "claim": "Stephen Bruner was born on October 19 , 1984 .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 144,
+    "claim": "By August 2015 , WWE 2K15 shipped over 6 million units .",
+    "evidence": "As of August 2015 , WWE 2K15 has shipped over six million units.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 145,
+    "claim": "By August 2015 , WWE 2K15 shipped over 6 million units .",
+    "evidence": "As of August 2015 , WWE 2K15 has shipped over 7.5 million units.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 146,
+    "claim": "By August 2015 , WWE 2K15 shipped over 7.5 million units .",
+    "evidence": "As of August 2015 , WWE 2K15 has shipped over six million units.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 147,
+    "claim": "By August 2015 , WWE 2K15 shipped over 7.5 million units .",
+    "evidence": "As of August 2015 , WWE 2K15 has shipped over 7.5 million units.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 148,
+    "claim": "Mark Freuder Knopfler was born son 12 August 1949 .",
+    "evidence": "Mark Freuder Knopfler was born on 12 August 1949 in Glasgow , Scotland , to an English mother , Louisa Mary , and a Hungarian-Jewish father , Erwin Knopfler .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 149,
+    "claim": "Mark Freuder Knopfler was born son 12 August 1949 .",
+    "evidence": "Mark Freuder Knopfler died on 12 August 1949 in Glasgow , Scotland , to an English mother , Louisa Mary , and a Hungarian-Jewish father , Erwin Knopfler .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 150,
+    "claim": "Mark Freuder Knopfler died on 12 August 1949 .",
+    "evidence": "Mark Freuder Knopfler was born on 12 August 1949 in Glasgow , Scotland , to an English mother , Louisa Mary , and a Hungarian-Jewish father , Erwin Knopfler .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 151,
+    "claim": "Mark Freuder Knopfler died on 12 August 1949 .",
+    "evidence": "Mark Freuder Knopfler died on 12 August 1949 in Glasgow , Scotland , to an English mother , Louisa Mary , and a Hungarian-Jewish father , Erwin Knopfler .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 152,
+    "claim": "Hot Topic stores sell Gravity Falls merchandise .",
+    "evidence": "Fashion apparel for young men and women is featured prominently in stores , with products from Lip Service , Morbid Threads , Rude , Social Collision , Royal Bones , and also Tripp , Disney , Sanrio , DC Comics , WWE , Heartcore Clothing , Iron Fist , Nintendo , Nickelodeon , Invader Zim , Harry Potter , as well as web celebrities and music acts such as hip-hop artists , Psychopathic Records and Hopeless Records , and more recently , Doctor Who , Adventure Time , Regular Show , My Little Pony : Friendship Is Magic , Sons of Anarchy , Resident Evil , and Domo merchandise .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 153,
+    "claim": "Hot Topic stores sell Gravity Falls merchandise .",
+    "evidence": "Fashion apparel for young men and women is featured prominently in stores , with products from Lip Service , Morbid Threads , Rude , Social Collision , Royal Bones , and also Tripp , Disney , Sanrio , DC Comics , WWE , Heartcore Clothing , Iron Fist , Nintendo , Nickelodeon , Invader Zim , Harry Potter , as well as web celebrities and music acts such as hip-hop artists , Psychopathic Records and Hopeless Records , and more recently , Doctor Who , Adventure Time , Regular Show , My Little Pony : Friendship Is Magic , Sons of Anarchy , Resident Evil , Gravity Falls and Domo merchandise .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 154,
+    "claim": "The 2010 Green Bay Packers season was their 90th appearance in the National Football League .",
+    "evidence": "The 2010 Green Bay Packers season was the 90th season in the National Football League for the Packers and the 92nd season for the team overall .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 155,
+    "claim": "The 2010 Green Bay Packers season was their 90th appearance in the National Football League .",
+    "evidence": "The 2010 Green Bay Packers season was the 91st season in the National Football League for the Packers and the 92nd season for the team overall .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 156,
+    "claim": "The 2010 Green Bay Packers season was their 91st appearance in the National Football League .",
+    "evidence": "The 2010 Green Bay Packers season was the 90th season in the National Football League for the Packers and the 92nd season for the team overall .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 157,
+    "claim": "The 2010 Green Bay Packers season was their 91st appearance in the National Football League .",
+    "evidence": "The 2010 Green Bay Packers season was the 91st season in the National Football League for the Packers and the 92nd season for the team overall .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 158,
+    "claim": "By 23 March 2014 , the album sold more than 1,5 million copies .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,739,000 copies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 159,
+    "claim": "By 23 March 2014 , the album sold more than 1,5 million copies .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,378,000 copies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 160,
+    "claim": "By 23 March 2014 , the album sold less than 1,5 million copies .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,739,000 copies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 161,
+    "claim": "By 23 March 2014 , the album sold less than 1,5 million copies .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,378,000 copies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 162,
+    "claim": "Sammer replaced Nerlinger during UEFA 2012 .",
+    "evidence": "On 2 July , the club announced that Matthias Sammer replaced Christian Nerlinger during Euro 2012 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 163,
+    "claim": "Sammer replaced Nerlinger during UEFA 2012 .",
+    "evidence": "On 2 July , the club announced that Matthias Sammer replaced Christian Nerlinger during UEFA Euro 2012 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 164,
+    "claim": "A-Gon 's real name is Pipavin Gonzalez .",
+    "evidence": "NL RBI leader ( 2014 ) } } Pipavin Gonzalez ( born May 8 , 1982 ) , also known by his nicknames A-Gon and Gonzo , is a Mexican-American professional baseball first baseman with the Los Angeles Dodgers of Major League Baseball ( MLB ) .Gonzalez was the first overall pick in the 2000 Major League Baseball Draft by the Florida Marlins .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 165,
+    "claim": "A-Gon 's real name is Pipavin Gonzalez .",
+    "evidence": "NL RBI leader ( 2014 ) } } Adrian Savin Gonzalez ( born May 8 , 1982 ) , also known by his nicknames A-Gon and Gonzo , is a Mexican-American professional baseball first baseman with the Los Angeles Dodgers of Major League Baseball ( MLB ) .Gonzalez was the first overall pick in the 2000 Major League Baseball Draft by the Florida Marlins .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 166,
+    "claim": "A-Gon 's real name is Adrian Savin Gonzalez .",
+    "evidence": "NL RBI leader ( 2014 ) } } Pipavin Gonzalez ( born May 8 , 1982 ) , also known by his nicknames A-Gon and Gonzo , is a Mexican-American professional baseball first baseman with the Los Angeles Dodgers of Major League Baseball ( MLB ) .Gonzalez was the first overall pick in the 2000 Major League Baseball Draft by the Florida Marlins .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 167,
+    "claim": "A-Gon 's real name is Adrian Savin Gonzalez .",
+    "evidence": "NL RBI leader ( 2014 ) } } Adrian Savin Gonzalez ( born May 8 , 1982 ) , also known by his nicknames A-Gon and Gonzo , is a Mexican-American professional baseball first baseman with the Los Angeles Dodgers of Major League Baseball ( MLB ) .Gonzalez was the first overall pick in the 2000 Major League Baseball Draft by the Florida Marlins .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 168,
+    "claim": "The Premier League 's fixtures of 2014-2015 appeared in June , 2014 .",
+    "evidence": "The fixtures for the 2014\ufffd15 season were announced on 18 June 2014 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 169,
+    "claim": "The Premier League 's fixtures of 2014-2015 appeared in June , 2014 .",
+    "evidence": "The fixtures for the 2014\ufffd15 season were not announced on 18 June 2014 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 170,
+    "claim": "The Premier League failed to announce the 2014-2015 fixtures June , in 2014 .",
+    "evidence": "The fixtures for the 2014\ufffd15 season were announced on 18 June 2014 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 171,
+    "claim": "The Premier League failed to announce the 2014-2015 fixtures June , in 2014 .",
+    "evidence": "The fixtures for the 2014\ufffd15 season were not announced on 18 June 2014 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 172,
+    "claim": "The difference in the records time is 9 seconds .",
+    "evidence": "The Le Cam # 722-A disc is noted as 2m 14s , while both the Tamara Records # 761 release , and the Josie Records # 923 platter has a time of 2m 25s , a 9-second difference .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 173,
+    "claim": "The difference in the records time is 9 seconds .",
+    "evidence": "The Le Cam # 722-A disc is noted as 2m 14s , while both the Tamara Records # 761 release , and the Josie Records # 923 platter has a time of 2m 25s , an 11-second difference .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 174,
+    "claim": "The difference in the records time is 11 seconds .",
+    "evidence": "The Le Cam # 722-A disc is noted as 2m 14s , while both the Tamara Records # 761 release , and the Josie Records # 923 platter has a time of 2m 25s , a 9-second difference .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 175,
+    "claim": "The difference in the records time is 11 seconds .",
+    "evidence": "The Le Cam # 722-A disc is noted as 2m 14s , while both the Tamara Records # 761 release , and the Josie Records # 923 platter has a time of 2m 25s , an 11-second difference .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 176,
+    "claim": "The album `` The Heist '' sold under 1.4 million copies as of March 23 , 2014 .",
+    "evidence": "As of March 23 , 2014 , the album `` The Heist '' has sold 1,378,000 copies in the United States .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 177,
+    "claim": "The album `` The Heist '' sold under 1.4 million copies as of March 23 , 2014 .",
+    "evidence": "As of June 23 , 2015 , the album has sold 1,735,880 copies in the United States .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 178,
+    "claim": "The album `` The Heist '' sold over 1.4 million copies as of June 23 , 2015 .",
+    "evidence": "As of March 23 , 2014 , the album `` The Heist '' has sold 1,378,000 copies in the United States .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 179,
+    "claim": "The album `` The Heist '' sold over 1.4 million copies as of June 23 , 2015 .",
+    "evidence": "As of June 23 , 2015 , the album has sold 1,735,880 copies in the United States .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 180,
+    "claim": "Under 1.4 million copies were sold .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,378,000 copies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 181,
+    "claim": "Under 1.4 million copies were sold .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,735,880 copies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 182,
+    "claim": "Over 1.4 million copies were sold .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,378,000 copies .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 183,
+    "claim": "Over 1.4 million copies were sold .",
+    "evidence": "As of March 23 , 2014 , it has sold 1,735,880 copies .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 184,
+    "claim": "The marine sirocco breeze is known as s'imbattu , which lowers the temperature .",
+    "evidence": "Winds are frequent , especially the mistral and sirocco ; in summer a marine sirocco breeze ( called s'imbattu in the local language ) lowers the temperature and brings some relief from the heat . { { Weather box",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 185,
+    "claim": "The marine sirocco breeze is known as s'imbattu , which lowers the temperature .",
+    "evidence": "Winds are frequent , especially the mistral and scirocco ; in summer the mistral wind blowing from the north lowers the temperature and brings some relief from the heat . { { Weather box",
+    "label": "REFUTES"
+  },
+  {
+    "id": 186,
+    "claim": "The mistral wind blow from the north in the Summer .",
+    "evidence": "Winds are frequent , especially the mistral and sirocco ; in summer a marine sirocco breeze ( called s'imbattu in the local language ) lowers the temperature and brings some relief from the heat . { { Weather box",
+    "label": "REFUTES"
+  },
+  {
+    "id": 187,
+    "claim": "The mistral wind blow from the north in the Summer .",
+    "evidence": "Winds are frequent , especially the mistral and scirocco ; in summer the mistral wind blowing from the north lowers the temperature and brings some relief from the heat . { { Weather box",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 188,
+    "claim": "He bought the watercolor from Pam , in season three , in the episode called Business School .",
+    "evidence": "The employees give one last round of interviews before leaving , with Pam taking her watercolor of the office building that Michael bought from her.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 189,
+    "claim": "He bought the watercolor from Pam , in season three , in the episode called Business School .",
+    "evidence": "`` The employees give one last round of interviews before leaving , with Pam taking her watercolor of the office building that Michael bought from her in the third season episode `` '' Business School '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 190,
+    "claim": "Four years after she died , her music was recognized .",
+    "evidence": "`` Although she had been honored by the Washington Area Music Association , she was virtually unknown outside her native Washington , D.C. , when she died of melanoma in 1996.Four years later , Cassidy 's music was brought to the attention of British audiences when her versions of `` '' Fields of Gold '' '' and `` '' Over the Rainbow '' '' were played by Mike Harding and Terry Wogan on BBC Radio 2 . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 191,
+    "claim": "Four years after she died , her music was recognized .",
+    "evidence": "`` Although she had been honored by the Washington Area Music Association , she was virtually unknown outside her native Washington , D.C. , when she died of melanoma in 1996.Two years later , Cassidy 's music was brought to the attention of British audiences when her versions of `` '' Fields of Gold '' '' and `` '' Over the Rainbow '' '' were played by Mike Harding and Terry Wogan on BBC Radio 2 . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 192,
+    "claim": "Two years after she died , her music was recognized .",
+    "evidence": "`` Although she had been honored by the Washington Area Music Association , she was virtually unknown outside her native Washington , D.C. , when she died of melanoma in 1996.Four years later , Cassidy 's music was brought to the attention of British audiences when her versions of `` '' Fields of Gold '' '' and `` '' Over the Rainbow '' '' were played by Mike Harding and Terry Wogan on BBC Radio 2 . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 193,
+    "claim": "Two years after she died , her music was recognized .",
+    "evidence": "`` Although she had been honored by the Washington Area Music Association , she was virtually unknown outside her native Washington , D.C. , when she died of melanoma in 1996.Two years later , Cassidy 's music was brought to the attention of British audiences when her versions of `` '' Fields of Gold '' '' and `` '' Over the Rainbow '' '' were played by Mike Harding and Terry Wogan on BBC Radio 2 . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 194,
+    "claim": "Neena is very upset in the movie Luck by Chance .",
+    "evidence": "Neena yells at the magazine editor and tells Nikki to stay away from Vikram .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 195,
+    "claim": "Neena is very upset in the movie Luck by Chance .",
+    "evidence": "Neena gets very upset and yells the magazine editor and tells Nikki to stay away from Vikram .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 196,
+    "claim": "The game finished with a 1-1 draw .",
+    "evidence": "Juan Mata gave United the lead away at Sunderland but Jack Rodwell equalised on his debut , meaning the game finished 1-1 , before United laboured to a 0\ufffd0 draw against Burnley , despite Angel Di Mar\ufffda making his debut for the Red Devils .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 197,
+    "claim": "The game finished with a 1-1 draw .",
+    "evidence": "Juan Mata gave United the lead away at Sunderland but Jack Rodwell equalised on his debut , meaning the game finished as a draw , before United ended August with a laboured 0\ufffd0 draw against Burnley , despite Angel Di Mar\ufffda making his debut for the Red Devils .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 198,
+    "claim": "United ended August with 0-0 draw .",
+    "evidence": "Juan Mata gave United the lead away at Sunderland but Jack Rodwell equalised on his debut , meaning the game finished 1-1 , before United laboured to a 0\ufffd0 draw against Burnley , despite Angel Di Mar\ufffda making his debut for the Red Devils .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 199,
+    "claim": "United ended August with 0-0 draw .",
+    "evidence": "Juan Mata gave United the lead away at Sunderland but Jack Rodwell equalised on his debut , meaning the game finished as a draw , before United ended August with a laboured 0\ufffd0 draw against Burnley , despite Angel Di Mar\ufffda making his debut for the Red Devils .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 200,
+    "claim": "Metallica signed with Elektra on September 12 and released the album again on November 19 .",
+    "evidence": "On September 12 , Metallica signed with Elektra , who re-released the album on November 19 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 201,
+    "claim": "Metallica signed with Elektra on September 12 and released the album again on November 19 .",
+    "evidence": "The performance at Roseland Ballroom , opening with Anthrax and Raven , pleased the Elektra staff and the band was offered a contract the following morning .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 202,
+    "claim": "Elektra 's staff made an offer to Metallica following the morning of the performance at Roseland Ballroom as they opened with Anthrax and Raven .",
+    "evidence": "On September 12 , Metallica signed with Elektra , who re-released the album on November 19 .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 203,
+    "claim": "Elektra 's staff made an offer to Metallica following the morning of the performance at Roseland Ballroom as they opened with Anthrax and Raven .",
+    "evidence": "The performance at Roseland Ballroom , opening with Anthrax and Raven , pleased the Elektra staff and the band was offered a contract the following morning .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 204,
+    "claim": "James Otto is De Marcus ' brother in law .",
+    "evidence": "DeMarcus is a brother-in-law of country singer James Otto , and formerly one-half of the Christian music duo East to West .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 205,
+    "claim": "James Otto is De Marcus ' brother in law .",
+    "evidence": "DeMarcus was formerly one-half of the Christian music duo East to West .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 206,
+    "claim": "The Southwark Towers ' redevelopment was in 1997 .",
+    "evidence": "In 1997 , London-based entrepreneur Irvine Sellar and his then partners decided to redevelop the 1970s-era Southwark Towers following a UK government white paper encouraging the development of tall buildings at major transport hubs .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 207,
+    "claim": "The Southwark Towers ' redevelopment was in 1997 .",
+    "evidence": "In 1998 , London-based entrepreneur Irvine Sellar and his then partners decided to redevelop the 1970s-era Southwark Towers following a UK government white paper encouraging the development of tall buildings at major transport hubs .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 208,
+    "claim": "The Southwark Towers ' redevelopment was in 1998 .",
+    "evidence": "In 1997 , London-based entrepreneur Irvine Sellar and his then partners decided to redevelop the 1970s-era Southwark Towers following a UK government white paper encouraging the development of tall buildings at major transport hubs .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 209,
+    "claim": "The Southwark Towers ' redevelopment was in 1998 .",
+    "evidence": "In 1998 , London-based entrepreneur Irvine Sellar and his then partners decided to redevelop the 1970s-era Southwark Towers following a UK government white paper encouraging the development of tall buildings at major transport hubs .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 210,
+    "claim": "Slow West scored less than 92 % with less than 100 reviews .",
+    "evidence": "`` The film has a score of 91 % on Rotten Tomatoes , based on 98 reviews , with an average rating of 7.4/10 and a critical consensus stating , `` '' Slow West serves as an impressive calling card for first-time writer-director John M. Maclean\ufffdand offers an inventive treat for fans of the Western . '' '' ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 211,
+    "claim": "Slow West scored less than 92 % with less than 100 reviews .",
+    "evidence": "`` The film has a score of 92 % on Rotten Tomatoes , based on 109 reviews , with an average rating of 7.5/10 and a critical consensus stating , `` '' Slow West serves as an impressive calling card for first-time writer-director John M. Maclean\ufffdand offers an inventive treat for fans of the Western . '' '' ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 212,
+    "claim": "Slow West scored more than 91 % with more than 100 reviews .",
+    "evidence": "`` The film has a score of 91 % on Rotten Tomatoes , based on 98 reviews , with an average rating of 7.4/10 and a critical consensus stating , `` '' Slow West serves as an impressive calling card for first-time writer-director John M. Maclean\ufffdand offers an inventive treat for fans of the Western . '' '' ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 213,
+    "claim": "Slow West scored more than 91 % with more than 100 reviews .",
+    "evidence": "`` The film has a score of 92 % on Rotten Tomatoes , based on 109 reviews , with an average rating of 7.5/10 and a critical consensus stating , `` '' Slow West serves as an impressive calling card for first-time writer-director John M. Maclean\ufffdand offers an inventive treat for fans of the Western . '' '' ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 214,
+    "claim": "It had 12 reviews with a rating of 83 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 83 % , based on 12 reviews , with an average rating of 6.6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 215,
+    "claim": "It had 12 reviews with a rating of 83 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 85 % , based on 13 reviews , with an average rating of 6.6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 216,
+    "claim": "It had 13 reviews with a rating of 85 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 83 % , based on 12 reviews , with an average rating of 6.6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 217,
+    "claim": "It had 13 reviews with a rating of 85 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 85 % , based on 13 reviews , with an average rating of 6.6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 218,
+    "claim": "Seven critics gave The Night Before a score of less than 58/100 .",
+    "evidence": "`` On Metacritic the film has a score of 57 out of 100 , based on 7 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 219,
+    "claim": "Seven critics gave The Night Before a score of less than 58/100 .",
+    "evidence": "`` On Metacritic the film has a score of 58 out of 100 , based on 8 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 220,
+    "claim": "Eight critics gave The Night Before a score of more than 57/100 .",
+    "evidence": "`` On Metacritic the film has a score of 57 out of 100 , based on 7 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 221,
+    "claim": "Eight critics gave The Night Before a score of more than 57/100 .",
+    "evidence": "`` On Metacritic the film has a score of 58 out of 100 , based on 8 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 222,
+    "claim": "The Night Before has a rating of more than 75 % , with less than 15 reviews .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 85 % , based on 13 reviews , with an average rating of 6.6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 223,
+    "claim": "The Night Before has a rating of more than 75 % , with less than 15 reviews .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 72 % , based on 18 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 224,
+    "claim": "The Night Before has a rating of less than 75 % , with more than 15 reviews .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 85 % , based on 13 reviews , with an average rating of 6.6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 225,
+    "claim": "The Night Before has a rating of less than 75 % , with more than 15 reviews .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 72 % , based on 18 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 226,
+    "claim": "The film scored less than 59/100 with less than nine critics .",
+    "evidence": "`` On Metacritic the film has a score of 58 out of 100 , based on 8 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 227,
+    "claim": "The film scored less than 59/100 with less than nine critics .",
+    "evidence": "`` On Metacritic the film has a score of 61 out of 100 , based on 9 critics , indicating `` '' generally favorable reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 228,
+    "claim": "The film scored more than 59/100 with more than eight critics .",
+    "evidence": "`` On Metacritic the film has a score of 58 out of 100 , based on 8 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 229,
+    "claim": "The film scored more than 59/100 with more than eight critics .",
+    "evidence": "`` On Metacritic the film has a score of 61 out of 100 , based on 9 critics , indicating `` '' generally favorable reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 230,
+    "claim": "The film 's rating was less than 74 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 73 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 231,
+    "claim": "The film 's rating was less than 74 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 232,
+    "claim": "The film 's rating was more than 73 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 73 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 233,
+    "claim": "The film 's rating was more than 73 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 234,
+    "claim": "The film had under 20 reviews with a rating of less than 75 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 235,
+    "claim": "The film had under 20 reviews with a rating of less than 75 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 75 % , based on 20 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 236,
+    "claim": "The film had over 19 reviews with a rating of more than 74 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 19 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 237,
+    "claim": "The film had over 19 reviews with a rating of more than 74 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 75 % , based on 20 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 238,
+    "claim": "The film scored more than 60/100 on Metacritic with less than 10 critics .",
+    "evidence": "`` On Metacritic the film has a score of 61 out of 100 , based on 9 critics , indicating `` '' generally favorable reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 239,
+    "claim": "The film scored more than 60/100 on Metacritic with less than 10 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 10 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 240,
+    "claim": "The film scored less than 61/100 on Metacritic with more than 9 critics .",
+    "evidence": "`` On Metacritic the film has a score of 61 out of 100 , based on 9 critics , indicating `` '' generally favorable reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 241,
+    "claim": "The film scored less than 61/100 on Metacritic with more than 9 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 10 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 242,
+    "claim": "Aaliyah sold more than 75 million records .",
+    "evidence": "The discography of Aaliyah ( 1979\ufffd2001 ) , an American singer , dancer , actress & model , contains three studio albums , two compilation albums and 26 singles .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 243,
+    "claim": "Aaliyah sold more than 75 million records .",
+    "evidence": "The discography of Aaliyah ( 1979\ufffd2001 ) , an American singer , dancer , actress & model , combined Aaliyah has sold over 75 million records world wide contains three studio albums , two compilation albums and 26 singles .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 244,
+    "claim": "The film scored less than 76 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 75 % , based on 20 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 245,
+    "claim": "The film scored less than 76 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 76 % , based on 21 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 246,
+    "claim": "The film scored more than 75 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 75 % , based on 20 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 247,
+    "claim": "The film scored more than 75 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 76 % , based on 21 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 248,
+    "claim": "The film was reviewed by 10 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 10 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 249,
+    "claim": "The film was reviewed by 10 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 12 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 250,
+    "claim": "The film was reviewed by 12 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 10 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 251,
+    "claim": "The film was reviewed by 12 critics .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 12 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 252,
+    "claim": "The Night Before has less than 22 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 76 % , based on 21 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 253,
+    "claim": "The Night Before has less than 22 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 254,
+    "claim": "The Night Before has more than 22 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 76 % , based on 21 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 255,
+    "claim": "The Night Before has more than 22 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 256,
+    "claim": "The Night Before 's average rating is of 6.4/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.4/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 257,
+    "claim": "The Night Before 's average rating is of 6.4/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 258,
+    "claim": "The Night Before 's average rating is of 6.3/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.4/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 259,
+    "claim": "The Night Before 's average rating is of 6.3/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 260,
+    "claim": "Based on 12 critics , it had a score of 60/100 .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 12 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 261,
+    "claim": "Based on 12 critics , it had a score of 60/100 .",
+    "evidence": "`` On Metacritic the film has a score of 59 out of 100 , based on 13 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 262,
+    "claim": "Based on 13 critics , it had a score of 59/100 .",
+    "evidence": "`` On Metacritic the film has a score of 60 out of 100 , based on 12 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 263,
+    "claim": "Based on 13 critics , it had a score of 59/100 .",
+    "evidence": "`` On Metacritic the film has a score of 59 out of 100 , based on 13 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 264,
+    "claim": "Based on 23 reviews , The Night Before has a rating of more than 73 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 265,
+    "claim": "Based on 23 reviews , The Night Before has a rating of more than 73 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 71 % , based on 24 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 266,
+    "claim": "Based on 24 reviews , The Night Before has a rating of less than 73 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 74 % , based on 23 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 267,
+    "claim": "Based on 24 reviews , The Night Before has a rating of less than 73 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 71 % , based on 24 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 268,
+    "claim": "The film 's rating is less than 69 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 68 % , based on 26 reviews , with an average rating of 6.3/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 269,
+    "claim": "The film 's rating is less than 69 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 69 % , based on 26 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 270,
+    "claim": "The film 's rating is more than 68 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 68 % , based on 26 reviews , with an average rating of 6.3/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 271,
+    "claim": "The film 's rating is more than 68 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 69 % , based on 26 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 272,
+    "claim": "With less than 28 reviews , The Night Before had a rating of over 65 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 69 % , based on 26 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 273,
+    "claim": "With less than 28 reviews , The Night Before had a rating of over 65 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 30 reviews , with an average rating of 5.8/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 274,
+    "claim": "With more than 28 reviews , The Night Before had a rating of less than 65 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 69 % , based on 26 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 275,
+    "claim": "With more than 28 reviews , The Night Before had a rating of less than 65 % .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 30 reviews , with an average rating of 5.8/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 276,
+    "claim": "The film had 30 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 30 reviews , with an average rating of 5.8/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 277,
+    "claim": "The film had 30 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 31 reviews , with an average rating of 5.8/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 278,
+    "claim": "The film had 31 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 30 reviews , with an average rating of 5.8/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 279,
+    "claim": "The film had 31 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 31 reviews , with an average rating of 5.8/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 280,
+    "claim": "Based on 31 reviews , it was rated 63 % and averaged 5.8/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 31 reviews , with an average rating of 5.8/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 281,
+    "claim": "Based on 31 reviews , it was rated 63 % and averaged 5.8/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 32 reviews , with an average rating of 5.9/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 282,
+    "claim": "Based on 32 reviews , it was rated 66 % and averaged 5.9/10 .",
+    "evidence": "On Rotten Tomatoes the film has a rating of 63 % , based on 31 reviews , with an average rating of 5.8/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 283,
+    "claim": "Based on 32 reviews , it was rated 66 % and averaged 5.9/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 32 reviews , with an average rating of 5.9/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 284,
+    "claim": "With under 17 critics , The Nigh Before scored over 58/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 59 out of 100 , based on 16 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 285,
+    "claim": "With under 17 critics , The Nigh Before scored over 58/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 17 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 286,
+    "claim": "With over 16 critics , The Nigh Before scored less than 59/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 59 out of 100 , based on 16 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 287,
+    "claim": "With over 16 critics , The Nigh Before scored less than 59/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 17 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 288,
+    "claim": "The Night Before has less than 18 critics on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 17 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 289,
+    "claim": "The Night Before has less than 18 critics on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 19 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 290,
+    "claim": "The Night Before has more than 18 critics on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 17 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 291,
+    "claim": "The Night Before has more than 18 critics on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 19 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 292,
+    "claim": "The Night Before has a rating of less than 67 % , with less than 33 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 32 reviews , with an average rating of 5.9/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 293,
+    "claim": "The Night Before has a rating of less than 67 % , with less than 33 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 34 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 294,
+    "claim": "The Night Before has a rating of more than 67 % , with more than 33 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 32 reviews , with an average rating of 5.9/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 295,
+    "claim": "The Night Before has a rating of more than 67 % , with more than 33 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 34 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 296,
+    "claim": "The show airs from Monday to Saturday from 7 pm to 10 pm .",
+    "evidence": "He now hosts his own show on Capital airing Monday through to Saturday , from 7pm to 10pm .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 297,
+    "claim": "The show airs from Monday to Saturday from 7 pm to 10 pm .",
+    "evidence": "He now hosts his own show on Capital airing Monday through to Friday , from 7pm to 10pm and on Saturday 8pm to 11pm .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 298,
+    "claim": "The show airs from Monday to Friday from 8 pm to 11 pm , and on Saturday from 8 pm to 11 pm .",
+    "evidence": "He now hosts his own show on Capital airing Monday through to Saturday , from 7pm to 10pm .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 299,
+    "claim": "The show airs from Monday to Friday from 8 pm to 11 pm , and on Saturday from 8 pm to 11 pm .",
+    "evidence": "He now hosts his own show on Capital airing Monday through to Friday , from 7pm to 10pm and on Saturday 8pm to 11pm .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 300,
+    "claim": "Based on 37 reviews it was rated 68 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 37 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 301,
+    "claim": "Based on 37 reviews it was rated 68 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 39 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 302,
+    "claim": "Based on 39 reviews it was rated 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 37 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 303,
+    "claim": "Based on 39 reviews it was rated 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 39 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 304,
+    "claim": "With under 42 reviews , it has a rating of less than 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 39 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 305,
+    "claim": "With under 42 reviews , it has a rating of less than 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 46 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 306,
+    "claim": "With over 42 reviews , it has a rating of more than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 39 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 307,
+    "claim": "With over 42 reviews , it has a rating of more than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 46 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 308,
+    "claim": "The film was reviewed by 19 critics .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 19 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 309,
+    "claim": "The film was reviewed by 19 critics .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 23 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 310,
+    "claim": "The film was reviewed by 23 critics .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 19 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 311,
+    "claim": "The film was reviewed by 23 critics .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 23 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 312,
+    "claim": "Less than 24 critics reviewed the film , and it had a score of over 57/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 23 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 313,
+    "claim": "Less than 24 critics reviewed the film , and it had a score of over 57/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 24 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 314,
+    "claim": "More than 23 critics reviewed the film , and it had a score of under 58/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 23 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 315,
+    "claim": "More than 23 critics reviewed the film , and it had a score of under 58/100 .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 24 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 316,
+    "claim": "The film was reviewed by 47 critics and had a rating of 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 47 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 317,
+    "claim": "The film was reviewed by 47 critics and had a rating of 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 52 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 318,
+    "claim": "The film was reviewed by 52 critics and had a rating of 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 47 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 319,
+    "claim": "The film was reviewed by 52 critics and had a rating of 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 52 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 320,
+    "claim": "The Night Before 's rating was of over 66 % with less than 53 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 52 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 321,
+    "claim": "The Night Before 's rating was of over 66 % with less than 53 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 53 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 322,
+    "claim": "The Night Before 's rating was under 67 % with more than 52 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 52 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 323,
+    "claim": "The Night Before 's rating was under 67 % with more than 52 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 53 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 324,
+    "claim": "The film had projections in less than 2,800 theatres .",
+    "evidence": "In its opening weekend , the film is projected to gross $ 12\ufffd13 million from 2,700 theaters.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 325,
+    "claim": "The film had projections in less than 2,800 theatres .",
+    "evidence": "In its opening weekend , the film is projected to gross $ 12\ufffd13 million from 2,960 theaters.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 326,
+    "claim": "The film had projections in more than 2,800 theatres .",
+    "evidence": "In its opening weekend , the film is projected to gross $ 12\ufffd13 million from 2,700 theaters.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 327,
+    "claim": "The film had projections in more than 2,800 theatres .",
+    "evidence": "In its opening weekend , the film is projected to gross $ 12\ufffd13 million from 2,960 theaters.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 328,
+    "claim": "Based on under 54 reviews , it had a rating of less than 67 % with an average of 6/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 53 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 329,
+    "claim": "Based on under 54 reviews , it had a rating of less than 67 % with an average of 6/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 54 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 330,
+    "claim": "Based on over 53 reviews , it had a rating of more than 66 % with an average of 6.1/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 53 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 331,
+    "claim": "Based on over 53 reviews , it had a rating of more than 66 % with an average of 6.1/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 54 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 332,
+    "claim": "The Night Before 's rating on Rotten Tomatoes was of less than 68 % with under 55 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 54 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 333,
+    "claim": "The Night Before 's rating on Rotten Tomatoes was of less than 68 % with under 55 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 59 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 334,
+    "claim": "The Night Before 's rating on Rotten Tomatoes was of more than 67 % with over 55 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 54 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 335,
+    "claim": "The Night Before 's rating on Rotten Tomatoes was of more than 67 % with over 55 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 59 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 336,
+    "claim": "Under 26 critics reviewed The Night Before , on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 25 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 337,
+    "claim": "Under 26 critics reviewed The Night Before , on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 27 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 338,
+    "claim": "Over 26 critics reviewed The Night Before , on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 25 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 339,
+    "claim": "Over 26 critics reviewed The Night Before , on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 27 critics , indicating `` '' mixed or average reviews '' '' .  ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 340,
+    "claim": "Critics gave the film confident reviews .",
+    "evidence": "The Night Before has received positive reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 341,
+    "claim": "Critics gave the film confident reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 342,
+    "claim": "Critics gave the film blended reviews .",
+    "evidence": "The Night Before has received positive reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 343,
+    "claim": "Critics gave the film blended reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 344,
+    "claim": "The Night Before has under 60 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 59 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 345,
+    "claim": "The Night Before has under 60 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 60 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 346,
+    "claim": "The Night Before has over 59 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 59 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 347,
+    "claim": "The Night Before has over 59 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 60 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 348,
+    "claim": "With under 61 people reviewing , the film has a rating of more than 67 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 60 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 349,
+    "claim": "With under 61 people reviewing , the film has a rating of more than 67 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 61 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 350,
+    "claim": "With over 60 people reviewing , the film has a rating of less than 68 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 68 % , based on 60 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 351,
+    "claim": "With over 60 people reviewing , the film has a rating of less than 68 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 61 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 352,
+    "claim": "Anthony Mackie joined the cast on May 13th .",
+    "evidence": "On May 13 , Anthony Mackie joined the cast.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 353,
+    "claim": "Anthony Mackie joined the cast on May 13th .",
+    "evidence": "Good Universe and Point Grey Pictures produced the film , which Sony 's Columbia Pictures is distributing.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 354,
+    "claim": "Sony 's Columbia Pictures distributed the film , and both Good Universe and Point Grey Pictures produced it .",
+    "evidence": "On May 13 , Anthony Mackie joined the cast.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 355,
+    "claim": "Sony 's Columbia Pictures distributed the film , and both Good Universe and Point Grey Pictures produced it .",
+    "evidence": "Good Universe and Point Grey Pictures produced the film , which Sony 's Columbia Pictures is distributing.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 356,
+    "claim": "Under 65 people reviewed the film , which had a rating of more than 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 61 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 357,
+    "claim": "Under 65 people reviewed the film , which had a rating of more than 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 67 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 358,
+    "claim": "Over 65 people reviewed the film , which had a rating of less than 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 61 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 359,
+    "claim": "Over 65 people reviewed the film , which had a rating of less than 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 67 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 360,
+    "claim": "The Night Before 's reviews went from flattering to diverse .",
+    "evidence": "The Night Before has received mixed to positive reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 361,
+    "claim": "The Night Before 's reviews went from flattering to diverse .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 362,
+    "claim": "The Night Before had diverse reviews .",
+    "evidence": "The Night Before has received mixed to positive reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 363,
+    "claim": "The Night Before had diverse reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 364,
+    "claim": "On Rotten Tomatoes , The Night Before had a rating of less than 67 % , with under 70 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 67 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 365,
+    "claim": "On Rotten Tomatoes , The Night Before had a rating of less than 67 % , with under 70 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 72 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 366,
+    "claim": "On Rotten Tomatoes , The Night Before had a rating of more than 66 % , with over 70 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 67 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 367,
+    "claim": "On Rotten Tomatoes , The Night Before had a rating of more than 66 % , with over 70 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 72 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 368,
+    "claim": "Based on 72 reviews , it was rated 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 72 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 369,
+    "claim": "Based on 72 reviews , it was rated 67 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 75 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 370,
+    "claim": "Based on 75 reviews , it was rated 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 72 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 371,
+    "claim": "Based on 75 reviews , it was rated 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 75 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 372,
+    "claim": "The Night Before was reviewed by under 76 and had a rating of over 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 75 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 373,
+    "claim": "The Night Before was reviewed by under 76 and had a rating of over 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 76 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 374,
+    "claim": "The Night Before was reviewed by over 75 and had a rating of under 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 75 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 375,
+    "claim": "The Night Before was reviewed by over 75 and had a rating of under 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 76 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 376,
+    "claim": "On opening day , The Night Before grossed over $ 3 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings.",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 377,
+    "claim": "On opening day , The Night Before grossed over $ 3 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings and $ 3.9 million on its opening day.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 378,
+    "claim": "The Night Before was reviewed by less than 77 people .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 76 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 379,
+    "claim": "The Night Before was reviewed by less than 77 people .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 77 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 380,
+    "claim": "The Night Before was reviewed by more than 76 people .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 76 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 381,
+    "claim": "The Night Before was reviewed by more than 76 people .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 77 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 382,
+    "claim": "On opening day , The Night Before earned over $ 3.7 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings and $ 3.9 million on its opening day.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 383,
+    "claim": "On opening day , The Night Before earned over $ 3.7 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings and $ 3.6 million on its first day.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 384,
+    "claim": "On opening day , The Night Before earned under $ 3.7 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings and $ 3.9 million on its opening day.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 385,
+    "claim": "On opening day , The Night Before earned under $ 3.7 million .",
+    "evidence": "The film made $ 550,000 from its Thursday preview screenings and $ 3.6 million on its first day.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 386,
+    "claim": "Under 78 people reviewed The Night Before on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 77 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 387,
+    "claim": "Under 78 people reviewed The Night Before on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 78 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 388,
+    "claim": "Over 77 people reviewed The Night Before on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 77 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 389,
+    "claim": "Over 77 people reviewed The Night Before on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 78 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 390,
+    "claim": "The film 's rating is more than 63 % , with less than 79 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 78 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 391,
+    "claim": "The film 's rating is more than 63 % , with less than 79 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 63 % , based on 79 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 392,
+    "claim": "The film 's rating is less than 64 % , with more than 78 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 78 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 393,
+    "claim": "The film 's rating is less than 64 % , with more than 78 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 63 % , based on 79 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 394,
+    "claim": "The Night Before made less than $ 10.1 million on opening weekend .",
+    "evidence": "In its opening weekend , the film grossed $ 10 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 395,
+    "claim": "The Night Before made less than $ 10.1 million on opening weekend .",
+    "evidence": "In its opening weekend , the film grossed $ 10.1 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 396,
+    "claim": "The Night Before made more than $ 10 million on opening weekend .",
+    "evidence": "In its opening weekend , the film grossed $ 10 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 397,
+    "claim": "The Night Before made more than $ 10 million on opening weekend .",
+    "evidence": "In its opening weekend , the film grossed $ 10.1 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 398,
+    "claim": "With less than 80 reviews , The Night before had a rating of less than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 63 % , based on 79 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 399,
+    "claim": "With less than 80 reviews , The Night before had a rating of less than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 83 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 400,
+    "claim": "With more than 80 reviews , The Night before had a rating of more than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 63 % , based on 79 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 401,
+    "claim": "With more than 80 reviews , The Night before had a rating of more than 64 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 83 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 402,
+    "claim": "Critics gave the film varied reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 403,
+    "claim": "Critics gave the film varied reviews .",
+    "evidence": "The Night Before has received Positive reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 404,
+    "claim": "Critics gave the film flattering reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 405,
+    "claim": "Critics gave the film flattering reviews .",
+    "evidence": "The Night Before has received Positive reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 406,
+    "claim": "The Night Before has under 85 reviews on Rotten Tomatoes , with a rating of less than 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 83 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 407,
+    "claim": "The Night Before has under 85 reviews on Rotten Tomatoes , with a rating of less than 66 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 86 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 408,
+    "claim": "The Night Before has over 85 reviews on Rotten Tomatoes , with a rating of more than 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 83 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 409,
+    "claim": "The Night Before has over 85 reviews on Rotten Tomatoes , with a rating of more than 65 % .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 86 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 410,
+    "claim": "The Night Before collected $ 10.1million , while Mockingjay , Spectre , and The Peanuts Movie made $ 101 million , $ 14.4 million , and $ 12.8 million , respectively .",
+    "evidence": "In its opening weekend , the film grossed $ 10.1 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 411,
+    "claim": "The Night Before collected $ 10.1million , while Mockingjay , Spectre , and The Peanuts Movie made $ 101 million , $ 14.4 million , and $ 12.8 million , respectively .",
+    "evidence": "In its opening weekend , the film grossed $ 9.9 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 102.7 million ) , Spectre ( $ 15 million ) and The Peanuts Movie ( $ 13.2 million ) .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 412,
+    "claim": "The Night Before collected $ 9.9 million , while Mockingjay , Spectre , and The Peanuts Movie made $ 10.7 million , $ 15 million , and $ 13.2 million , respectively .",
+    "evidence": "In its opening weekend , the film grossed $ 10.1 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 101 million ) , Spectre ( $ 14.4 million ) and The Peanuts Movie ( $ 12.8 million ) .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 413,
+    "claim": "The Night Before collected $ 9.9 million , while Mockingjay , Spectre , and The Peanuts Movie made $ 10.7 million , $ 15 million , and $ 13.2 million , respectively .",
+    "evidence": "In its opening weekend , the film grossed $ 9.9 million , below expectations , and finished fourth at the box office behind Mockingjay \ufffd Part 2 ( $ 102.7 million ) , Spectre ( $ 15 million ) and The Peanuts Movie ( $ 13.2 million ) .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 414,
+    "claim": "Under 90 people reviewed The Night Before , which had a rating of over 65 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 88 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 415,
+    "claim": "Under 90 people reviewed The Night Before , which had a rating of over 65 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 91 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 416,
+    "claim": "Over 90 people reviewed The Night Before , which had a rating of less than 66 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 88 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 417,
+    "claim": "Over 90 people reviewed The Night Before , which had a rating of less than 66 % on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 91 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 418,
+    "claim": "Less than 29 people reviewed The Night Before on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 28 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 419,
+    "claim": "Less than 29 people reviewed The Night Before on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 30 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 420,
+    "claim": "More than 29 people reviewed The Night Before on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 28 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 421,
+    "claim": "More than 29 people reviewed The Night Before on Metacritic .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 30 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 422,
+    "claim": "The Night Before 's rating was more than 64 % , with less than 92 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 91 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 423,
+    "claim": "The Night Before 's rating was more than 64 % , with less than 92 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 92 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 424,
+    "claim": "The Night Before 's rating was less than 65 % , with more than 91 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 91 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 425,
+    "claim": "The Night Before 's rating was less than 65 % , with more than 91 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 64 % , based on 92 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 426,
+    "claim": "Juventus were the runners-up of the UEFA Champions League of 2014-2015 .",
+    "evidence": "Real Madrid were the title holders , but they were eliminated by eventual runners-up Juventus in the semi-finals .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 427,
+    "claim": "Juventus were the runners-up of the UEFA Champions League of 2014-2015 .",
+    "evidence": "Real Madrid were the title holders , but they were eliminated by Juventus in the semi-finals .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 428,
+    "claim": "It made under $ 25 million in North America and under $ 26 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 24.9 million in North America and $ 559,907 million in other territories for a worldwide total of $ 25.5 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 429,
+    "claim": "It made under $ 25 million in North America and under $ 26 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 25.8 million in North America and $ 559,907 million in other territories for a worldwide total of $ 26.3 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 430,
+    "claim": "It made over $ 25 million in North America and over $ 26 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 24.9 million in North America and $ 559,907 million in other territories for a worldwide total of $ 25.5 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 431,
+    "claim": "It made over $ 25 million in North America and over $ 26 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 25.8 million in North America and $ 559,907 million in other territories for a worldwide total of $ 26.3 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 432,
+    "claim": "With less than 95 reviews , The Night Before was rated less than 66 % and averaged 6.1/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 93 reviews , with an average rating of 6.1/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 433,
+    "claim": "With less than 95 reviews , The Night Before was rated less than 66 % and averaged 6.1/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 98 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 434,
+    "claim": "With more than 95 reviews , The Night Before was rated more than 65 % and averaged 6.2/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 65 % , based on 93 reviews , with an average rating of 6.1/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 435,
+    "claim": "With more than 95 reviews , The Night Before was rated more than 65 % and averaged 6.2/10 .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 98 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 436,
+    "claim": "Ethan 's parents died fourteen years before the events of The Night Before .",
+    "evidence": "Fourteen years prior , Ethan Miller 's ( Joseph Gordon-Levitt ) parents passed away on Christmas Eve .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 437,
+    "claim": "Ethan 's parents died fourteen years before the events of The Night Before .",
+    "evidence": "Three years prior , Ethan Miller 's ( Joseph Gordon-Levitt ) parents passed away on Christmas Eve .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 438,
+    "claim": "Ethan 's parents died three years before the events of The Night Before .",
+    "evidence": "Fourteen years prior , Ethan Miller 's ( Joseph Gordon-Levitt ) parents passed away on Christmas Eve .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 439,
+    "claim": "Ethan 's parents died three years before the events of The Night Before .",
+    "evidence": "Three years prior , Ethan Miller 's ( Joseph Gordon-Levitt ) parents passed away on Christmas Eve .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 440,
+    "claim": "The film had a rating of less than 67 % from less than 100 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 98 reviews , with an average rating of 6.2/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 441,
+    "claim": "The film had a rating of less than 67 % from less than 100 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 108 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 442,
+    "claim": "The film had a rating of more than 66 % from more than 100 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 98 reviews , with an average rating of 6.2/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 443,
+    "claim": "The film had a rating of more than 66 % from more than 100 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 108 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 444,
+    "claim": "Critics gave The Night Before either diverse or flattering reviews .",
+    "evidence": "The Night Before has received mixed to positive reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 445,
+    "claim": "Critics gave The Night Before either diverse or flattering reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 446,
+    "claim": "Critics gave The Night Before diverse reviews .",
+    "evidence": "The Night Before has received mixed to positive reviews from critics .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 447,
+    "claim": "Critics gave The Night Before diverse reviews .",
+    "evidence": "The Night Before has received mixed reviews from critics .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 448,
+    "claim": "The Night Before 's total earnings were less than $ 27 million , of which less than $ 26 million were from North America .",
+    "evidence": ", The Night Before has grossed $ 25.8 million in North America and $ 559,907 million in other territories for a worldwide total of $ 26.3 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 449,
+    "claim": "The Night Before 's total earnings were less than $ 27 million , of which less than $ 26 million were from North America .",
+    "evidence": ", The Night Before has grossed $ 26.5 million in North America and $ 559,907 million in other territories for a worldwide total of $ 27.1 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 450,
+    "claim": "The Night Before 's total earnings were more than $ 27 million , of which over $ 26 million were from North America .",
+    "evidence": ", The Night Before has grossed $ 25.8 million in North America and $ 559,907 million in other territories for a worldwide total of $ 26.3 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 451,
+    "claim": "The Night Before 's total earnings were more than $ 27 million , of which over $ 26 million were from North America .",
+    "evidence": ", The Night Before has grossed $ 26.5 million in North America and $ 559,907 million in other territories for a worldwide total of $ 27.1 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 452,
+    "claim": "The Night Before has a rating of more than 67 % from less than 110 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 108 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 453,
+    "claim": "The Night Before has a rating of more than 67 % from less than 110 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 113 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 454,
+    "claim": "The Night Before has a rating of less than 67 % from over 110 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 108 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 455,
+    "claim": "The Night Before has a rating of less than 67 % from over 110 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 113 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 456,
+    "claim": "Betsy gives them a lot of drugs on Christmas Eve for them to celebrate .",
+    "evidence": "On August 7 , Jillian Bell was cast to play Betsy , the wife of Rogen 's character , who gives the friends a cornucopia of drugs on Christmas Eve so they can have one last hurrah together .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 457,
+    "claim": "Betsy gives them a lot of drugs on Christmas Eve for them to celebrate .",
+    "evidence": "On August 7 , Jillian Bell was cast to play Betsy , the wife of Rogen 's character .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 458,
+    "claim": "The Night Before had less than 114 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 113 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 459,
+    "claim": "The Night Before had less than 114 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 114 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 460,
+    "claim": "The Night Before had more than 113 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 113 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 461,
+    "claim": "The Night Before had more than 113 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 114 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 462,
+    "claim": "Enrique Rousseau succumbed to cancer in 2013 .",
+    "evidence": "Lilly continued to reside in Palm Beach , FL , and Rousseau died from cancer in 2013.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 463,
+    "claim": "Enrique Rousseau succumbed to cancer in 2013 .",
+    "evidence": "Lilly continued to reside in Palm Beach , FL , and Enrique Rousseau died from cancer in 1993.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 464,
+    "claim": "Enrique Rousseau succumbed to cancer in 1993 .",
+    "evidence": "Lilly continued to reside in Palm Beach , FL , and Rousseau died from cancer in 2013.",
+    "label": "REFUTES"
+  },
+  {
+    "id": 465,
+    "claim": "Enrique Rousseau succumbed to cancer in 1993 .",
+    "evidence": "Lilly continued to reside in Palm Beach , FL , and Enrique Rousseau died from cancer in 1993.",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 466,
+    "claim": "The Night Before collected less than $ 33 million globally , of which less than $ 1 million came from outside North America .",
+    "evidence": ", The Night Before has grossed $ 32 million in North America and $ 559,907 in other territories for a worldwide total of $ 32.5 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 467,
+    "claim": "The Night Before collected less than $ 33 million globally , of which less than $ 1 million came from outside North America .",
+    "evidence": ", The Night Before has grossed $ 32 million in North America and $ 1.2 in other territories for a worldwide total of $ 33.2 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 468,
+    "claim": "The Night Before collected more than $ 33 million globally , of which more than $ 1 million came from outside North America .",
+    "evidence": ", The Night Before has grossed $ 32 million in North America and $ 559,907 in other territories for a worldwide total of $ 32.5 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 469,
+    "claim": "The Night Before collected more than $ 33 million globally , of which more than $ 1 million came from outside North America .",
+    "evidence": ", The Night Before has grossed $ 32 million in North America and $ 1.2 in other territories for a worldwide total of $ 33.2 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 470,
+    "claim": "The film had less than 118 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 116 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 471,
+    "claim": "The film had less than 118 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 119 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 472,
+    "claim": "The film had over 118 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 116 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 473,
+    "claim": "The film had over 118 reviews .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 119 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 474,
+    "claim": "The Night Before scored under 58/100 with less than 31 reviews .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 30 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 475,
+    "claim": "The Night Before scored under 58/100 with less than 31 reviews .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 31 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 476,
+    "claim": "The Night Before scored over 57/100 with more than 30 reviews .",
+    "evidence": "`` On Metacritic , the film has a score of 57 out of 100 , based on 30 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "REFUTES"
+  },
+  {
+    "id": 477,
+    "claim": "The Night Before scored over 57/100 with more than 30 reviews .",
+    "evidence": "`` On Metacritic , the film has a score of 58 out of 100 , based on 31 critics , indicating `` '' mixed or average reviews '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 478,
+    "claim": "The film has less than 120 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 119 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 479,
+    "claim": "The film has less than 120 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 120 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 480,
+    "claim": "The film has more than 119 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 66 % , based on 119 reviews , with an average rating of 6/10 .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 481,
+    "claim": "The film has more than 119 reviews on Rotten Tomatoes .",
+    "evidence": "On Rotten Tomatoes , the film has a rating of 67 % , based on 120 reviews , with an average rating of 6/10 .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 482,
+    "claim": "The film made under $ 33.5 million in North America and under $ 36 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 33.3 million in North America and $ 2.6 in other territories for a worldwide total of $ 35.9 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 483,
+    "claim": "The film made under $ 33.5 million in North America and under $ 36 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 33.8 million in North America and $ 2.6 in other territories for a worldwide total of $ 36.4 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 484,
+    "claim": "The film made over $ 33.5 million in North America and over $ 36 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 33.3 million in North America and $ 2.6 in other territories for a worldwide total of $ 35.9 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 485,
+    "claim": "The film made over $ 33.5 million in North America and over $ 36 million worldwide .",
+    "evidence": ", The Night Before has grossed $ 33.8 million in North America and $ 2.6 in other territories for a worldwide total of $ 36.4 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 486,
+    "claim": "Rapping means `` to say '' since the 18th century .",
+    "evidence": "`` Oxford English Dictionary The word had been used in British English since the 16th century , and specifically meaning `` '' to say '' '' since the 18th . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 487,
+    "claim": "Rapping means `` to say '' since the 18th century .",
+    "evidence": "Oxford English Dictionary The word had been used in British English since the 16th century .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 488,
+    "claim": "Ethan finds the tickets to The Nutcracker Ball",
+    "evidence": "While working in the coat room on Christmas day , Ethan finds three tickets to the elusive Nutcracker Ball .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 489,
+    "claim": "Ethan finds the tickets to The Nutcracker Ball",
+    "evidence": "While working in the coat room on Christmas day , Ethan steals three tickets to the elusive Nutcracker Ball from a coat pocket .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 490,
+    "claim": "Ethan steals the tickets to The Nutcracker Ball from a coat pocket .",
+    "evidence": "While working in the coat room on Christmas day , Ethan finds three tickets to the elusive Nutcracker Ball .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 491,
+    "claim": "Ethan steals the tickets to The Nutcracker Ball from a coat pocket .",
+    "evidence": "While working in the coat room on Christmas day , Ethan steals three tickets to the elusive Nutcracker Ball from a coat pocket .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 492,
+    "claim": "The Night Before grossed under $ 36 million in North America and less than $ 40 million globally .",
+    "evidence": ", The Night Before has grossed $ 35.6 million in North America and $ 2.6 in other territories for a worldwide total of $ 38.2 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 493,
+    "claim": "The Night Before grossed under $ 36 million in North America and less than $ 40 million globally .",
+    "evidence": ", The Night Before has grossed $ 38.2 million in North America and $ 2.6 in other territories for a worldwide total of $ 40.8 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 494,
+    "claim": "The Night Before grossed over $ 36 million in North America and more than $ 40 million globally .",
+    "evidence": ", The Night Before has grossed $ 35.6 million in North America and $ 2.6 in other territories for a worldwide total of $ 38.2 million , against a budget of $ 25 million .",
+    "label": "REFUTES"
+  },
+  {
+    "id": 495,
+    "claim": "The Night Before grossed over $ 36 million in North America and more than $ 40 million globally .",
+    "evidence": ", The Night Before has grossed $ 38.2 million in North America and $ 2.6 in other territories for a worldwide total of $ 40.8 million , against a budget of $ 25 million .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 496,
+    "claim": "Stephen Bruner received a Grammy nomination through his career .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American Grammy nominated , multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 497,
+    "claim": "Stephen Bruner received a Grammy nomination through his career .",
+    "evidence": "Stephen Bruner ( born October 19 , 1984 ) , better known by his stage name Thundercat , is an American multi-genre bass player , producer and singer from Los Angeles , California .",
+    "label": "NOT ENOUGH INFO"
+  },
+  {
+    "id": 498,
+    "claim": "The Xbox 360 version of Fez was released in 2012 , while the PC version was released in 2013 .",
+    "evidence": "`` } } The video game review aggregator Metacritic described reviews for the 2012 Xbox 360 Fez as `` '' generally favorable '' '' and those for the 2013 PC version as `` '' universal acclaim '' '' . ''",
+    "label": "SUPPORTS"
+  },
+  {
+    "id": 499,
+    "claim": "The Xbox 360 version of Fez was released in 2012 , while the PC version was released in 2013 .",
+    "evidence": "`` } } The video game review aggregator Metacritic described reviews for the original Xbox 360 Fez release as `` '' generally favorable '' '' and those for later releases as `` '' universal acclaim '' '' . ''",
+    "label": "NOT ENOUGH INFO"
+  }
+]
