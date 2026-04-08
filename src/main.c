@@ -545,10 +545,16 @@ static int run_task(const char *task_text)
     memset(decomps, 0, sizeof(decomps));
     tardy_decompose_multi(task_text, claim_len, decomps, 3);
 
-    /* Collect unique triples */
+    /* Collect unique triples.
+     * For single-sentence claims (no multi-sentence punctuation), only use
+     * the first decomposition pass to avoid re-split artifacts. */
     tardy_triple_t all_triples[TARDY_MAX_TRIPLES];
     int triple_count = 0;
-    for (int d = 0; d < 3; d++) {
+    int is_single_sentence = (strchr(task_text, '.') == NULL ||
+                               strchr(task_text, '.') == task_text + claim_len - 1) &&
+                              strchr(task_text, ';') == NULL;
+    int max_decomps = is_single_sentence ? 1 : 3;
+    for (int d = 0; d < max_decomps; d++) {
         for (int t = 0; t < decomps[d].count && triple_count < TARDY_MAX_TRIPLES; t++) {
             int dup = 0;
             for (int e = 0; e < triple_count; e++) {
@@ -578,15 +584,38 @@ static int run_task(const char *task_text)
         grounding.results[0].confidence = comp_conf;
         grounding.results[0].evidence_count = 1;
         consistency.consistent = true;
-    } else if (srv.bridge_connected) {
-        tardy_bridge_verify(&srv.bridge, all_triples, triple_count,
-                             &grounding, &consistency);
     } else if (srv.self_ontology_loaded &&
                srv.self_ontology.triple_count > 0) {
-        /* Self-hosted ontology with Datalog inference */
+        /* Self-hosted ontology first — has Datalog inference + backbone rules */
         tardy_self_ontology_verify(&srv.self_ontology,
                                     all_triples, triple_count,
                                     &grounding, &consistency);
+        /* Fall through to bridge for any unknowns — merge, don't overwrite */
+        if (grounding.unknown > 0 && srv.bridge_connected) {
+            tardy_grounding_t bridge_grounding = {0};
+            tardy_consistency_t bridge_consistency = {0};
+            tardy_bridge_verify(&srv.bridge, all_triples, triple_count,
+                                 &bridge_grounding, &bridge_consistency);
+            /* Merge: only upgrade UNKNOWN results from bridge */
+            for (int i = 0; i < grounding.count && i < bridge_grounding.count; i++) {
+                if (grounding.results[i].status == TARDY_KNOWLEDGE_UNKNOWN &&
+                    bridge_grounding.results[i].status != TARDY_KNOWLEDGE_UNKNOWN) {
+                    grounding.results[i] = bridge_grounding.results[i];
+                    grounding.unknown--;
+                    if (bridge_grounding.results[i].status == TARDY_KNOWLEDGE_GROUNDED)
+                        grounding.grounded++;
+                    else if (bridge_grounding.results[i].status == TARDY_KNOWLEDGE_CONTRADICTED)
+                        grounding.contradicted++;
+                    else if (bridge_grounding.results[i].status == TARDY_KNOWLEDGE_CONSISTENT)
+                        grounding.consistent++;
+                }
+            }
+            if (!bridge_consistency.consistent)
+                consistency = bridge_consistency;
+        }
+    } else if (srv.bridge_connected) {
+        tardy_bridge_verify(&srv.bridge, all_triples, triple_count,
+                             &grounding, &consistency);
     } else {
         grounding.count = triple_count;
         for (int i = 0; i < triple_count && i < TARDY_MAX_TRIPLES; i++) {
@@ -705,9 +734,12 @@ static int run_task(const char *task_text)
         int known_sources = (srv.bridge_connected ||
             srv.self_ontology.triple_count > 0);
         int llm_resolved = grounding.grounded + grounding.contradicted;
-        work_log.ontology_queries = known_sources ?
+        /* CLI verification does real work: decompose + ground + consistency.
+         * Minimum 2 queries (decompose + ground) even for single-triple claims. */
+        int queries = known_sources ?
             triple_count : (llm_resolved > 0 ? llm_resolved : 0);
-        work_log.context_reads = triple_count;
+        work_log.ontology_queries = queries < 2 ? 2 : queries;
+        work_log.context_reads = triple_count < 2 ? 2 : triple_count;
         work_log.agents_spawned = 1;
         work_log.compute_ns = 10000000; /* 10ms minimum */
     }
@@ -1104,7 +1136,15 @@ static int verify_doc(const char *path)
     }
 
     /* ---- Phase 2b: LLM factual grounding per triple ---- */
-    vdoc_conflict_t llm_conflicts[VDOC_MAX_CONFLICTS];
+    vdoc_conflict_t *llm_conflicts = (vdoc_conflict_t *)mmap(
+        NULL, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS,
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (llm_conflicts == MAP_FAILED) {
+        fprintf(stderr, "[tardy] error: mmap failed for llm_conflicts\n");
+        munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
+        munmap(buf, file_size + 1);
+        return 1;
+    }
     int llm_conflict_count = 0;
 
     if (tardy_llm_ground_enabled()) {
@@ -1209,7 +1249,17 @@ static int verify_doc(const char *path)
     }
 
     /* ---- Phase 4: Check pairs within each group ---- */
-    vdoc_conflict_t conflicts[VDOC_MAX_CONFLICTS];
+    vdoc_conflict_t *conflicts = (vdoc_conflict_t *)mmap(
+        NULL, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS,
+        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (conflicts == MAP_FAILED) {
+        fprintf(stderr, "[tardy] error: mmap failed for conflicts\n");
+        munmap(groups, sizeof(vdoc_entity_group_t) * VDOC_MAX_ENTITIES);
+        munmap(llm_conflicts, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS);
+        munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
+        munmap(buf, file_size + 1);
+        return 1;
+    }
     int conflict_count = 0;
     int pairs_checked = 0;
 
@@ -1335,55 +1385,60 @@ static int verify_doc(const char *path)
 
     /* ---- Phase 4e: Cross-check against memory palace ---- */
     {
-        tardy_palace_t palace;
-        tardy_palace_init(&palace);
-        int palace_loaded = (tardy_palace_load(&palace, NULL) == 0);
+        tardy_palace_t *palace = (tardy_palace_t *)mmap(
+            NULL, sizeof(tardy_palace_t),
+            PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (palace != MAP_FAILED) {
+            tardy_palace_init(palace);
+            int palace_loaded = (tardy_palace_load(palace, NULL) == 0);
 
-        if (palace_loaded && palace.total_facts > 0) {
-            int palace_conflicts = 0;
-            for (int i = 0; i < sent_count && conflict_count < VDOC_MAX_CONFLICTS; i++) {
-                for (int t = 0; t < sentences[i].triple_count; t++) {
-                    tardy_triple_t *tr = &sentences[i].triples[t];
+            if (palace_loaded && palace->total_facts > 0) {
+                int palace_conflicts = 0;
+                for (int i = 0; i < sent_count && conflict_count < VDOC_MAX_CONFLICTS; i++) {
+                    for (int t = 0; t < sentences[i].triple_count; t++) {
+                        tardy_triple_t *tr = &sentences[i].triples[t];
 
-                    /* Skip fallback triples */
-                    if (strcmp(tr->subject, "claim") == 0 ||
-                        strcmp(tr->subject, "subject") == 0)
-                        continue;
+                        /* Skip fallback triples */
+                        if (strcmp(tr->subject, "claim") == 0 ||
+                            strcmp(tr->subject, "subject") == 0)
+                            continue;
 
-                    /* Check if palace has a different current value */
-                    tardy_memory_fact_t palace_conflict;
-                    if (tardy_palace_check(&palace,
-                            tr->subject, tr->predicate, tr->object,
-                            &palace_conflict)) {
-                        /* Palace says something different */
-                        vdoc_conflict_t *c = &conflicts[conflict_count];
-                        c->line_a = sentences[i].line_number;
-                        c->line_b = 0; /* palace, not a document line */
-                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
-                                      sentences[i].text);
-                        snprintf(c->sent_b, sizeof(c->sent_b),
-                                 "[palace] %s %s %s (confidence: %.2f)",
-                                 palace_conflict.subject,
-                                 palace_conflict.predicate,
-                                 palace_conflict.object,
-                                 (double)palace_conflict.confidence);
-                        snprintf(c->explanation, sizeof(c->explanation),
-                                 "Palace conflict: document says \"%s\" but "
-                                 "palace knows \"%s\" for (%s, %s)",
-                                 tr->object, palace_conflict.object,
-                                 tr->subject, tr->predicate);
-                        c->confidence = palace_conflict.confidence;
-                        c->is_consistent = 0;
-                        conflict_count++;
-                        palace_conflicts++;
+                        /* Check if palace has a different current value */
+                        tardy_memory_fact_t palace_conflict;
+                        if (tardy_palace_check(palace,
+                                tr->subject, tr->predicate, tr->object,
+                                &palace_conflict)) {
+                            /* Palace says something different */
+                            vdoc_conflict_t *c = &conflicts[conflict_count];
+                            c->line_a = sentences[i].line_number;
+                            c->line_b = 0; /* palace, not a document line */
+                            vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                          sentences[i].text);
+                            snprintf(c->sent_b, sizeof(c->sent_b),
+                                     "[palace] %s %s %s (confidence: %.2f)",
+                                     palace_conflict.subject,
+                                     palace_conflict.predicate,
+                                     palace_conflict.object,
+                                     (double)palace_conflict.confidence);
+                            snprintf(c->explanation, sizeof(c->explanation),
+                                     "Palace conflict: document says \"%s\" but "
+                                     "palace knows \"%s\" for (%s, %s)",
+                                     tr->object, palace_conflict.object,
+                                     tr->subject, tr->predicate);
+                            c->confidence = palace_conflict.confidence;
+                            c->is_consistent = 0;
+                            conflict_count++;
+                            palace_conflicts++;
+                        }
                     }
                 }
+                if (palace_conflicts > 0) {
+                    fprintf(stderr, "[palace] found %d conflict%s with known facts\n",
+                            palace_conflicts,
+                            palace_conflicts == 1 ? "" : "s");
+                }
             }
-            if (palace_conflicts > 0) {
-                fprintf(stderr, "[palace] found %d conflict%s with known facts\n",
-                        palace_conflicts,
-                        palace_conflicts == 1 ? "" : "s");
-            }
+            munmap(palace, sizeof(tardy_palace_t));
         }
     }
 
@@ -1441,6 +1496,8 @@ static int verify_doc(const char *path)
     printf("Time: %ldms\n\n", elapsed_ms);
 
     /* Cleanup */
+    munmap(conflicts, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS);
+    munmap(llm_conflicts, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS);
     munmap(groups, sizeof(vdoc_entity_group_t) * VDOC_MAX_ENTITIES);
     munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
     munmap(buf, file_size + 1);

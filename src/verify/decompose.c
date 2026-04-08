@@ -367,13 +367,30 @@ static int decompose_sentence(const char *sent, int sent_len,
     if (count > 0)
         return count;
 
-    /* Try remaining patterns */
+    /* Try remaining patterns — skip patterns that overlap with an already-matched
+     * region of the sentence (e.g., " is " overlaps " is in "). */
+    const char *matched_pos = NULL;
+    int matched_len = 0;
     for (int p = 0; p < PATTERN_COUNT && count < max_triples; p++) {
         if (patterns[p].predicate == NULL)
             continue; /* skip special patterns handled above */
+
+        /* Skip if this pattern's keyword overlaps with an already-matched one */
+        if (matched_pos) {
+            const char *kw = ci_strstr(sent, patterns[p].keyword);
+            if (kw && kw >= matched_pos &&
+                kw < matched_pos + matched_len)
+                continue;
+        }
+
         if (try_pattern(sent, sent_len, patterns[p].keyword,
-                        patterns[p].predicate, &triples[count]))
+                        patterns[p].predicate, &triples[count])) {
+            if (!matched_pos) {
+                matched_pos = ci_strstr(sent, patterns[p].keyword);
+                matched_len = (int)strlen(patterns[p].keyword);
+            }
             count++;
+        }
     }
 
     return count;

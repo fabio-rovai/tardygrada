@@ -18,7 +18,7 @@ Your scoring pipeline passed through 5 agents. Can you prove the scores weren't 
 ```bash
 git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
 
-tardy run "Paris is in France"                    # verified
+tardy run "Paris is in France"                    # VERIFIED (80%)
 tardy verify-doc report.md                        # 2 contradictions found
 tardy daemon start && tardy run "check this"      # persistent, remembers everything
 ```
@@ -66,7 +66,7 @@ A score of 8.5 stored in a Python dict — any agent can silently change it to 9
 
 **Just the CLI:**
 ```bash
-make                                    # builds in < 1 second
+make                                    # builds in < 3 seconds
 tardy run "your claim here"             # verify anything
 tardy verify-doc your-file.md           # scan for contradictions
 ```
@@ -79,7 +79,7 @@ tardy daemon status                     # see what it knows
 tardy daemon stop                       # clean shutdown
 ```
 
-**Inside Claude Code:**
+**Inside Claude Code** (MCP server):
 ```json
 {
   "mcpServers": {
@@ -91,6 +91,14 @@ tardy daemon stop                       # clean shutdown
 }
 ```
 Then just ask: *"verify this document for contradictions"*
+
+**Inside Claude Code** (session monitor):
+
+```bash
+/targyactivate
+```
+
+Activates Tardygrada as a contradiction monitor for the entire session. Every claim you and Claude make is recorded in the palace memory and checked against session history. If either side contradicts itself, Tardygrada flags it. Say `targy off` to deactivate.
 
 **Convert your existing agents:**
 ```bash
@@ -107,7 +115,7 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 | | Precision | Recall | F1 |
 |---|:-:|:-:|:-:|
 | Clear cases (60 traces) | 1.00 | 1.00 | 1.00 |
-| + Adversarial (40 traces) | 1.00 | 0.85 | **0.92** |
+| + Adversarial (100 total) | 1.00 | 0.85 | **0.92** |
 
 100 traces total. Zero false positives. Smart copiers who change 10-15% of the text slip through (similarity below threshold) — a known limitation. No existing tool does any of this.
 
@@ -116,14 +124,14 @@ tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
 | Dataset | What it is | Tardygrada | Best alternative |
 |---|---|:-:|:-:|
 | Clear contradictions (125) | Designed compositional | **95%** | SelfCheck: 59% |
-| + Borderline cases (100) | Soft/ambiguous contradictions | **68%** | SelfCheck: ~40% |
+| + Borderline cases (225 total) | Soft/ambiguous contradictions | **69%** | SelfCheck: 38% |
 | **AgentHallu (693 trajectories)** | Real agent hallucinations, 7 frameworks | **F1: 0.58** | DeepSeek-V3.1: 0.52 |
 | **ContraDoc (891 docs)** | Real documents, human-annotated | **F1: 0.58** | SelfCheck: 0.16 |
 | HaluEval (500 responses) | Individual factual errors | F1: 0.03 | SelfCheck: 0.32 |
 
-Detection runs in two modes: deterministic (11ms/trajectory, all benchmarks use this) or LLM-enhanced for broader coverage.
+Detection runs in two modes: deterministic (all benchmarks use this) or LLM-enhanced for broader coverage. Typical speeds: 5.7ms/trajectory (AgentHallu), 7.5ms/document (ContraDoc), 0.015ms/case (synthetic).
 
-On ContraDoc (891 real documents) — **F1 0.58**, up from 0.16 after fixing a bug where the benchmark accidentally used the SelfCheck baseline instead of proper triple checking. Recall jumped from 9.6% to 64.8%.
+On ContraDoc (891 real documents) — **F1 0.58**, up from 0.16 after fixing a bug where the benchmark accidentally used the SelfCheck baseline instead of proper triple checking. Recall jumped from 9.1% to 64.8%.
 
 On AgentHallu (693 real agent trajectories) — **F1 0.58**, beats DeepSeek-V3.1 (0.52). GPT-5 gets 0.70 but costs per-trajectory API calls.
 
@@ -136,11 +144,11 @@ HaluEval (individual factual errors) — F1 0.03. Expected: our pipeline catches
 
 | Category | Recall |
 |---|:-:|
-| Tool-Use | 57% |
-| Reasoning | 53% |
-| Human-Interaction | 51% |
-| Retrieval | 44% |
-| Planning | 42% |
+| Reasoning | 68% |
+| Planning | 66% |
+| Retrieval | 59% |
+| Human-Interaction | 53% |
+| Tool-Use | 21% |
 
 </details>
 
