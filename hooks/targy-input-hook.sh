@@ -50,7 +50,7 @@ TMPFILE=$(mktemp "$TMP/input.XXXXXX.md")
 # Use full message up to 4KB for verification (not 500 chars)
 printf '%s\n' "${MESSAGE:0:4096}" > "$TMPFILE"
 
-RESULT=$(timeout 5 "$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
+RESULT=$("$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
 CONFLICTS=$(echo "$RESULT" | grep -c "CONFLICT" || true)
 
 # Store in palace (truncated for storage, not for verification)

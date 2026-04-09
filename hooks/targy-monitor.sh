@@ -12,7 +12,7 @@ case "$1" in
   input)
     TMPFILE=$(mktemp "$TMP/input.XXXXXX.md")
     printf '%s\n' "$2" > "$TMPFILE"
-    RESULT=$(timeout 5 "$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
+    RESULT=$("$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
     CONFLICTS=$(echo "$RESULT" | grep -c "CONFLICT" || true)
     if [ "$CONFLICTS" -gt 0 ]; then
       echo "[targy] INPUT has $CONFLICTS contradiction(s) with session history:"
@@ -24,7 +24,7 @@ case "$1" in
   output)
     TMPFILE=$(mktemp "$TMP/output.XXXXXX.md")
     printf '%s\n' "$2" > "$TMPFILE"
-    RESULT=$(timeout 5 "$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
+    RESULT=$("$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
     CONFLICTS=$(echo "$RESULT" | grep -c "CONFLICT" || true)
     if [ "$CONFLICTS" -gt 0 ]; then
       echo "[targy] OUTPUT has $CONFLICTS internal contradiction(s):"

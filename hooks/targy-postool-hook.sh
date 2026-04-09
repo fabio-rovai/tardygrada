@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
-# Hook: PostToolUse → feed tool outputs to tardygrada palace (async)
-# Fixes: C2 (JSON injection), H1 (jq check), H2 (race conditions), H3 (cleanup),
-#        H5 (unquoted TARDY), M4 (Read/Grep metadata), M5 (timeouts)
+# Hook: PostToolUse → feed tool outputs to tardygrada via daemon monitor command (async)
+# Uses socket when daemon is running (fast), falls back to CLI binary.
 
 TARDY="${TARDY_BIN:-tardygrada}"
-TMP="/tmp/targy-monitor"
-mkdir -p "$TMP"
+SOCK="/tmp/tardygrada.sock"
 
 # Bail silently if dependencies missing (this hook is async, don't block)
 command -v jq >/dev/null 2>&1 || exit 0
-command -v "$TARDY" >/dev/null 2>&1 || exit 0
 
 # Extract tool name and response from stdin JSON
 INPUT=$(cat)
@@ -23,39 +20,48 @@ case "$TOOL_NAME" in
     ;;
 esac
 
-# For Read/Grep/Glob: store metadata only (filename, match count), not full content
+# For Read/Grep/Glob: store metadata only, not full content
 case "$TOOL_NAME" in
   Read|Grep|Glob)
-    # Extract just the file path or pattern, not the full content
     TOOL_INPUT=$(echo "$INPUT" | jq -r '(.tool_input | if type == "object" then tostring else . end) // empty' 2>/dev/null)
-    SUMMARY="[$TOOL_NAME] input: ${TOOL_INPUT:0:200}"
-    "$TARDY" remember claude-session -- "$SUMMARY" >/dev/null 2>&1 || true
-    exit 0
+    MONITOR_TEXT="[$TOOL_NAME] input: ${TOOL_INPUT:0:200}"
+    ;;
+  *)
+    if [ -z "$TOOL_RESPONSE" ] || [ "$TOOL_RESPONSE" = "null" ]; then
+      exit 0
+    fi
+    # Don't prefix with tool name — it confuses triple decomposition
+    MONITOR_TEXT="${TOOL_RESPONSE:0:2048}"
     ;;
 esac
 
-if [ -z "$TOOL_RESPONSE" ] || [ "$TOOL_RESPONSE" = "null" ]; then
-  exit 0
+# Escape text for JSON embedding
+ESCAPED=$(printf '%s' "$MONITOR_TEXT" | jq -Rs '.')
+ESCAPED="${ESCAPED:1:${#ESCAPED}-2}"
+
+# Fast path: daemon socket
+if [ -S "$SOCK" ] && command -v socat >/dev/null 2>&1; then
+  RESPONSE=$(printf '{"cmd":"monitor","text":"%s","wing":"claude-session"}\n' "$ESCAPED" | \
+    socat -t3 - UNIX-CONNECT:"$SOCK" 2>/dev/null) || true
+
+  if [ -n "$RESPONSE" ]; then
+    CONTRADICTIONS=$(echo "$RESPONSE" | jq -r '.contradictions // 0' 2>/dev/null)
+    if [ "$CONTRADICTIONS" -gt 0 ] 2>/dev/null; then
+      jq -n --arg ctx "[TARDYGRADA] Tool output from $TOOL_NAME contradicts session history ($CONTRADICTIONS conflict(s))" \
+        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+    fi
+    exit 0
+  fi
 fi
 
-# Use up to 2KB for verification, 500 chars for palace storage
-VERIFY_TEXT="${TOOL_RESPONSE:0:2048}"
-STORE_TEXT="${TOOL_RESPONSE:0:500}"
-
-# Verify tool output against palace (unique temp file)
-TMPFILE=$(mktemp "$TMP/tool.XXXXXX.md")
-printf '[%s] %s\n' "$TOOL_NAME" "$VERIFY_TEXT" > "$TMPFILE"
-RESULT=$(timeout 5 "$TARDY" verify-doc "$TMPFILE" 2>/dev/null) || true
-CONFLICTS=$(echo "$RESULT" | grep -c "CONFLICT" || true)
-rm -f "$TMPFILE"
-
-# Store in palace
-"$TARDY" remember claude-session -- "[$TOOL_NAME] $STORE_TEXT" >/dev/null 2>&1 || true
-
-if [ "$CONFLICTS" -gt 0 ]; then
-  DETAILS=$(echo "$RESULT" | grep "CONFLICT\|->.*conflict" | head -3)
-  # Use jq for safe JSON construction
-  jq -n --arg ctx "[TARDYGRADA] Tool output from $TOOL_NAME contradicts session history ($CONFLICTS conflict(s)):
-$DETAILS" \
-    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+# Fallback: CLI binary
+if command -v "$TARDY" >/dev/null 2>&1; then
+  RESPONSE=$("$TARDY" monitor "$MONITOR_TEXT" 2>/dev/null) || true
+  if [ -n "$RESPONSE" ]; then
+    CONTRADICTIONS=$(echo "$RESPONSE" | jq -r '.contradictions // 0' 2>/dev/null)
+    if [ "$CONTRADICTIONS" -gt 0 ] 2>/dev/null; then
+      jq -n --arg ctx "[TARDYGRADA] Tool output from $TOOL_NAME contradicts session history ($CONTRADICTIONS conflict(s))" \
+        '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+    fi
+  fi
 fi
