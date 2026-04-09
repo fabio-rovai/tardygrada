@@ -465,6 +465,71 @@ static int handle_recall(tardy_palace_t *palace,
 }
 
 /* ============================================
+ * Handle "monitor" command — verify text against palace + store
+ * Used by Claude Code hooks for continuous session monitoring.
+ * Lighter than verify-doc: checks each triple against palace,
+ * doesn't do full cross-sentence comparison.
+ * ============================================ */
+
+static int handle_monitor(tardy_palace_t *palace,
+                          const char *text, const char *wing,
+                          char *resp, int resp_size)
+{
+    if (!palace)
+        return json_error(resp, resp_size, "palace not initialized");
+    if (!text || !text[0])
+        return json_error(resp, resp_size, "missing text");
+    if (!wing || !wing[0])
+        return json_error(resp, resp_size, "missing wing");
+
+    int contradictions = 0;
+
+    /* Decompose text into triples */
+    tardy_triple_t triples[16];
+    int triple_count = tardy_decompose(text, (int)strlen(text), triples, 16);
+
+    /* Check each triple against palace for contradictions */
+    for (int i = 0; i < triple_count; i++) {
+        /* Skip fallback triples */
+        if (strcmp(triples[i].subject, "claim") == 0 ||
+            strcmp(triples[i].subject, "subject") == 0)
+            continue;
+
+        tardy_memory_fact_t conflict;
+        if (tardy_palace_check(palace,
+                triples[i].subject, triples[i].predicate, triples[i].object,
+                &conflict)) {
+            contradictions++;
+        }
+    }
+
+    /* Parse sentence into SPO for palace storage + check */
+    char subject[128], predicate[64], object[256];
+    tardy_palace_parse_sentence(text,
+        subject, sizeof(subject),
+        predicate, sizeof(predicate),
+        object, sizeof(object));
+
+    /* Also check parsed SPO against palace (catches cases where
+       decomposer produces fallback triples that get skipped above) */
+    if (subject[0] && strcmp(subject, "claim") != 0) {
+        tardy_memory_fact_t conflict;
+        if (tardy_palace_check(palace, subject, predicate, object, &conflict))
+            contradictions++;
+    }
+
+    /* Store in palace */
+    tardy_uuid_t source = {0, 0};
+    int stored = (tardy_palace_remember(palace, wing, NULL,
+                                         subject, predicate, object,
+                                         0.85f, source) == 0);
+
+    return snprintf(resp, resp_size,
+        "{\"ok\":true,\"contradictions\":%d,\"stored\":%s}",
+        contradictions, stored ? "true" : "false");
+}
+
+/* ============================================
  * Request dispatcher
  * ============================================ */
 
@@ -540,6 +605,21 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
                               room[0] ? room : NULL,
                               query[0] ? query : NULL,
                               resp, resp_size);
+    }
+
+    if (strcmp(cmd, "monitor") == 0) {
+        int text_tok = tardy_json_find(&parser, 0, "text");
+        if (text_tok < 0)
+            return json_error(resp, resp_size, "missing text field");
+        char text[4096];
+        tardy_json_str(&parser, text_tok, text, sizeof(text));
+
+        int wing_tok = tardy_json_find(&parser, 0, "wing");
+        char wing[128] = "claude-session";
+        if (wing_tok >= 0)
+            tardy_json_str(&parser, wing_tok, wing, sizeof(wing));
+
+        return handle_monitor(daemon_palace, text, wing, resp, resp_size);
     }
 
     if (strcmp(cmd, "verify-doc") == 0) {

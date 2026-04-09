@@ -1591,6 +1591,26 @@ static int verify_doc(const char *path, int scope_aware)
 }
 
 /* ============================================
+ * JSON escape helper for CLI arguments
+ * ============================================ */
+
+static void json_escape_cli(const char *src, char *dst, size_t dst_size)
+{
+    size_t w = 0;
+    for (size_t i = 0; src[i] && w < dst_size - 2; i++) {
+        if (src[i] == '"' || src[i] == '\\') {
+            dst[w++] = '\\';
+        } else if (src[i] == '\n') {
+            if (w + 2 < dst_size) { dst[w++] = '\\'; dst[w++] = 'n'; continue; }
+        } else if (src[i] == '\t') {
+            if (w + 2 < dst_size) { dst[w++] = '\\'; dst[w++] = 't'; continue; }
+        }
+        dst[w++] = src[i];
+    }
+    dst[w] = '\0';
+}
+
+/* ============================================
  * Usage
  * ============================================ */
 
@@ -1608,6 +1628,7 @@ static void print_usage(void)
         "  tardy verify \"claim\"             Alias for run\n"
         "  tardy serve file.tardy           Compile and serve as MCP server\n"
         "  tardy check file.tardy           Compile check only\n"
+        "  tardy monitor \"text\" [wing]      Verify text + store in palace (daemon)\n"
         "  tardy verify-doc file.md         Scan document for contradictions\n"
         "  tardy terraform path/to/repo     Convert agentic repo to .tardy\n"
         "  tardy spawn <name> [trust]       Spawn agent in daemon\n"
@@ -1702,6 +1723,34 @@ int main(int argc, char **argv)
     /* tardy check file.tardy */
     if (strcmp(cmd, "check") == 0 && argc >= 3)
         return check_file(argv[2]);
+
+    /* tardy monitor "text" [wing] — verify and store via daemon */
+    if (strcmp(cmd, "monitor") == 0 && argc >= 3) {
+        if (!tardy_daemon_is_running()) {
+            fprintf(stderr, "[tardy] monitor requires running daemon (tardy daemon start)\n");
+            return 1;
+        }
+        const char *text = argv[2];
+        const char *wing = (argc >= 4) ? argv[3] : "claude-session";
+
+        char request[4096 + 256];
+        char escaped_text[4096];
+        json_escape_cli(text, escaped_text, sizeof(escaped_text));
+        char escaped_wing[256];
+        json_escape_cli(wing, escaped_wing, sizeof(escaped_wing));
+        snprintf(request, sizeof(request),
+                 "{\"cmd\":\"monitor\",\"text\":\"%s\",\"wing\":\"%s\"}",
+                 escaped_text, escaped_wing);
+
+        char response[TARDY_DAEMON_BUF];
+        int len = tardy_daemon_send(request, response, sizeof(response));
+        if (len > 0) {
+            printf("%s\n", response);
+            return 0;
+        }
+        fprintf(stderr, "[tardy] daemon send failed\n");
+        return 1;
+    }
 
     /* tardy verify-doc file.md [--scope-aware] — try daemon first */
     if (strcmp(cmd, "verify-doc") == 0 && argc >= 3) {
