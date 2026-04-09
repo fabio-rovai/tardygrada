@@ -100,6 +100,23 @@ Then just ask: *"verify this document for contradictions"*
 
 Activates Tardygrada as a contradiction monitor for the entire session. Every claim you and Claude make is recorded in the palace memory and checked against session history. If either side contradicts itself, Tardygrada flags it. Say `targy off` to deactivate.
 
+**Inside Qwen Code** (MCP server):
+
+Qwen Code uses newline-delimited JSON-RPC instead of Content-Length framing. Use the included adapter:
+
+```json
+{
+  "mcpServers": {
+    "tardygrada": {
+      "command": "/bin/bash",
+      "args": ["path/to/tardygrada/hooks/targy-mcp-wrapper.sh"]
+    }
+  }
+}
+```
+
+This gives Qwen Code access to `verify_claim`, `verify_document`, `spawn_agent`, `read_agent`, and `daemon_status` as native MCP tools. The wrapper starts the daemon automatically if it isn't running.
+
 **Convert your existing agents:**
 ```bash
 tardy terraform /path/to/crewai         # 153K lines → 53 instructions
