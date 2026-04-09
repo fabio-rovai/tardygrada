@@ -39,6 +39,8 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <strings.h>
+#include <limits.h>
 
 static int is_zero_uuid(tardy_uuid_t id)
 {
@@ -1003,8 +1005,11 @@ static void vdoc_truncate(char *dst, int dst_size, const char *src)
         memcpy(dst, src, (size_t)slen);
         dst[slen] = '\0';
     } else {
+        if (dst_size < 4) {
+            if (dst_size > 0) dst[0] = '\0';
+            return;
+        }
         int copy = dst_size - 4;
-        if (copy < 0) copy = 0;
         memcpy(dst, src, (size_t)copy);
         dst[copy] = '.';
         dst[copy + 1] = '.';
@@ -1047,6 +1052,11 @@ static int verify_doc(const char *path, int scope_aware)
         return 1;
     }
     buf[rd] = '\0';
+    if (rd > INT_MAX - 1) {
+        fprintf(stderr, "[tardy] error: file too large (max 2GB)\n");
+        munmap(buf, file_size + 1);
+        return 1;
+    }
     int buf_len = (int)rd;
 
     /* ---- Phase 1: Split into sentences with line numbers ---- */
@@ -1251,10 +1261,21 @@ static int verify_doc(const char *path, int scope_aware)
             /* Find or create group for this subject */
             int found = -1;
             for (int g = 0; g < group_count; g++) {
-                if (vdoc_ci_strstr(groups[g].entity, subj) ||
-                    vdoc_ci_strstr(subj, groups[g].entity)) {
-                    found = g;
-                    break;
+                int subj_len = (int)strlen(subj);
+                int ent_len = (int)strlen(groups[g].entity);
+                if (subj_len >= 4 && ent_len >= 4) {
+                    /* Substring match only for longer entities */
+                    if (vdoc_ci_strstr(groups[g].entity, subj) ||
+                        vdoc_ci_strstr(subj, groups[g].entity)) {
+                        found = g;
+                        break;
+                    }
+                } else {
+                    /* Exact case-insensitive match for short entities */
+                    if (strcasecmp(groups[g].entity, subj) == 0) {
+                        found = g;
+                        break;
+                    }
                 }
             }
             if (found < 0 && group_count < VDOC_MAX_ENTITIES) {
@@ -1762,7 +1783,14 @@ int main(int argc, char **argv)
     /* tardy remember <wing> "fact" — store a fact in the palace */
     if (strcmp(cmd, "remember") == 0 && argc >= 4) {
         const char *wing = argv[2];
-        const char *fact = argv[3];
+        int fact_idx = 3;
+        if (fact_idx < argc && strcmp(argv[fact_idx], "--") == 0)
+            fact_idx++;
+        if (fact_idx >= argc) {
+            fprintf(stderr, "[tardy] error: remember requires a fact\n");
+            return 1;
+        }
+        const char *fact = argv[fact_idx];
 
         /* If daemon is running, send to daemon */
         if (tardy_daemon_is_running()) {
