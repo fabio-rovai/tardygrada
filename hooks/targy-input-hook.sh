@@ -28,13 +28,20 @@ else
   fi
 fi
 
-# HARD GATE: daemon must be running
-if ! "$TARDY" daemon status >/dev/null 2>&1; then
-  "$TARDY" daemon start >/dev/null 2>&1 || true
-  if ! "$TARDY" daemon status >/dev/null 2>&1; then
-    echo '{"continue":false,"stopReason":"[TARDYGRADA] Daemon failed to start. Session blocked. Run: tardygrada daemon start"}'
-    exit 0
+# HARD GATE: daemon must be running (retry to handle race with SessionStart hook)
+DAEMON_READY=false
+for _attempt in 1 2 3 4 5 6; do
+  if "$TARDY" daemon status >/dev/null 2>&1; then
+    DAEMON_READY=true
+    break
   fi
+  # On first failure, try starting it ourselves
+  [ "$_attempt" = 1 ] && "$TARDY" daemon start >/dev/null 2>&1 || true
+  sleep 0.5
+done
+if [ "$DAEMON_READY" = false ]; then
+  echo '{"continue":false,"stopReason":"[TARDYGRADA] Daemon failed to start. Session blocked. Run: tardygrada daemon start"}'
+  exit 0
 fi
 
 # Extract user message from stdin JSON
