@@ -495,7 +495,7 @@ int tardy_decompose(const char *text, int len,
                    ni < TARDY_MAX_TRIPLE_LEN - 1) {
                 /* Stop at '.' only if it looks like end-of-sentence */
                 if (by[ni] == '.') {
-                    if (ni + 2 < len - (int)(by - text) &&
+                    if (ni + 3 < len - (int)(by - text) &&
                         by[ni + 1] == ' ' &&
                         (by[ni + 2] >= 'A' && by[ni + 2] <= 'Z') &&
                         by[ni + 3] == '.')

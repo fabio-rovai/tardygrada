@@ -1133,7 +1133,12 @@ static int verify_doc(const char *path, int scope_aware)
                 }
             }
             sent_start = i + 1;
+            /* Track line number at the start of the next sentence */
             sent_line = line_num;
+            /* Skip past any newlines between sentences to get accurate line */
+            for (int sk = sent_start; sk < buf_len && (buf[sk] == '\n' || buf[sk] == '\r' || buf[sk] == ' '); sk++) {
+                if (buf[sk] == '\n') sent_line++;
+            }
         }
     }
 
@@ -1243,6 +1248,7 @@ static int verify_doc(const char *path, int scope_aware)
         PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (groups == MAP_FAILED) {
         fprintf(stderr, "[tardy] error: mmap failed for groups\n");
+        munmap(llm_conflicts, sizeof(vdoc_conflict_t) * VDOC_MAX_CONFLICTS);
         munmap(sentences, sizeof(vdoc_sentence_t) * VDOC_MAX_SENTENCES);
         munmap(buf, file_size + 1);
         return 1;
@@ -1380,18 +1386,36 @@ static int verify_doc(const char *path, int scope_aware)
                     pair[1] = sentences[sj].text;
                     tardy_numeric_check_t nc = tardy_numeric_verify(pair, 2);
                     if (nc.has_contradiction && conflict_count < VDOC_MAX_CONFLICTS) {
-                        vdoc_conflict_t *c = &conflicts[conflict_count];
-                        c->line_a = sentences[si].line_number;
-                        c->line_b = sentences[sj].line_number;
-                        vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
-                                      sentences[si].text);
-                        vdoc_truncate(c->sent_b, (int)sizeof(c->sent_b),
-                                      sentences[sj].text);
-                        snprintf(c->explanation, sizeof(c->explanation),
-                                 "Numeric: %s", nc.explanation);
-                        c->confidence = 0.95f;
-                        c->is_consistent = 0;
-                        conflict_count++;
+                        /* Check for duplicate (same line pair already flagged by triple check) */
+                        int dup = 0;
+                        for (int d = 0; d < conflict_count; d++) {
+                            if (conflicts[d].line_a == sentences[si].line_number &&
+                                conflicts[d].line_b == sentences[sj].line_number) {
+                                /* Keep higher confidence */
+                                if (0.95f > conflicts[d].confidence) {
+                                    conflicts[d].confidence = 0.95f;
+                                    snprintf(conflicts[d].explanation,
+                                             sizeof(conflicts[d].explanation),
+                                             "Numeric: %s", nc.explanation);
+                                }
+                                dup = 1;
+                                break;
+                            }
+                        }
+                        if (!dup) {
+                            vdoc_conflict_t *c = &conflicts[conflict_count];
+                            c->line_a = sentences[si].line_number;
+                            c->line_b = sentences[sj].line_number;
+                            vdoc_truncate(c->sent_a, (int)sizeof(c->sent_a),
+                                          sentences[si].text);
+                            vdoc_truncate(c->sent_b, (int)sizeof(c->sent_b),
+                                          sentences[sj].text);
+                            snprintf(c->explanation, sizeof(c->explanation),
+                                     "Numeric: %s", nc.explanation);
+                            c->confidence = 0.95f;
+                            c->is_consistent = 0;
+                            conflict_count++;
+                        }
                     }
                 }
 

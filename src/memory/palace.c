@@ -15,6 +15,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/file.h>
+#include <strings.h>
 
 /* ============================================
  * Timestamp helper — epoch seconds
@@ -436,8 +438,8 @@ int tardy_palace_check(tardy_palace_t *p,
                 if (f->valid_to != 0) continue;
 
                 /* Same subject+predicate, different object = contradiction */
-                if (strcmp(f->subject, subject) == 0 &&
-                    strcmp(f->predicate, predicate) == 0 &&
+                if (strcasecmp(f->subject, subject) == 0 &&
+                    strcasecmp(f->predicate, predicate) == 0 &&
                     strcmp(f->object, object) != 0) {
                     if (conflict_out)
                         *conflict_out = *f;
@@ -501,6 +503,7 @@ void tardy_palace_save(tardy_palace_t *p, const char *path)
         tardy_eprint("\n");
         return;
     }
+    flock(fd, LOCK_EX);
 
     /* Header */
     uint64_t magic = TARDY_PALACE_MAGIC;
@@ -536,6 +539,7 @@ void tardy_palace_save(tardy_palace_t *p, const char *path)
         }
     }
 
+    flock(fd, LOCK_UN);
     close(fd);
 
     char msg[512];
@@ -549,6 +553,7 @@ int tardy_palace_load(tardy_palace_t *p, const char *path)
     const char *fpath = path ? path : p->db_path;
     int fd = open(fpath, O_RDONLY);
     if (fd < 0) return -1;
+    flock(fd, LOCK_SH);
 
     /* Header */
     uint64_t magic = 0;
@@ -611,6 +616,7 @@ int tardy_palace_load(tardy_palace_t *p, const char *path)
         }
     }
 
+    flock(fd, LOCK_UN);
     close(fd);
 
     char msg[512];

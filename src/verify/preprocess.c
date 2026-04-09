@@ -75,9 +75,11 @@ int tardy_strip_markdown(char *text, int len)
             /* Only if previous char isn't already a sentence ender */
             if (oi > 0 && out[oi - 1] != '.' && out[oi - 1] != '!' &&
                 out[oi - 1] != '?' && out[oi - 1] != '\n') {
-                out[oi++] = '.';
-                out[oi++] = ' ';
-            } else if (oi > 0) {
+                if (oi + 2 < len) {
+                    out[oi++] = '.';
+                    out[oi++] = ' ';
+                }
+            } else if (oi > 0 && oi < len) {
                 out[oi++] = ' ';
             }
             i++;
