@@ -955,6 +955,7 @@ typedef struct {
     char text[VDOC_MAX_SENT_LEN];
     int  line_number;
     int  len;
+    int  scope_id;  /* scope boundary for --scope-aware mode */
     tardy_triple_t triples[16];
     int  triple_count;
 } vdoc_sentence_t;
@@ -1012,7 +1013,7 @@ static void vdoc_truncate(char *dst, int dst_size, const char *src)
     }
 }
 
-static int verify_doc(const char *path)
+static int verify_doc(const char *path, int scope_aware)
 {
     struct timespec t_start, t_end;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
@@ -1124,6 +1125,34 @@ static int verify_doc(const char *path)
             sent_start = i + 1;
             sent_line = line_num;
         }
+    }
+
+    /* ---- Phase 1b: Assign scope IDs (if --scope-aware) ---- */
+    if (scope_aware) {
+        int current_scope = 0;
+        for (int i = 0; i < sent_count; i++) {
+            /* Detect function/method/class boundaries */
+            const char *s = sentences[i].text;
+            if (strncmp(s, "def ", 4) == 0 ||           /* Python */
+                strncmp(s, "class ", 6) == 0 ||          /* Python/Java/TS */
+                strncmp(s, "fn ", 3) == 0 ||             /* Rust */
+                strncmp(s, "func ", 5) == 0 ||           /* Go */
+                strncmp(s, "function ", 9) == 0 ||       /* JS/TS */
+                strncmp(s, "static ", 7) == 0 ||         /* C */
+                strncmp(s, "void ", 5) == 0 ||           /* C/Java */
+                strncmp(s, "int ", 4) == 0 ||            /* C */
+                strncmp(s, "pub fn ", 7) == 0 ||         /* Rust */
+                strncmp(s, "async def ", 10) == 0 ||     /* Python async */
+                strncmp(s, "async fn ", 9) == 0 ||       /* Rust async */
+                (vdoc_ci_strstr(s, "def ") && vdoc_ci_strstr(s, "(self"))) { /* Python method */
+                current_scope++;
+            }
+            sentences[i].scope_id = current_scope;
+        }
+    } else {
+        /* No scope awareness — all sentences in scope 0 */
+        for (int i = 0; i < sent_count; i++)
+            sentences[i].scope_id = 0;
     }
 
     /* ---- Phase 2: Decompose each sentence into triples ---- */
@@ -1269,6 +1298,9 @@ static int verify_doc(const char *path)
                 int si = groups[g].sentence_indices[a];
                 int sj = groups[g].sentence_indices[b];
                 if (si == sj) continue;
+                /* Skip cross-scope pairs in scope-aware mode */
+                if (scope_aware && sentences[si].scope_id != sentences[sj].scope_id)
+                    continue;
                 pairs_checked++;
 
                 /* 4a: Triple consistency — same subject+predicate, different object */
@@ -1492,6 +1524,14 @@ static int verify_doc(const char *path)
     if (llm_conflict_count > 0)
         printf(", %d factual error%s (LLM)",
                llm_conflict_count, llm_conflict_count == 1 ? "" : "s");
+    if (scope_aware) {
+        int max_scope = 0;
+        for (int i = 0; i < sent_count; i++)
+            if (sentences[i].scope_id > max_scope)
+                max_scope = sentences[i].scope_id;
+        printf(", scope-aware (%d scope%s)", max_scope,
+               max_scope == 1 ? "" : "s");
+    }
     printf("\n");
     printf("Time: %ldms\n\n", elapsed_ms);
 
@@ -1618,12 +1658,36 @@ int main(int argc, char **argv)
     if (strcmp(cmd, "check") == 0 && argc >= 3)
         return check_file(argv[2]);
 
-    /* tardy verify-doc file.md — try daemon first */
+    /* tardy verify-doc file.md [--scope-aware] — try daemon first */
     if (strcmp(cmd, "verify-doc") == 0 && argc >= 3) {
+        int scope_aware = 0;
+        const char *filepath = NULL;
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "--scope-aware") == 0)
+                scope_aware = 1;
+            else if (!filepath)
+                filepath = argv[i];
+        }
+        if (!filepath) {
+            fprintf(stderr, "[tardy] error: verify-doc requires a file path\n");
+            return 1;
+        }
+        /* Auto-detect code files for scope-aware mode */
+        if (!scope_aware) {
+            const char *ext = strrchr(filepath, '.');
+            if (ext && (strcmp(ext, ".py") == 0 || strcmp(ext, ".js") == 0 ||
+                        strcmp(ext, ".ts") == 0 || strcmp(ext, ".go") == 0 ||
+                        strcmp(ext, ".rs") == 0 || strcmp(ext, ".c") == 0 ||
+                        strcmp(ext, ".h") == 0 || strcmp(ext, ".java") == 0 ||
+                        strcmp(ext, ".rb") == 0 || strcmp(ext, ".tsx") == 0 ||
+                        strcmp(ext, ".jsx") == 0)) {
+                scope_aware = 1;
+            }
+        }
         if (tardy_daemon_is_running()) {
             char request[1024];
             char escaped[512];
-            const char *src = argv[2];
+            const char *src = filepath;
             int w = 0;
             for (int i = 0; src[i] && w < (int)sizeof(escaped) - 2; i++) {
                 if (src[i] == '"' || src[i] == '\\') {
@@ -1633,7 +1697,8 @@ int main(int argc, char **argv)
             }
             escaped[w] = '\0';
             snprintf(request, sizeof(request),
-                     "{\"cmd\":\"verify-doc\",\"path\":\"%s\"}", escaped);
+                     "{\"cmd\":\"verify-doc\",\"path\":\"%s\",\"scope_aware\":%d}",
+                     escaped, scope_aware);
             char response[4096];
             int len = tardy_daemon_send(request, response, sizeof(response));
             if (len > 0) {
@@ -1643,7 +1708,7 @@ int main(int argc, char **argv)
             }
             tardy_write(STDERR_FILENO, "[tardy] daemon send failed, running standalone\n", 47);
         }
-        return verify_doc(argv[2]);
+        return verify_doc(filepath, scope_aware);
     }
 
     /* tardy spawn <name> [trust] — daemon only */
