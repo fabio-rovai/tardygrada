@@ -198,6 +198,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return self.send_error(404)
 
 
+class ReusableTCPServer(socketserver.TCPServer):
+    """Set SO_REUSEADDR before bind() so quick restarts after Ctrl+C
+    don't hit 'Address already in use' for ~60s. Standard practice on
+    development servers."""
+    allow_reuse_address = True
+
+
 def main():
     if not os.path.exists(DAEMON_SOCK):
         print(f"[!] Daemon not running at {DAEMON_SOCK}", file=sys.stderr)
@@ -206,8 +213,7 @@ def main():
     print(f"[tardygrada-dashboard] serving http://127.0.0.1:{PORT}/")
     print(f"[tardygrada-dashboard] daemon socket: {DAEMON_SOCK}")
     print("[tardygrada-dashboard] Ctrl+C to stop")
-    with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
-        httpd.allow_reuse_address = True
+    with ReusableTCPServer(("127.0.0.1", PORT), Handler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
