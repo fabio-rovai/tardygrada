@@ -38,6 +38,12 @@ A generic Claude agent walks in. You point it at a `.tardy` curriculum and the v
 git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
 # Builds in ~3 seconds. ~350 KB binary. Zero runtime deps.
 
+# 60-second guided tour of every working feature
+./demo/demo.sh
+
+# Or step through it one section at a time
+./demo/demo.sh --pause
+
 # Try the verifier on a document
 ./tardygrada verify-doc README.md
 
