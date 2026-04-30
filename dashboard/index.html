@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tardygrada — live</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --bg: #0e1014;
+      --panel: #161922;
+      --border: #232732;
+      --text: #d6dae6;
+      --text-dim: #7a8194;
+      --accent: #5cd6a4;
+      --warn: #f0b86e;
+      --bad: #e26d6d;
+      --glow: #5cd6a4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "SF Mono", monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .badge.live { color: var(--accent); border-color: var(--accent); }
+    .badge.dead { color: var(--bad); border-color: var(--bad); }
+    .stat { font-size: 11px; color: var(--text-dim); }
+    .stat strong { color: var(--text); font-family: ui-monospace, SF Mono, monospace; }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 0;
+      height: calc(100vh - 49px);
+    }
+    #treemap-wrap {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    #treemap { width: 100%; height: 100%; display: block; }
+    .cell {
+      stroke: var(--bg);
+      stroke-width: 1;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .cell.glow {
+      filter: drop-shadow(0 0 8px var(--glow))
+              drop-shadow(0 0 18px var(--glow));
+    }
+    .cell-label {
+      pointer-events: none;
+      fill: #fff;
+      font-family: ui-monospace, SF Mono, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      mix-blend-mode: screen;
+    }
+    .cell-label.small { font-size: 9px; font-weight: 400; opacity: 0.85; }
+    aside {
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .verify-input {
+      display: flex;
+      gap: 6px;
+    }
+    .verify-input input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .verify-input input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .verify-input button {
+      background: var(--accent);
+      color: var(--bg);
+      border: 0;
+      padding: 0 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .verify-input button:hover { filter: brightness(1.1); }
+    .verify-input button:disabled { opacity: 0.5; cursor: wait; }
+    .result {
+      margin-top: 10px;
+      font-family: ui-monospace, SF Mono, monospace;
+      font-size: 12px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      min-height: 38px;
+      word-break: break-word;
+    }
+    .result.verified  { border-color: var(--accent); color: var(--accent); }
+    .result.gap       { border-color: var(--warn);   color: var(--warn); }
+    .result.bad       { border-color: var(--bad);    color: var(--bad); }
+    .result .meta { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .examples button {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+    }
+    .examples button:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .legend {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+    }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+      border-bottom: 1px dotted var(--border);
+    }
+    .legend-row .swatch {
+      width: 12px; height: 12px;
+      border-radius: 2px;
+    }
+    .legend-row .pred { color: var(--text); }
+    .legend-row .count { color: var(--text-dim); font-family: ui-monospace; }
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text);
+      font-family: ui-monospace, SF Mono, monospace;
+      max-width: 280px;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 10;
+    }
+    .tooltip.show { opacity: 1; }
+    .empty {
+      padding: 30px;
+      text-align: center;
+      color: var(--text-dim);
+    }
+    footer {
+      padding: 6px 18px;
+      font-size: 10px;
+      color: var(--text-dim);
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TARDYGRADA</h1>
+    <span id="status" class="badge dead">offline</span>
+    <span class="stat">agents <strong id="agents">—</strong></span>
+    <span class="stat">palace <strong id="triples">—</strong></span>
+    <span class="stat">uptime <strong id="uptime">—</strong></span>
+    <span class="stat" style="margin-left: auto;">ontology <strong id="onto-stats">—</strong></span>
+  </header>
+
+  <main>
+    <div id="treemap-wrap">
+      <svg id="treemap" preserveAspectRatio="none"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <h2>Verify a claim</h2>
+        <div class="verify-input">
+          <input id="claim-input" placeholder="Paris is in France"
+                 autocomplete="off">
+          <button id="verify-btn">Verify</button>
+        </div>
+        <div id="result" class="result">—</div>
+        <div class="examples">
+          <button data-claim="Paris is in France">Paris is in France</button>
+          <button data-claim="Tokyo is in Japan">Tokyo is in Japan</button>
+          <button data-claim="JaneAusten created PrideAndPrejudice">JaneAusten created PrideAndPrejudice</button>
+          <button data-claim="5 + 5 = 10">5 + 5 = 10</button>
+          <button data-claim="The cat is invisible">The cat is invisible</button>
+        </div>
+      </div>
+
+      <div class="panel" style="border-bottom: 0;">
+        <h2>Predicates loaded</h2>
+      </div>
+      <div id="legend" class="legend"></div>
+    </aside>
+  </main>
+
+  <footer>
+    treemap = bundled ontology, sized by fact count per predicate · cells glow when a verified claim grounds against them
+  </footer>
+
+  <script>
+    // -------------------------------------------------------------
+    // Live state
+    // -------------------------------------------------------------
+
+    const $ = sel => document.querySelector(sel);
+    const tooltip = $("#tooltip");
+    const svg = d3.select("#treemap");
+    let treemapData = null;
+    let cellByKey = new Map(); // "predicate:subject:object" -> svg element
+
+    // -------------------------------------------------------------
+    // Daemon status polling
+    // -------------------------------------------------------------
+
+    async function poll() {
+      try {
+        const r = await fetch("/api/status");
+        const j = await r.json();
+        if (j.ok) {
+          $("#status").textContent = "live";
+          $("#status").className = "badge live";
+          $("#agents").textContent = j.agents ?? "?";
+          $("#triples").textContent = j.triples ?? "?";
+          $("#uptime").textContent = formatUptime(j.uptime);
+        } else {
+          $("#status").textContent = "offline";
+          $("#status").className = "badge dead";
+        }
+      } catch (e) {
+        $("#status").textContent = "offline";
+        $("#status").className = "badge dead";
+      }
+    }
+
+    function formatUptime(s) {
+      if (s == null) return "—";
+      if (s < 60) return s + "s";
+      if (s < 3600) return Math.floor(s / 60) + "m";
+      return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m";
+    }
+
+    // -------------------------------------------------------------
+    // Treemap layout
+    // -------------------------------------------------------------
+
+    // Stable colour per predicate name.
+    const palette = [
+      "#5cd6a4", "#f0b86e", "#7da0ff", "#e26d6d", "#c191ff",
+      "#5cb7d6", "#d6c95c", "#a4d65c", "#f08bcb", "#9aa3b5",
+    ];
+    const colorFor = d3.scaleOrdinal();
+
+    async function loadOntology() {
+      const r = await fetch("/api/ontology");
+      const data = await r.json();
+      treemapData = data;
+      colorFor
+        .domain(data.children.map(c => c.name))
+        .range(palette);
+      renderTreemap();
+      renderLegend();
+      $("#onto-stats").textContent =
+        `${data.total ?? 0} facts / ${data.predicate_count ?? 0} predicates`;
+    }
+
+    function renderTreemap() {
+      if (!treemapData) return;
+      const wrap = $("#treemap-wrap");
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      svg.attr("viewBox", `0 0 ${w} ${h}`)
+         .attr("width", w).attr("height", h);
+      svg.selectAll("*").remove();
+      cellByKey.clear();
+
+      const root = d3.hierarchy(treemapData)
+        .sum(d => d.value || 0)
+        .sort((a, b) => b.value - a.value);
+
+      d3.treemap()
+        .size([w, h])
+        .paddingInner(2)
+        .paddingTop(d => d.depth === 1 ? 14 : 0)
+        .round(true)(root);
+
+      // Group cell containers
+      const leaves = svg.selectAll("g.leaf")
+        .data(root.leaves())
+        .join("g")
+        .attr("class", "leaf")
+        .attr("transform", d => `translate(${d.x0},${d.y0})`);
+
+      leaves.append("rect")
+        .attr("class", "cell")
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("fill", d => {
+          const pred = d.parent.data.name;
+          return colorFor(pred);
+        })
+        .attr("data-key", d => {
+          const p = d.parent.data.name;
+          return `${p}:${d.data.subject}:${d.data.object}`;
+        })
+        .on("mousemove", function (e, d) {
+          const wrap = $("#treemap-wrap").getBoundingClientRect();
+          tooltip.style.left = (e.clientX - wrap.left + 10) + "px";
+          tooltip.style.top = (e.clientY - wrap.top + 10) + "px";
+          tooltip.classList.add("show");
+          tooltip.innerHTML =
+            `<strong>${escapeHtml(d.data.subject)}</strong>
+             <span style="color:var(--text-dim)">${escapeHtml(d.parent.data.name)}</span>
+             <strong>${escapeHtml(d.data.object)}</strong>`;
+        })
+        .on("mouseout", () => tooltip.classList.remove("show"));
+
+      // Per-predicate header tiles
+      svg.selectAll("g.group")
+        .data(root.descendants().filter(d => d.depth === 1))
+        .join("g")
+        .attr("class", "group")
+        .attr("transform", d => `translate(${d.x0},${d.y0})`)
+        .append("text")
+          .attr("class", "cell-label")
+          .attr("x", 4).attr("y", 11)
+          .text(d => d.data.name + " · " + d.data.count);
+
+      // Build the lookup
+      leaves.each(function (d) {
+        const p = d.parent.data.name;
+        const key = `${p}:${d.data.subject}:${d.data.object}`;
+        cellByKey.set(key.toLowerCase(), this.querySelector("rect"));
+      });
+    }
+
+    function renderLegend() {
+      if (!treemapData) return;
+      const legend = $("#legend");
+      legend.innerHTML = "";
+      treemapData.children.forEach(c => {
+        const row = document.createElement("div");
+        row.className = "legend-row";
+        row.innerHTML = `
+          <div class="swatch" style="background:${colorFor(c.name)}"></div>
+          <div class="pred">${escapeHtml(c.name)}</div>
+          <div class="count">${c.count}</div>`;
+        legend.appendChild(row);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // -------------------------------------------------------------
+    // Verify a claim — make matching cells glow
+    // -------------------------------------------------------------
+
+    async function verify(claim) {
+      const btn = $("#verify-btn");
+      const out = $("#result");
+      btn.disabled = true;
+      out.className = "result";
+      out.textContent = "verifying...";
+
+      try {
+        const r = await fetch("/api/run?claim=" + encodeURIComponent(claim));
+        const j = await r.json();
+        const result = j.result || (j.error || "no result");
+        const conf = j.confidence;
+        if (result === "VERIFIED") {
+          out.className = "result verified";
+          out.innerHTML = `✓ VERIFIED · confidence ${conf?.toFixed?.(2) ?? conf}` +
+                          `<div class="meta">${j._ms}ms</div>`;
+          glowMatchingCells(claim);
+        } else if (result === "ontology_gap" || result === "low_confidence") {
+          out.className = "result gap";
+          out.innerHTML = `⚠ ${result}` +
+                          `<div class="meta">no grounding evidence</div>`;
+        } else if (j.ok === false) {
+          out.className = "result bad";
+          out.textContent = "✗ " + result;
+        } else {
+          out.className = "result bad";
+          out.innerHTML = `✗ ${result}` +
+                          `<div class="meta">conf ${conf}</div>`;
+        }
+      } catch (e) {
+        out.className = "result bad";
+        out.textContent = "request failed: " + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function glowMatchingCells(claim) {
+      // Naive: glow any cell whose subject or object name appears
+      // (case-insensitively) in the claim text. Good-enough for demo.
+      // Cells unglow themselves after a short delay.
+      const lower = claim.toLowerCase();
+      cellByKey.forEach((rect, key) => {
+        // key = "predicate:subject:object"
+        const [, subj, obj] = key.split(":");
+        if (subj && obj && lower.includes(subj) && lower.includes(obj)) {
+          rect.classList.add("glow");
+          setTimeout(() => rect.classList.remove("glow"), 2200);
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Wire it up
+    // -------------------------------------------------------------
+
+    $("#verify-btn").addEventListener("click",
+      () => verify($("#claim-input").value));
+    $("#claim-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") verify($("#claim-input").value);
+    });
+    document.querySelectorAll(".examples button").forEach(b => {
+      b.addEventListener("click", () => {
+        const claim = b.dataset.claim;
+        $("#claim-input").value = claim;
+        verify(claim);
+      });
+    });
+
+    window.addEventListener("resize", () => renderTreemap());
+
+    // Initial paint
+    poll();
+    setInterval(poll, 2000);
+    loadOntology();
+  </script>
+</body>
+</html>

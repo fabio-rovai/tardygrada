@@ -50,6 +50,11 @@ git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
 # Start the persistent daemon
 ./tardygrada daemon start
 ./tardygrada status
+
+# Open the live dashboard (treemap of the loaded ontology +
+# claim verification panel; cells glow when a claim grounds)
+make dashboard
+# then visit http://127.0.0.1:8765
 ```
 
 **Plug into Claude Code** (MCP):

@@ -61,7 +61,7 @@ SRC = src/main.c \
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
 
-.PHONY: all clean run size bench test
+.PHONY: all clean run size bench test dashboard
 
 all: $(BIN)
 
@@ -100,6 +100,17 @@ bench: $(BIN)
 test: $(BIN)
 	@$(MAKE) -C evaluation >/dev/null
 	@./tests/smoke.sh
+
+# Live dashboard — d3 treemap of the bundled ontology + a verify panel
+# that lights up the cells a claim grounds against. Requires the daemon
+# to be running. Opens on http://127.0.0.1:8765 by default.
+dashboard: $(BIN)
+	@if [ ! -S /tmp/tardygrada.sock ]; then \
+		echo "[!] Daemon not running. Start it first:"; \
+		echo "    ./$(BIN) daemon start"; \
+		exit 1; \
+	fi
+	@python3 dashboard/server.py
 
 clean:
 	rm -f $(OBJ) $(BIN) src/vm/monocypher.o
