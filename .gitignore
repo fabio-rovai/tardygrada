@@ -7,6 +7,7 @@ docs/
 tardygrada
 tardygrada_dbg
 tests/runrss
+tests/grounding_probe
 /tmp/
 *.vo
 *.glob

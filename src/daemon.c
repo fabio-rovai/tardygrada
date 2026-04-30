@@ -241,19 +241,27 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
         consistency.consistent = true;
     }
 
-    /* Work log */
+    /* Work log. We pre-fill with the operations the BFT 3-pass will
+     * actually perform; the work-verify layer reads this to detect
+     * lazy/faked work. Counts match what the loops below execute:
+     * the self-ontology grounding does 2 Datalog queries per triple
+     * (normalized + raw names — see src/ontology/self.c), the BFT
+     * 3-pass spawns 3 verification agents (mirrors mcp/server.c).
+     * Without these realistic counts, even a perfectly verified claim
+     * fails the work-verify layer with a SHALLOW/laziness reason. */
     tardy_work_log_t work_log;
     tardy_worklog_init(&work_log);
     if (comp_result == 1) {
         work_log.ontology_queries = 2;
         work_log.context_reads = 1;
-        work_log.agents_spawned = 1;
+        work_log.agents_spawned = 3;
         work_log.compute_ns = 10000000;
     } else {
-        work_log.ontology_queries = (srv->bridge_connected ||
-            srv->self_ontology.triple_count > 0) ? triple_count : 0;
+        int has_ontology = (srv->bridge_connected ||
+            srv->self_ontology.triple_count > 0);
+        work_log.ontology_queries = has_ontology ? triple_count * 2 : 0;
         work_log.context_reads = triple_count;
-        work_log.agents_spawned = 1;
+        work_log.agents_spawned = 3; /* BFT 3-pass = 3 verification agents */
         work_log.compute_ns = 10000000;
     }
 

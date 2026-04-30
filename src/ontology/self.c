@@ -402,8 +402,17 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
 
         if (evidence > 0) {
             out->results[i].status = TARDY_KNOWLEDGE_GROUNDED;
+            /* Confidence per evidence count. Single-evidence is set to
+             * 0.85 (the default min_confidence threshold) rather than
+             * 0.80, because facts in the self-ontology are stored as
+             * @sovereign agents and Datalog-derived facts inherit that
+             * provenance — a single hit is still a sovereign-grade
+             * assertion, not a guess. Below this, the headline example
+             * `tardy run "Paris is in France"` returns low_confidence
+             * even though `capitalOf(Paris, France)` is loaded and
+             * `capitalOf -> located_in` fires correctly. */
             out->results[i].confidence = evidence > 2 ? 0.95f :
-                                          (evidence > 1 ? 0.90f : 0.80f);
+                                          (evidence > 1 ? 0.90f : 0.85f);
             out->results[i].evidence_count = evidence;
             out->grounded++;
         } else if (contradictions > 0) {

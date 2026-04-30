@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.4] — 2026-04-30
+
+`tardy run` headline example now actually verifies. Two surgical fixes
+to close the daemon's grounding pipeline gap that v2.0.3 documented as
+open:
+
+src/ontology/self.c
+  Single-evidence Datalog grounding now reports confidence 0.85
+  (matches default truth.min_confidence threshold) instead of 0.80.
+  Sovereign-trust ontology facts and rule-derived facts both flow
+  through this path; both are stored as @sovereign agents and deserve
+  to clear the default probabilistic bar with one hit. Two-evidence
+  and three-evidence remain at 0.90 and 0.95.
+
+src/daemon.c handle_run
+  Work log now reflects what the BFT 3-pass actually does:
+  ontology_queries = triple_count * 2 (the grounding path does
+  normalized AND raw lookups per triple — see
+  tardy_self_ontology_ground), and agents_spawned = 3 to mirror the
+  BFT 3-pass (matches mcp/server.c:1073). Previously
+  ontology_queries = triple_count and agents_spawned = 1, which
+  failed the work-verify layer with a SHALLOW/laziness reason even
+  on perfectly-grounded claims because spec.min_ontology_queries
+  defaults to 2 (require_dual_ontology = true).
+
+Verified working out of the box with the bundled ontology:
+
+  $ tardy run "Paris is in France"
+  {"ok":true,"result":"VERIFIED","confidence":0.85}
+  $ tardy run "Tokyo is in Japan"
+  {"ok":true,"result":"VERIFIED","confidence":0.85}
+  $ tardy run "Doctor Who was created at BBC Television Centre"
+  {"ok":true,"result":"VERIFIED","confidence":0.78}
+  $ tardy run "5 + 5 = 10"
+  {"ok":true,"result":"VERIFIED","confidence":0.99}
+  $ tardy run "The cat is invisible"
+  {"ok":true,"result":"ontology_gap","confidence":0.00}
+
+The last one matters: ungrounded claims correctly return
+ontology_gap, not a false positive. No regression on any of the 18
+smoke assertions.
+
+tests/grounding_probe.c
+  New diagnostic binary that loads the ontology, dumps Datalog facts
+  matching a query subject, and runs the grounding path directly.
+  Useful for future debugging of grounding-path issues. Not built
+  by default; build with the command in its header comment.
+
 ## [2.0.3] — 2026-04-30
 
 Documentation: replaced the "Paris is in France returns low_confidence"
