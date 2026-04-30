@@ -1,14 +1,25 @@
 CC = cc
 CFLAGS = -Wall -Wextra -Werror -pedantic -std=c11 -O2 -Isrc
+# Hardening: stack protection, fortified libc, position-independent code.
+# These add negligible overhead at -O2 and close common exploit classes.
+HARDEN_CFLAGS  = -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
+CFLAGS += $(HARDEN_CFLAGS)
+
 # Linux needs _DEFAULT_SOURCE for clock_gettime + MAP_ANONYMOUS
 UNAME := $(shell uname)
+HARDEN_LDFLAGS =
 ifeq ($(UNAME),Linux)
   CFLAGS += -D_DEFAULT_SOURCE -Wno-stringop-truncation -Wno-format-truncation -Wno-stringop-overflow
+  # Linux: PIE link + RELRO + immediate binding. (macOS clang makes
+  # executables position-independent by default and warns on -pie, so
+  # we keep these Linux-only.)
+  HARDEN_LDFLAGS += -pie -Wl,-z,relro,-z,now
 endif
-LDFLAGS =
+LDFLAGS = $(HARDEN_LDFLAGS)
 
-# Monocypher compiled separately (no -pedantic, it uses extensions)
-MONOCYPHER_FLAGS = -Wall -O2 -std=c11 -Isrc
+# Monocypher compiled separately (no -pedantic, it uses extensions).
+# Apply the same hardening flags to keep the whole binary consistent.
+MONOCYPHER_FLAGS = -Wall -O2 -std=c11 -Isrc $(HARDEN_CFLAGS)
 ifeq ($(UNAME),Linux)
   MONOCYPHER_FLAGS += -D_DEFAULT_SOURCE
 endif
@@ -50,7 +61,7 @@ SRC = src/main.c \
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
 
-.PHONY: all clean run size bench
+.PHONY: all clean run size bench test
 
 all: $(BIN)
 
@@ -82,6 +93,13 @@ bench: $(BIN)
 		src/mcp/json.c src/ontology/bridge.c
 	./bench
 	rm -f bench
+
+# Smoke tests — fast assertions on the parts that already work.
+# Builds main binary and evaluation binaries on demand, then runs
+# tests/smoke.sh which asserts F1/timing thresholds and rename invariants.
+test: $(BIN)
+	@$(MAKE) -C evaluation >/dev/null
+	@./tests/smoke.sh
 
 clean:
 	rm -f $(OBJ) $(BIN) src/vm/monocypher.o

@@ -628,13 +628,60 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             return json_error(resp, resp_size, "missing path field");
         char path[512];
         tardy_json_str(&parser, path_tok, path, sizeof(path));
-        /* For verify-doc we just report that it's been received;
-         * full doc verification output goes to stderr like standalone */
-        char escaped[512];
-        json_escape(path, escaped, sizeof(escaped));
+
+        int scope_aware = 0;
+        int sa_tok = tardy_json_find(&parser, 0, "scope_aware");
+        if (sa_tok >= 0)
+            scope_aware = (int)tardy_json_int(&parser, sa_tok);
+
+        /* Actually run the verifier. Previously this returned a "dispatched"
+         * stub without doing any work; now we redirect stdout to a tmpfile,
+         * invoke verify_doc, and return both the contradiction count and a
+         * truncated report so MCP clients get the same information the CLI
+         * gives users. */
+        extern int verify_doc(const char *path, int scope_aware);
+
+        FILE *tmp = tmpfile();
+        int saved_stdout = -1;
+        int contradictions = -1;
+        char report[5120];
+        report[0] = '\0';
+
+        if (tmp) {
+            fflush(stdout);
+            saved_stdout = dup(STDOUT_FILENO);
+            if (saved_stdout >= 0 &&
+                dup2(fileno(tmp), STDOUT_FILENO) >= 0) {
+                contradictions = verify_doc(path, scope_aware);
+                fflush(stdout);
+                dup2(saved_stdout, STDOUT_FILENO);
+            }
+            if (saved_stdout >= 0)
+                close(saved_stdout);
+
+            /* Read back the captured report (bounded). */
+            rewind(tmp);
+            size_t rd_total = 0;
+            size_t rd;
+            while (rd_total < sizeof(report) - 1 &&
+                   (rd = fread(report + rd_total, 1,
+                               sizeof(report) - 1 - rd_total, tmp)) > 0)
+                rd_total += rd;
+            report[rd_total] = '\0';
+            fclose(tmp);
+        }
+
+        if (contradictions < 0)
+            return json_error(resp, resp_size, "verify-doc failed");
+
+        char escaped_path[1024];
+        json_escape(path, escaped_path, sizeof(escaped_path));
+        char escaped_report[6144];
+        json_escape(report, escaped_report, sizeof(escaped_report));
+
         return snprintf(resp, resp_size,
-            "{\"ok\":true,\"result\":\"verify-doc dispatched\",\"path\":\"%s\"}",
-            escaped);
+            "{\"ok\":true,\"contradictions\":%d,\"path\":\"%s\",\"report\":\"%s\"}",
+            contradictions, escaped_path, escaped_report);
     }
 
     if (strcmp(cmd, "spawn") == 0) {
@@ -702,6 +749,14 @@ static void daemon_cleanup(void)
         tardy_vm_shutdown(daemon_vm);
         munmap(daemon_vm, sizeof(tardy_vm_t));
         daemon_vm = NULL;
+    }
+
+    /* Free the MCP server mmap on every shutdown path, not only the
+     * happy path. Previously this leaked sizeof(tardy_mcp_server_t) on
+     * any error after the srv mmap. */
+    if (daemon_srv) {
+        munmap(daemon_srv, sizeof(tardy_mcp_server_t));
+        daemon_srv = NULL;
     }
 
     if (listen_fd >= 0) {
@@ -861,8 +916,18 @@ int tardy_daemon_start(const char *config_path, int foreground)
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, TARDY_DAEMON_SOCKET, sizeof(addr.sun_path) - 1);
 
-    if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    /* Restrict socket to current user only — bind respects umask */
+    mode_t prev_umask = umask(0077);
+    int bind_rc = bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr));
+    umask(prev_umask);
+    if (bind_rc < 0) {
         tardy_write(STDERR_FILENO, "[daemon] bind failed\n", 21);
+        daemon_cleanup();
+        return 1;
+    }
+    /* Belt-and-braces: enforce 0600 even if umask was overridden */
+    if (chmod(TARDY_DAEMON_SOCKET, 0600) < 0) {
+        tardy_write(STDERR_FILENO, "[daemon] chmod socket failed\n", 29);
         daemon_cleanup();
         return 1;
     }
@@ -885,14 +950,33 @@ int tardy_daemon_start(const char *config_path, int foreground)
             continue;
         }
 
-        /* Read one JSON line from client */
+        /* DoS hardening: 5s recv timeout so a slow/idle client cannot
+         * indefinitely block this single-threaded daemon. */
+        struct timeval rcv_to = { .tv_sec = 5, .tv_usec = 0 };
+        (void)setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO,
+                         &rcv_to, sizeof(rcv_to));
+        struct timeval snd_to = { .tv_sec = 5, .tv_usec = 0 };
+        (void)setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO,
+                         &snd_to, sizeof(snd_to));
+
+        /* Read one JSON line from client. Buffered read scanning for '\n'
+         * is faster than byte-by-byte and still bounded by request size. */
         char request[TARDY_DAEMON_BUF];
         int req_len = 0;
         while (req_len < (int)sizeof(request) - 1) {
-            ssize_t n = read(client_fd, request + req_len, 1);
+            ssize_t n = read(client_fd, request + req_len,
+                             sizeof(request) - 1 - req_len);
             if (n <= 0) break;
-            if (request[req_len] == '\n') break;
-            req_len++;
+            int found_nl = 0;
+            for (ssize_t i = 0; i < n; i++) {
+                if (request[req_len + i] == '\n') {
+                    req_len += (int)i;
+                    found_nl = 1;
+                    break;
+                }
+            }
+            if (found_nl) break;
+            req_len += (int)n;
         }
         request[req_len] = '\0';
 
@@ -912,9 +996,9 @@ int tardy_daemon_start(const char *config_path, int foreground)
         close(client_fd);
     }
 
-    /* Clean shutdown */
+    /* Clean shutdown — daemon_cleanup() now owns the srv munmap so all
+     * exit paths free it consistently. */
     daemon_cleanup();
-    munmap(srv, sizeof(tardy_mcp_server_t));
     return 0;
 }
 

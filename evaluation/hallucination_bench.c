@@ -430,8 +430,37 @@ static double f1_score(const confusion_t *c)
 
 int main(void)
 {
-    printf("=== Compositional Hallucination Detection Benchmark (%d cases) ===\n\n",
+    /* ====================================================================
+     * QUARANTINE BANNER (added in v2.0)
+     * --------------------------------------------------------------------
+     * This benchmark uses a SYNTHETIC test set with hand-coded boolean
+     * answer-key arrays in evaluation/hallucination_data.h. The test
+     * harness sets the expected consistency state directly via
+     * set_inconsistent() / set_consistent() before invoking the pipeline.
+     *
+     * The numbers this binary prints are therefore NOT a measurement of
+     * detection capability and MUST NOT be used as a comparison against
+     * other systems. Kept only for ablation studies on a fixed corpus.
+     *
+     * For a real measurement of contradiction / hallucination detection
+     * capability, run instead:
+     *     ./contradoc_bench   (real ContraDoc 891 documents)
+     *     ./agenthallu_bench  (real AgentHallu 693 trajectories)
+     *
+     * See CHANGELOG.md (v2.0, "Scope clarifications") for the full write-up.
+     * ==================================================================== */
+    fprintf(stderr,
+        "\n"
+        "================================================================\n"
+        " WARNING: hallucination_bench is a SYNTHETIC benchmark with a\n"
+        " hand-coded answer key. Numbers below do NOT measure detection\n"
+        " capability. Use contradoc_bench or agenthallu_bench instead.\n"
+        " See CHANGELOG.md v2.0 for details.\n"
+        "================================================================\n\n");
+
+    printf("=== Compositional Hallucination Detection Benchmark (%d cases) ===\n",
            NUM_CASES);
+    printf("=== SYNTHETIC TEST SET — see WARNING above ===\n\n");
 
     tardy_semantics_t base_sem = TARDY_DEFAULT_SEMANTICS;
     base_sem.pipeline.layer_ontology_grounding    = true;
@@ -570,7 +599,7 @@ int main(void)
 
     printf("\n--- Group B: Per-Difficulty Breakdown ---\n\n");
     printf("%-14s  %5s  %10s  %10s  %10s  %10s  %10s\n",
-           "Difficulty", "Total", "Indiv Det", "SelfCheck", "FActScore", "Pipe Det", "Pipe Rate");
+           "Difficulty", "Total", "Indiv Det", "LexBase", "FActScore", "Pipe Det", "Pipe Rate");
     printf("%-14s  %5s  %10s  %10s  %10s  %10s  %10s\n",
            "--------------", "-----", "----------", "----------", "----------", "----------", "----------");
 

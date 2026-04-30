@@ -5,201 +5,143 @@
   <img src="tardygrada-logo.png" alt="Tardygrada" width="200">
 </p>
 
-<h3 align="center">Catch lazy agents, contradicting claims, and tampered data</h3>
+<h3 align="center">The school where AI agents go to specialize.</h3>
+<p align="center">A tiny C runtime that turns generic LLM agents into verified specialists, and checks their work on the way out.</p>
 
 ---
 
-## Your agent says it checked three sources. Did it?
+## What this is
 
-Your document says "completed on time" on page 2 and "delayed 3 months" on page 7. Did anyone notice?
+**Two things in one 350 KB C binary.**
 
-Your scoring pipeline passed through 5 agents. Can you prove the scores weren't changed along the way?
+1. **A verification runtime.** Catches LLM contradictions, agent traces that *say* they did work but didn't, and tampered intermediate data. Plugs into Claude Code, Cursor, or Qwen Code as an MCP server.
+
+2. **A specialization layer.** A small language (`.tardy`) for writing verifiable, agent-shaped programs. Compiled `.tardy` files run as MCP servers themselves — a "curriculum" your generic agent can pick up to behave as a domain specialist.
+
+The mental model:
+
+| | |
+|---|---|
+| Agents | the students |
+| `.tardy` programs | the curriculum |
+| 8-layer verification pipeline | the exam |
+| Persistent daemon + memory palace | the campus |
+| MCP bridge | the front gate |
+
+A generic Claude agent walks in. You point it at a `.tardy` curriculum and the verification pipeline. It walks out doing the work it was sent to do, with every claim grounded and every step audit-logged.
+
+---
+
+## Quick start
 
 ```bash
 git clone https://github.com/fabio-rovai/tardygrada && cd tardygrada && make
+# Builds in ~3 seconds. ~350 KB binary. Zero runtime deps.
 
-tardy run "Paris is in France"                    # VERIFIED (80%)
-tardy verify-doc report.md                        # 2 contradictions found
-tardy daemon start && tardy run "check this"      # persistent, remembers everything
+# Try the verifier on a document
+./tardygrada verify-doc README.md
+
+# Start the persistent daemon
+./tardygrada daemon start
+./tardygrada status
 ```
 
----
+**Plug into Claude Code** (MCP):
 
-## What it does
-
-### Catches lazy agents
-
-Your agent claims it queried the knowledge base, consulted sources, and cross-checked. Tardygrada records every operation independently — like a dashcam. If the agent faked it, you'll know.
-
-| Laziness type | What it means | Caught? |
-|---|---|:-:|
-| Did nothing, produced output anyway | NoWork | Yes |
-| Skimmed instead of analyzing | ShallowWork | Yes |
-| Fabricated evidence of work | FakeProof | Yes |
-| Copied another agent's answer | CopiedWork | Yes |
-| "Verified" itself in a circle | CircularVerification | Yes |
-
-### Catches contradicting claims
-
-"The project was completed on time." and "The project was delayed by 3 months." — both sound fine alone. Together, they're a contradiction. Existing tools check claims one by one and miss this.
-
-Tardygrada checks them together. Three layers:
-- Logical contradictions (direct opposites, impossible combinations)
-- Numeric contradictions (the math doesn't add up)
-- Domain contradictions (the science doesn't work)
-
-```bash
-tardy verify-doc paper.md
-# [CONFLICT] Lines 42 vs 89:
-#   "We used no external APIs"
-#   "API costs totalled $2,400"
-#   → claims no APIs but reports API costs
-```
-
-### Catches tampered data
-
-A score of 8.5 stored in a Python dict — any agent can silently change it to 9.5. In Tardygrada, values are locked by the operating system. Tampering requires breaking SHA-256 or forging an ed25519 signature.
-
----
-
-## Get started
-
-**Just the CLI:**
-```bash
-make                                    # builds in < 3 seconds
-tardy run "your claim here"             # verify anything
-tardy verify-doc your-file.md           # scan for contradictions
-```
-
-**Persistent mode** (remembers between runs):
-```bash
-tardy daemon start                      # start background service
-tardy run "claim"                       # uses persistent knowledge base
-tardy daemon status                     # see what it knows
-tardy daemon stop                       # clean shutdown
-```
-
-**Inside Claude Code** (MCP server):
 ```json
 {
   "mcpServers": {
     "tardygrada": {
-      "command": "tardygrada",
+      "command": "/path/to/tardygrada",
       "args": ["mcp-bridge"]
     }
   }
 }
 ```
-Then just ask: *"verify this document for contradictions"*
 
-**Inside Claude Code** (session monitor):
+The bridge exposes five tools: `verify_claim`, `verify_document`, `spawn_agent`, `read_agent`, `daemon_status`. Then in Claude: *"verify this document for contradictions"*.
 
-```bash
-/targyactivate
-```
-
-Activates Tardygrada as a contradiction monitor for the entire session. Every claim you and Claude make is recorded in the palace memory and checked against session history. If either side contradicts itself, Tardygrada flags it. Say `targy off` to deactivate.
-
-**Inside Qwen Code** (MCP server):
-
-Qwen Code uses newline-delimited JSON-RPC instead of Content-Length framing. Use the included adapter:
+**Plug into Qwen Code** (newline-delimited JSON-RPC adapter):
 
 ```json
 {
   "mcpServers": {
     "tardygrada": {
       "command": "/bin/bash",
-      "args": ["path/to/tardygrada/hooks/targy-mcp-wrapper.sh"]
+      "args": ["/path/to/tardygrada/hooks/targy-mcp-wrapper.sh"]
     }
   }
 }
 ```
 
-This gives Qwen Code access to `verify_claim`, `verify_document`, `spawn_agent`, `read_agent`, and `daemon_status` as native MCP tools. The wrapper starts the daemon automatically if it isn't running.
+---
 
-**Convert your existing agents:**
+## What works today (honest list)
+
+| Capability | Status | Number |
+|---|---|---|
+| Real-document contradiction detection (ContraDoc, 891 docs) | Real benchmark on real data | **F1 0.58** |
+| Agent-trajectory hallucination detection (AgentHallu, 693 trajectories) | Real benchmark on real data | **F1 0.58** |
+| Laziness / fake-work detection (synthetic adversarial traces, 100) | Synthetic, designed-for-it | **F1 0.92, 0 false positives** |
+| Memory tampering detection (OS mprotect + SHA-256 + ed25519) | Real OS-level enforcement | n/a |
+| VM scaling (5 → 5,000 agents) | Real | ~92 ms total |
+| MCP bridge (Claude Code, Qwen Code, Cursor) | Real, four of five tools fully wired (see below) | — |
+| `tardy verify-doc` over MCP | Wired to the real pipeline as of v2.0 | — |
+
+---
+
+## What does NOT work, or works differently than you'd expect
+
+**This section exists because previous READMEs hand-waved over these. They don't anymore.**
+
+- **HaluEval F1 0.03.** This benchmark tests single-sentence factual errors against world knowledge ("Paris is the capital of Germany"). That is a retrieval problem, not a verification problem, and Tardygrada is bad at it. We catch claims that contradict *each other* or contradict an attached ontology — not isolated false statements. Use a retrieval-augmented LLM for HaluEval-style tasks.
+
+- **`tardy terraform` is a skeleton extractor, not a framework rewrite.** It scans an existing CrewAI / LangGraph / LlamaIndex / AutoGen / etc. repo and emits an agent-shaped `.tardy` skeleton with stubbed tool bodies. Each tool body must be wired to a real implementation by the user. Treat the output as migration scaffolding around the verification pipeline, not as a working drop-in for the framework. Files in `terraform_prs/` are demonstration scaffolds, not running ports.
+
+- **The lexical baseline in benchmarks is NOT SelfCheckGPT.** The in-repo `lexical_baseline_evaluate` is a deterministic hand-coded antonym/negation heuristic. It is *not* the published SelfCheckGPT (which uses LLM sampling + NLI). The legacy name `selfcheck_evaluate` and the column header `SelfCheck` were renamed in v2.0; benchmark output now prints `LexBase`. See `evaluation/baselines.h` for what the heuristic actually does.
+
+- **`tardy_llm_decompose` does not call an LLM by itself.** It's lexical pattern matching on cue terms (Bonferroni, ISA mismatch, blood type compatibility, etc.). The function was renamed to `tardy_lexical_decompose` in v2.0. The old name is kept as a backwards-compatible inline shim. A separate, opt-in path in `src/mcp/server.c` *does* call Anthropic when `TARDY_LLM_DECOMPOSE=1` is set — that path is unrelated to this file.
+
+- **Coq proofs cover the abstract BFT algorithm, not the C implementation.** `proofs/consensus.v` is real, complete, and `Qed.`-closed (no `Admitted`). It proves abstract majority-vote safety. It does NOT prove the C code is a refinement of that abstraction; the implementation is a faithful translation by hand.
+
+- **Verifying a default-installed daemon with "Paris is in France" returns `low_confidence`, not `VERIFIED`.** Grounding requires the optional `tests/wikidata_common.nt` ontology to be loaded. The README example you may have seen in older versions overstated this.
+
+---
+
+## Catches what (with examples that actually work)
+
+### Contradicting claims across a document
+
 ```bash
-tardy terraform /path/to/crewai         # 153K lines → 53 instructions
-tardy terraform /path/to/llamaindex     # 237K lines → 15 instructions
+./tardygrada verify-doc paper.md
+# === Tardygrada Document Verification ===
+# File: paper.md
+# Sentences: 87
+# Triples extracted: 121
+# [CONFLICT] Lines 42 vs 89:
+#   "We used no external APIs"
+#   "API costs totalled $2,400"
+#   -> claims no APIs but reports API costs
+#   Confidence: 0.85
 ```
 
----
+Three layers run together: triple consistency (same subject + predicate, different object), numeric checks (the math doesn't add up), and the lexical implicit-relation layer (cue patterns).
 
-## How well does it work?
+### Lazy / fake-work agents
 
-### Laziness detection
+`laziness_bench` produces synthetic agent traces designed to test the detector. Catches: did-nothing-but-produced-output, skimmed-instead-of-analyzed, fabricated-evidence-of-work, copied-another-agent's-answer, verified-itself-in-a-circle. F1 0.92 across 100 adversarial traces.
 
-| | Precision | Recall | F1 |
-|---|:-:|:-:|:-:|
-| Clear cases (60 traces) | 1.00 | 1.00 | 1.00 |
-| + Adversarial (100 total) | 1.00 | 0.85 | **0.92** |
+### Tampered intermediate data
 
-100 traces total. Zero false positives. Smart copiers who change 10-15% of the text slip through (similarity below threshold) — a known limitation. No existing tool does any of this.
-
-### Contradiction and hallucination detection
-
-| Dataset | What it is | Tardygrada | Best alternative |
-|---|---|:-:|:-:|
-| Clear contradictions (125) | Designed compositional | **95%** | SelfCheck: 59% |
-| + Borderline cases (225 total) | Soft/ambiguous contradictions | **69%** | SelfCheck: 38% |
-| **AgentHallu (693 trajectories)** | Real agent hallucinations, 7 frameworks | **F1: 0.58** | DeepSeek-V3.1: 0.52 |
-| **ContraDoc (891 docs)** | Real documents, human-annotated | **F1: 0.58** | SelfCheck: 0.16 |
-| HaluEval (500 responses) | Individual factual errors | F1: 0.03 | SelfCheck: 0.32 |
-
-Detection runs in two modes: deterministic (all benchmarks use this) or LLM-enhanced for broader coverage. Typical speeds: 5.7ms/trajectory (AgentHallu), 7.5ms/document (ContraDoc), 0.015ms/case (synthetic).
-
-On ContraDoc (891 real documents) — **F1 0.58**, up from 0.16 after fixing a bug where the benchmark accidentally used the SelfCheck baseline instead of proper triple checking. Recall jumped from 9.1% to 64.8%.
-
-On AgentHallu (693 real agent trajectories) — **F1 0.58**, beats DeepSeek-V3.1 (0.52). GPT-5 gets 0.70 but costs per-trajectory API calls.
-
-HaluEval (individual factual errors) — F1 0.03. Expected: our pipeline catches contradictions between claims, not individual factual mistakes. SelfCheck does better here (0.32) because its loose heuristics accidentally catch some errors.
-
-> **What runs where:** Contradiction detection (verify-doc, all benchmarks) uses the internal decomposition + consistency + numeric layers — no external calls. Claim grounding (`tardy run "claim"`) optionally connects to [open-ontologies](https://github.com/fabio-rovai/open-ontologies) for OWL reasoning, or uses the built-in Datalog engine. Different features, different paths.
-
-<details>
-<summary>AgentHallu per-category recall</summary>
-
-| Category | Recall |
-|---|:-:|
-| Reasoning | 68% |
-| Planning | 66% |
-| Retrieval | 59% |
-| Human-Interaction | 53% |
-| Tool-Use | 21% |
-
-</details>
-
-<details>
-<summary>Detailed breakdown (clear cases)</summary>
-
-| Difficulty | Detection |
-|---|:-:|
-| Easy (direct opposites) | 100% |
-| Medium (logical) | 100% |
-| Hard (math/physics) | 96% |
-| Subtle (domain knowledge) | 92% |
-| Very subtle (statistical) | 88% |
-
-</details>
-
-### Scaling
-
-| Agents | Time |
-|-------:|-----:|
-| 5 | 0.6 ms |
-| 500 | 21 ms |
-| 5,000 | 97 ms |
+Values created with `let x = 5 @verified` are protected at the OS page-table level (`mprotect`) plus a SHA-256 read-time check. `@hardened` adds replicas + a Byzantine vote. `@sovereign` adds ed25519 signatures and BFT consensus. Tampering requires breaking SHA-256 or forging an ed25519 signature.
 
 ---
 
-## Under the hood
-
-<details>
-<summary><b>How verification works</b></summary>
+## How verification works
 
 ```mermaid
 graph LR
-    subgraph Pipeline["Verification Pipeline"]
+    subgraph Pipeline["Verification Pipeline (8 layers)"]
         direction LR
         C["Claim"] --> D["Decompose"]
         D --> G["Ground"]
@@ -211,60 +153,20 @@ graph LR
         CR --> W["Work Verify"]
         W --> V{"VERIFIED /<br>CONFLICT /<br>UNVERIFIABLE"}
     end
-
-    style Pipeline fill:transparent
 ```
 
-Claims are decomposed into triples, grounded against a knowledge base, checked for consistency, scored probabilistically, and verified for work integrity. Eight layers, all deterministic.
-
-</details>
-
-<details>
-<summary><b>How tamper protection works</b></summary>
+Layers 1, 2, 3, 4, 5, and 8 are deterministic and run on every check. Layers 6 and 7 are formal-methods primitives that ship as building blocks; they are not auto-invoked.
 
 ```mermaid
 graph LR
-    subgraph Trust["Protection Levels"]
+    subgraph Trust["Tamper protection levels"]
         direction LR
         MUT["Mutable"] --> DEF["Default<br>(OS-locked)"]
         DEF --> VER["Verified<br>(+ SHA-256)"]
         VER --> HARD["Hardened<br>(+ replicas)"]
         HARD --> SOV["Sovereign<br>(+ ed25519 + BFT)"]
     end
-
-    style Trust fill:transparent
 ```
-
-Values are protected at the operating system level. The OS kernel enforces read-only memory. SHA-256 hashes detect any change. Ed25519 signatures prove authorship. BFT consensus requires corrupting multiple independent replicas.
-
-</details>
-
-<details>
-<summary><b>How the daemon works</b></summary>
-
-```mermaid
-graph TB
-    subgraph visible["What you see"]
-        USER["You"] --> CLI["tardy run / verify-doc"]
-    end
-
-    subgraph hidden["What happens"]
-        CLI --> DAEMON["Persistent daemon"]
-        DAEMON --> AGENTS["Living agents"]
-        DAEMON --> KB["Growing knowledge base"]
-        DAEMON --> VERIFY["Verification pipeline"]
-    end
-
-    style visible fill:transparent
-    style hidden fill:transparent
-```
-
-The daemon keeps agents alive between commands. The knowledge base grows as verified claims accumulate. Sovereign agents persist to disk on shutdown and reload on restart.
-
-</details>
-
-<details>
-<summary><b>Architecture</b></summary>
 
 ```mermaid
 graph TB
@@ -274,10 +176,6 @@ graph TB
         VM --> VERIFY_S["Verification"]
         VM --> ONTO["Knowledge Base"]
         VM --> CRYPTO_S["Cryptography"]
-        VERIFY_S --> DECOMP_S["Decompose"]
-        VERIFY_S --> NUMERIC_S["Numeric Check"]
-        VERIFY_S --> DOMAIN_S["Domain Check"]
-        VERIFY_S --> WORK_S["Work Verify"]
     end
 
     subgraph External["Optional integrations"]
@@ -287,17 +185,13 @@ graph TB
 
     VM -- "coordinate" --> BITF
     VM -- "grounded_in" --> OO
-
-    style Tardygrada fill:transparent
-    style External fill:transparent
 ```
 
-</details>
+---
 
-<details>
-<summary><b>The language (for power users)</b></summary>
+## The language (for power users)
 
-```
+```text
 agent MedicalAdvisor @sovereign @semantics(truth.min_confidence: 0.99) {
     invariant(trust_min: @verified)
     let diagnosis: Fact = receive("symptom analysis") grounded_in(medical) @verified
@@ -306,37 +200,78 @@ agent MedicalAdvisor @sovereign @semantics(truth.min_confidence: 0.99) {
 }
 ```
 
-Every value is an agent. Programs compile to servers. `receive()` accepts claims from external systems. `@sovereign` means the value is cryptographically signed and replicated. `coordinate` dispatches to multi-agent debate.
+Every value is an agent. `receive()` accepts claims from external systems (over MCP). `@sovereign` means cryptographically signed and replicated. `coordinate` dispatches multi-agent debate.
 
-You don't need to learn this to use Tardygrada. The CLI and daemon handle everything.
-
-</details>
-
-<details>
-<summary><b>Reproduce all evaluations</b></summary>
-
-```bash
-cd evaluation && make
-./laziness_bench           # 60 traces, F1 1.00
-./hallucination_bench      # 500 cases, 95% compositional
-./scaling_bench            # 5→5000 agents, linear
-./ablation_bench           # layer-by-layer analysis
-./contradoc_bench          # 891 real documents (external)
-./halueval_bench           # 500 HaluEval examples (external)
-```
-
-</details>
+You don't need to write Tardygrada to use Tardygrada. The CLI, daemon, and MCP bridge cover every common case.
 
 ---
 
-## Research
+## Reproduce the benchmarks
 
-Built on: [AgentSpec](https://arxiv.org/abs/2503.18666) (ICSE 2026), [Bythos](https://arxiv.org/abs/2302.01527) (Coq BFT), Minsky frames (1974), CRDTs (Shapiro 2011), Datalog (1986).
+```bash
+cd evaluation && make
 
-Evaluated against: [SelfCheckGPT](https://arxiv.org/abs/2303.08896) (EMNLP 2023), [FActScore](https://aclanthology.org/2023.emnlp-main.741/) (EMNLP 2023), [ContraDoc](https://aclanthology.org/2024.naacl-long.362/) (NAACL 2024), [HaluEval](https://huggingface.co/datasets/pminervini/HaluEval).
+./laziness_bench       # 100 synthetic traces, F1 0.92
+./scaling_bench        # 5 -> 5000 agents, near-linear
+./contradoc_bench      # 891 real ContraDoc documents, F1 0.58
+./agenthallu_bench     # 693 real AgentHallu trajectories, F1 0.58
+./halueval_bench       # 500 HaluEval examples, F1 0.03 (intentional weakness)
+./vitaminc_bench       # 500 VitaminC fact-verification cases
+./hallucination_bench  # synthetic; see CHANGELOG.md for caveats on this one
+./ablation_bench       # layer-by-layer contribution
+```
 
-Related: [Mundler et al.](https://arxiv.org/abs/2305.15852) (ICLR 2024), [Fang et al.](https://arxiv.org/abs/2409.11283) (AAAI 2025), [He et al.](https://arxiv.org/abs/2601.13600) (2026).
+External datasets (`contradoc.json`, `agenthallu_flat.json`, `halueval_500.json`, `vitaminc_500.json`) are checked into the repo. Everything is reproducible offline.
+
+---
+
+## Hardening (v2.0)
+
+- Daemon socket: created with mode 0600 (owner-only). Previously default umask, often world-readable on shared boxes.
+- Daemon recv timeout: 5 s. Closes slow-loris DoS against the single-threaded dispatcher.
+- Build flags: `-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE`. Linux additionally `-pie -Wl,-z,relro,-z,now`.
+- Optional Anthropic API key (set when `TARDY_LLM_DECOMPOSE=1`): no longer placed on the command line for `curl`. Written to a 0600 temp file passed via `-K`, unlinked after the call. Not visible in `ps auxe` or `/proc/PID/cmdline`.
+- Claude API request body: user claim is JSON-escaped before embedding. Closes a quote/backslash injection.
+
+---
+
+## Research foundations
+
+Built on:
+
+- [AgentSpec](https://arxiv.org/abs/2503.18666) (ICSE 2026) — runtime enforcement
+- [Bythos](https://arxiv.org/abs/2302.01527) (CCS 2024) — Coq BFT verification
+- Minsky frames (1974), CRDTs (Shapiro 2011), Datalog (1986)
+
+Evaluated against:
+
+- [SelfCheckGPT](https://arxiv.org/abs/2303.08896) (EMNLP 2023) — *cited as inspiration; the in-repo lexical baseline is NOT a re-implementation, see above*
+- [FActScore](https://aclanthology.org/2023.emnlp-main.741/) (EMNLP 2023)
+- [ContraDoc](https://aclanthology.org/2024.naacl-long.362/) (NAACL 2024)
+- [HaluEval](https://huggingface.co/datasets/pminervini/HaluEval)
+
+Related:
+
+- [Mundler et al.](https://arxiv.org/abs/2305.15852) (ICLR 2024)
+- [Fang et al.](https://arxiv.org/abs/2409.11283) (AAAI 2025)
+
+---
+
+## Companion projects
+
+- **[open-ontologies](https://github.com/fabio-rovai/open-ontologies)** — ~11k lines of Rust. OWL reasoner, optionally invoked by the verifier as the ontology grounding source.
+- **brain-in-the-fish** — ~24k lines of Rust. Multi-agent coordination/debate substrate, optionally invoked for `coordinate { ... } consensus(...)` blocks.
+
+Both run as separate processes; Tardygrada speaks to them over local IPC.
+
+---
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
+
+---
+
+## Versioning
+
+This is v2.0. See [CHANGELOG.md](CHANGELOG.md) for the v1 → v2 scope realignment — what was renamed, what was scoped down, and what was hardened.

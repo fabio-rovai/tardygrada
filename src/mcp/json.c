@@ -261,13 +261,91 @@ int tardy_json_str(const tardy_json_parser_t *p, int tok,
         return -1;
     if (p->tokens[tok].type != TARDY_JSON_STRING)
         return -1;
+    if (buf_size <= 0)
+        return -1;
 
-    int copy = p->tokens[tok].len;
-    if (copy >= buf_size)
-        copy = buf_size - 1;
-    memcpy(buf, p->tokens[tok].start, copy);
-    buf[copy] = '\0';
-    return copy;
+    /* Unescape JSON string escape sequences as we copy. Previously this
+     * function did a raw memcpy, so a token containing \" or \n was
+     * delivered to callers as the literal two-byte sequence — which would
+     * then be re-escaped by any downstream JSON-emitting code, producing
+     * \\" or \\n. Now we materialize the actual character. */
+    const char *src = p->tokens[tok].start;
+    int src_len = p->tokens[tok].len;
+    int w = 0;
+    int max_w = buf_size - 1;
+
+    for (int i = 0; i < src_len && w < max_w; i++) {
+        char c = src[i];
+        if (c != '\\' || i + 1 >= src_len) {
+            buf[w++] = c;
+            continue;
+        }
+        char esc = src[++i];
+        switch (esc) {
+            case '"':  buf[w++] = '"';  break;
+            case '\\': buf[w++] = '\\'; break;
+            case '/':  buf[w++] = '/';  break;
+            case 'b':  buf[w++] = '\b'; break;
+            case 'f':  buf[w++] = '\f'; break;
+            case 'n':  buf[w++] = '\n'; break;
+            case 'r':  buf[w++] = '\r'; break;
+            case 't':  buf[w++] = '\t'; break;
+            case 'u': {
+                /* Unicode escape \uXXXX. Decode 4 hex digits, emit as UTF-8. */
+                if (i + 4 >= src_len) {
+                    /* Truncated escape — pass through literally */
+                    if (w < max_w) buf[w++] = '\\';
+                    if (w < max_w) buf[w++] = 'u';
+                    break;
+                }
+                unsigned cp = 0;
+                int valid = 1;
+                for (int k = 1; k <= 4; k++) {
+                    char h = src[i + k];
+                    cp <<= 4;
+                    if (h >= '0' && h <= '9')      cp |= (unsigned)(h - '0');
+                    else if (h >= 'a' && h <= 'f') cp |= (unsigned)(h - 'a' + 10);
+                    else if (h >= 'A' && h <= 'F') cp |= (unsigned)(h - 'A' + 10);
+                    else { valid = 0; break; }
+                }
+                if (!valid) {
+                    if (w < max_w) buf[w++] = '?';
+                    break;
+                }
+                i += 4;
+                /* UTF-8 encode (BMP only — no surrogate-pair handling).
+                 * Surrogates pass through as a replacement char. */
+                if (cp < 0x80) {
+                    if (w < max_w) buf[w++] = (char)cp;
+                } else if (cp < 0x800) {
+                    if (w + 1 < max_w) {
+                        buf[w++] = (char)(0xC0 | (cp >> 6));
+                        buf[w++] = (char)(0x80 | (cp & 0x3F));
+                    }
+                } else if (cp >= 0xD800 && cp <= 0xDFFF) {
+                    /* lone surrogate — emit replacement char */
+                    if (w + 2 < max_w) {
+                        buf[w++] = (char)0xEF;
+                        buf[w++] = (char)0xBF;
+                        buf[w++] = (char)0xBD;
+                    }
+                } else {
+                    if (w + 2 < max_w) {
+                        buf[w++] = (char)(0xE0 | (cp >> 12));
+                        buf[w++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+                        buf[w++] = (char)(0x80 | (cp & 0x3F));
+                    }
+                }
+                break;
+            }
+            default:
+                /* Unknown escape — pass the raw character through */
+                buf[w++] = esc;
+                break;
+        }
+    }
+    buf[w] = '\0';
+    return w;
 }
 
 long tardy_json_int(const tardy_json_parser_t *p, int tok)

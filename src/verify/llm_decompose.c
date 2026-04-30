@@ -1,8 +1,10 @@
 /*
- * Tardygrada -- LLM-Assisted Decomposition Simulator
+ * Tardygrada -- Lexical Implicit-Relation Decomposer (NOT an LLM)
  *
- * Deterministic pattern-matching on COMBINATIONS of claims to infer
- * implicit triples that make hidden contradictions explicit.
+ * Despite the file name (kept for backwards-compatible includes), this
+ * is purely deterministic pattern-matching on COMBINATIONS of claims to
+ * infer implicit triples that make hidden contradictions explicit.
+ * No network calls. No model. Just hand-coded substring detectors.
  *
  * Seven detection patterns:
  *   1. Statistical: p-value + multiple tests -> Bonferroni threshold
@@ -552,11 +554,11 @@ static int detect_nested_loop_complexity(const char **claims, int count,
  * Public API
  * ============================================ */
 
-tardy_llm_decomposition_t tardy_llm_decompose(
+tardy_lexical_decomposition_t tardy_lexical_decompose(
     const char **claims, int claim_count,
     const tardy_decomposition_t *basic_decomp)
 {
-    tardy_llm_decomposition_t result;
+    tardy_lexical_decomposition_t result;
     memset(&result, 0, sizeof(result));
 
     if (!claims || claim_count <= 0) {

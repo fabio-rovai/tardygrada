@@ -934,7 +934,7 @@ int main(void)
            "--------------", "---------", "---------", "---------", "---------",
            "-----", "-----", "-----", "-----");
     printf("%-14s  %9.4f  %9.4f  %9.4f  %9.4f  %5d  %5d  %5d  %5d\n",
-           "SelfCheck",
+           "LexBase",
            calc_precision(&cm_selfcheck), calc_recall(&cm_selfcheck),
            calc_f1(&cm_selfcheck), calc_accuracy(&cm_selfcheck),
            cm_selfcheck.tp, cm_selfcheck.fp, cm_selfcheck.tn, cm_selfcheck.fn);
@@ -954,7 +954,7 @@ int main(void)
      * ============================================ */
 
     printf("\n--- Recall by Scope (contradictory docs only) ---\n\n");
-    printf("%-10s  %6s  %12s  %12s\n", "Scope", "Count", "SelfCheck", "Tardygrada");
+    printf("%-10s  %6s  %12s  %12s\n", "Scope", "Count", "LexBase", "Tardygrada");
     printf("%-10s  %6s  %12s  %12s\n", "----------", "------", "------------", "------------");
     for (int s = 0; s < 4; s++) {
         int total = cm_scope_td[s].tp + cm_scope_td[s].fn;
@@ -971,7 +971,7 @@ int main(void)
      * ============================================ */
 
     printf("\n--- Recall by Contradiction Type (contradictory docs only) ---\n\n");
-    printf("%-14s  %6s  %12s  %12s\n", "Type", "Count", "SelfCheck", "Tardygrada");
+    printf("%-14s  %6s  %12s  %12s\n", "Type", "Count", "LexBase", "Tardygrada");
     printf("%-14s  %6s  %12s  %12s\n", "--------------", "------", "------------", "------------");
     for (int ct = 0; ct < CTYPE_COUNT; ct++) {
         int total = cm_ctype_td[ct].tp + cm_ctype_td[ct].fn;

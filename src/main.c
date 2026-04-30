@@ -1018,7 +1018,9 @@ static void vdoc_truncate(char *dst, int dst_size, const char *src)
     }
 }
 
-static int verify_doc(const char *path, int scope_aware)
+/* Non-static so daemon.c can call it via a declared prototype.
+ * Returns: 0 if no real conflicts, 1 if conflicts found, >1 on error. */
+int verify_doc(const char *path, int scope_aware)
 {
     struct timespec t_start, t_end;
     clock_gettime(CLOCK_MONOTONIC, &t_start);

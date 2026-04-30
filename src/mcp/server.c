@@ -18,8 +18,50 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <time.h>
+
+/* JSON-string escape: writes src into dst with " \ \n \r \t escaped.
+ * dst is always NUL-terminated; truncates safely if dst is too small.
+ * Returns the number of bytes written (excluding NUL). */
+static int json_escape_str(const char *src, char *dst, int dst_size)
+{
+    if (dst_size <= 0) return 0;
+    int w = 0;
+    for (int i = 0; src && src[i]; i++) {
+        unsigned char c = (unsigned char)src[i];
+        const char *esc = NULL;
+        switch (c) {
+            case '"':  esc = "\\\""; break;
+            case '\\': esc = "\\\\"; break;
+            case '\n': esc = "\\n";  break;
+            case '\r': esc = "\\r";  break;
+            case '\t': esc = "\\t";  break;
+            default: break;
+        }
+        if (esc) {
+            if (w + 2 >= dst_size - 1) break;
+            dst[w++] = esc[0];
+            dst[w++] = esc[1];
+        } else if (c < 0x20) {
+            /* control chars: \u00XX */
+            if (w + 6 >= dst_size - 1) break;
+            static const char hex[] = "0123456789abcdef";
+            dst[w++] = '\\';
+            dst[w++] = 'u';
+            dst[w++] = '0';
+            dst[w++] = '0';
+            dst[w++] = hex[(c >> 4) & 0xF];
+            dst[w++] = hex[c & 0xF];
+        } else {
+            if (w + 1 >= dst_size - 1) break;
+            dst[w++] = (char)c;
+        }
+    }
+    dst[w] = '\0';
+    return w;
+}
 
 static uint64_t mcp_now_ns(void)
 {
@@ -677,6 +719,17 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
         const char *llm_decompose = getenv("TARDY_LLM_DECOMPOSE");
         if (triple_count < 2 && api_key && api_key[0] &&
             llm_decompose && llm_decompose[0] == '1') {
+            /* JSON-escape the user-controlled claim before embedding it.
+             * Without this, a claim containing '"' or '\' would break out
+             * of the JSON content string and inject arbitrary fields into
+             * the API request. */
+            char claim_escaped[1024];
+            json_escape_str(claim_buf, claim_escaped, (int)sizeof(claim_escaped));
+
+            /* Truncate to 800 chars of escaped output to keep request bounded */
+            if ((int)strlen(claim_escaped) > 800)
+                claim_escaped[800] = '\0';
+
             /* Build LLM prompt asking for structured triple extraction */
             char prompt_body[2048];
             snprintf(prompt_body, sizeof(prompt_body),
@@ -689,11 +742,35 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                 "type_of, has, premiered_on, written_by, invented_by. "
                 "No explanation.\","
                 "\"messages\":[{\"role\":\"user\",\"content\":\"Extract triples: "
-                "%.800s\"}]}", claim_buf);
+                "%s\"}]}", claim_escaped);
+
+            /* Write the API key into a 0600 temp file and pass it to curl
+             * via -K (config file). This keeps the secret OUT of /proc/PID/cmdline
+             * and `ps auxe`, where any local user could otherwise read it. */
+            char keyfile[] = "/tmp/tardy.curl.XXXXXX";
+            int keyfile_ok = 0;
+            int keyfd = mkstemp(keyfile);
+            if (keyfd >= 0) {
+                if (fchmod(keyfd, 0600) == 0) {
+                    char cfg[512];
+                    int cfglen = snprintf(cfg, sizeof(cfg),
+                        "header = \"x-api-key: %s\"\n", api_key);
+                    if (cfglen > 0) {
+                        ssize_t cw = write(keyfd, cfg, (size_t)cfglen);
+                        (void)cw;
+                        keyfile_ok = 1;
+                    }
+                    /* Wipe the on-stack copy best-effort */
+                    memset(cfg, 0, sizeof(cfg));
+                }
+                close(keyfd);
+                if (!keyfile_ok)
+                    unlink(keyfile);
+            }
 
             /* Fork curl to call Claude Haiku (cheapest, fastest) */
             int pipefd[2];
-            if (pipe(pipefd) == 0) {
+            if (keyfile_ok && pipe(pipefd) == 0) {
                 pid_t pid = fork();
                 if (pid == 0) {
                     close(pipefd[0]);
@@ -704,14 +781,12 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                         dup2(devnull, STDERR_FILENO);
                         close(devnull);
                     }
-                    char auth[300];
-                    snprintf(auth, sizeof(auth), "x-api-key: %s", api_key);
                     execlp("curl", "curl", "-s",
                            "-X", "POST",
                            "https://api.anthropic.com/v1/messages",
                            "-H", "Content-Type: application/json",
                            "-H", "anthropic-version: 2023-06-01",
-                           "-H", auth,
+                           "-K", keyfile,
                            "-d", prompt_body,
                            (char *)NULL);
                     _exit(127);
@@ -727,6 +802,8 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                     close(pipefd[0]);
                     int wstatus;
                     waitpid(pid, &wstatus, 0);
+                    /* Unlink the credential file the moment curl is done */
+                    unlink(keyfile);
 
                     /* Parse LLM response -- find the JSON array in content[0].text */
                     tardy_json_parser_t lp;
@@ -782,9 +859,14 @@ static int handle_tools_call(tardy_mcp_server_t *srv,
                         }
                     }
                 } else {
+                    /* fork() failed */
                     close(pipefd[0]);
                     close(pipefd[1]);
+                    unlink(keyfile);
                 }
+            } else if (keyfile_ok) {
+                /* pipe() failed — still need to clean up the credential file */
+                unlink(keyfile);
             }
         }
 

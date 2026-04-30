@@ -273,20 +273,16 @@ static int handle_request(const char *request, int req_len,
         int args_tok = tardy_json_find(&p, params_tok, "arguments");
         char args_json[4096] = "{}";
         if (args_tok >= 0) {
-            /* Extract the raw JSON for the arguments object */
             const tardy_json_token_t *at = &p.tokens[args_tok];
             if (at->type == TARDY_JSON_OBJECT) {
-                /* The token start points to the opening {, we need to find matching } */
-                /* Use the raw source: find balanced braces */
-                const char *start = at->start;
-                int depth = 0;
-                int alen = 0;
-                for (int i = 0; start + i <= request + req_len; i++) {
-                    if (start[i] == '{') depth++;
-                    else if (start[i] == '}') { depth--; if (depth == 0) { alen = i + 1; break; } }
-                }
+                /* Use the parser's recorded length. The previous brace-
+                 * counting loop did not respect string boundaries, so any
+                 * '}' inside a quoted value (e.g. {"claim":"x}y"}) caused
+                 * truncated, invalid JSON downstream. The parser already
+                 * tracked these correctly while tokenizing. */
+                int alen = at->len;
                 if (alen > 0 && alen < (int)sizeof(args_json)) {
-                    memcpy(args_json, start, alen);
+                    memcpy(args_json, at->start, alen);
                     args_json[alen] = '\0';
                 }
             }

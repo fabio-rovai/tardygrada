@@ -556,7 +556,7 @@ int main(void)
            "--------------", "---------", "---------", "---------", "---------",
            "-----", "-----", "-----", "-----");
     printf("%-14s  %9.4f  %9.4f  %9.4f  %9.4f  %5d  %5d  %5d  %5d\n",
-           "SelfCheck",
+           "LexBase",
            calc_precision(&cm_selfcheck), calc_recall(&cm_selfcheck),
            calc_f1(&cm_selfcheck), calc_accuracy(&cm_selfcheck),
            cm_selfcheck.tp, cm_selfcheck.fp, cm_selfcheck.tn, cm_selfcheck.fn);

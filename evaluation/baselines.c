@@ -220,12 +220,17 @@ static bool check_conflicting_numbers(const char *s1, const char *s2)
 }
 
 /* ============================================
- * SelfCheckGPT: main evaluation
+ * Lexical-baseline: main evaluation
+ *
+ * NOTE: this is NOT real SelfCheckGPT. It is a deterministic lexical
+ * heuristic over hand-coded negation/antonym pairs and number deltas.
+ * The function name `selfcheck_evaluate` is preserved as a backwards-
+ * compatible inline shim in baselines.h that calls this function.
  * ============================================ */
 
-selfcheck_result_t selfcheck_evaluate(const char **claims, int claim_count)
+lexical_baseline_result_t lexical_baseline_evaluate(const char **claims, int claim_count)
 {
-    selfcheck_result_t result;
+    lexical_baseline_result_t result;
     memset(&result, 0, sizeof(result));
     result.total_claims = claim_count;
     result.consistency_score = 1.0f;
