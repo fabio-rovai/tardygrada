@@ -135,6 +135,63 @@ fi
 skip "daemon/socket-env-override" "opt-in only (run separately to avoid disturbing a live daemon)"
 
 # --------------------------------------------------------------------
+# 5b. tardy run grounding regression. v2.0.4 fixed the daemon path so
+# that the bundled ontology (tests/wikidata_common.nt) actually causes
+# Datalog-derived facts to ground claims through the BFT 3-pass.
+# These assertions guard against silent regression of that fix.
+#
+# This requires a running daemon; we start one if not running and
+# remember to leave it as we found it.
+# --------------------------------------------------------------------
+
+GROUNDING_DAEMON_STARTED=0
+if [ -S /tmp/tardygrada.sock ] && \
+   echo '{"cmd":"status"}' | nc -U /tmp/tardygrada.sock 2>/dev/null | \
+   grep -q '"ok":true'; then
+    : # daemon already running, leave alone
+else
+    nohup "$ROOT/tardygrada" daemon start >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+    sleep 1
+    GROUNDING_DAEMON_STARTED=1
+fi
+
+run_assert_verified() {
+    # $1 = claim, $2 = test name
+    local out
+    out="$("$ROOT/tardygrada" run "$1" 2>&1 | tr -d '\n')"
+    if echo "$out" | grep -q '"result":"VERIFIED"'; then
+        ok "tardy-run/$2"
+    else
+        fail "tardy-run/$2" "got: $out"
+    fi
+}
+
+run_assert_result() {
+    # $1 = claim, $2 = expected substring in result, $3 = test name
+    local out
+    out="$("$ROOT/tardygrada" run "$1" 2>&1 | tr -d '\n')"
+    if echo "$out" | grep -q "\"result\":\"$2\""; then
+        ok "tardy-run/$3"
+    else
+        fail "tardy-run/$3" "expected $2, got: $out"
+    fi
+}
+
+run_assert_verified "Paris is in France"          "headline-paris-in-france"
+run_assert_verified "Tokyo is in Japan"            "tokyo-in-japan"
+run_assert_verified "5 + 5 = 10"                   "computational-arithmetic"
+run_assert_verified "The speed of light is 299792458 meters per second" \
+                                                   "fundamental-constant"
+run_assert_result   "The cat is invisible" "ontology_gap" \
+                                                   "ungrounded-returns-gap"
+
+# Stop the daemon if we started it. Keep it if it was already running.
+if [ "$GROUNDING_DAEMON_STARTED" = "1" ]; then
+    "$ROOT/tardygrada" daemon stop >/dev/null 2>&1 || true
+fi
+
+# --------------------------------------------------------------------
 # 6. Per-category accuracy on AgentHallu (real data, 693 trajectories).
 # Catches regressions in any specific failure mode independently.
 # Thresholds are set BELOW current measured values to avoid flaking on
