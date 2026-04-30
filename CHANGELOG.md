@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.3] — 2026-04-30
+
+Documentation: replaced the "Paris is in France returns low_confidence"
+caveat in the README with a precise statement of what DOES work today
+(`tardy run "5 + 5 = 10"` → VERIFIED 0.99, `tardy run "The speed of
+light is 299792458 meters per second"` → VERIFIED 0.99, both via
+`tardy_inference_compute`) and an honest pointer at the still-open
+wiring gap between the daemon's grounding path and the loaded
+ontology. `tardy verify-doc` continues to work as advertised on the
+full 8-layer pipeline; the limitation is specific to `tardy run`.
+
+No code change. README + CHANGELOG only.
+
+## [2.0.2] — 2026-04-30
+
+Granular regression coverage on three new axes:
+
+- `tests/sentence_stress.sh` — pushes one sentence through
+  VDOC_MAX_SENT_LEN = 1024 across 8 size points (100B-100KB) and
+  asserts graceful drop above the cap. 24 assertions.
+- `tests/memory_ceiling.sh` + `tests/runrss.c` — a small fork+exec
+  +getrusage helper, plus a wrapper that asserts RSS stays bounded
+  as input grows. Real measurement: 5MB doc consumes 22MB RSS, 1.43x
+  the 100KB-doc RSS. 5 assertions.
+- ContraDoc per-document-type and per-scope assertions wired into
+  smoke.sh: story / news / wiki recall thresholds + local / global /
+  intra scope thresholds. 6 assertions.
+
+`make test` now covers 18 assertions on 9 axes. ~25s wall time.
+`SMOKE_QUICK=1 make test` skips the slow benches in ~3s.
+
+## [2.0.1] — 2026-04-30
+
+- `examples/code-review.tardy` — first concrete worked example of the
+  school metaphor. CodeReviewer agent with @sovereign trust, three
+  receive() slots, and pipeline.min_passing_layers = 5.
+- README "Your first specialization" walkthrough.
+- CI now runs `make test` between `make run` and `make bench`.
+
 ## [2.0.0] — 2026-04-29
 
 This release closes the gap between what Tardygrada was *claimed* to do and what

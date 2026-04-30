@@ -162,7 +162,7 @@ curriculum is specific, the verification pipeline is the exam*.
 
 - **Coq proofs cover the abstract BFT algorithm, not the C implementation.** `proofs/consensus.v` is real, complete, and `Qed.`-closed (no `Admitted`). It proves abstract majority-vote safety. It does NOT prove the C code is a refinement of that abstraction; the implementation is a faithful translation by hand.
 
-- **Verifying a default-installed daemon with "Paris is in France" returns `low_confidence`, not `VERIFIED`.** Grounding requires the optional `tests/wikidata_common.nt` ontology to be loaded. The README example you may have seen in older versions overstated this.
+- **`tardy run` only verifies a narrow set of claim types out of the box.** Computational claims (`tardy run "5 + 5 = 10"` → `VERIFIED 0.99`) and fundamental-constant claims (`tardy run "The speed of light is 299792458 meters per second"` → `VERIFIED 0.99`) are handled by `tardy_inference_compute` and ground reliably. General world-fact claims (`tardy run "Paris is in France"`) currently return `low_confidence` even though `Paris capitalOf France` is in the bundled `tests/wikidata_common.nt` and the inference rule `capitalOf -> located_in` exists in the Datalog backbone — there is a known wiring gap between the daemon's grounding path and the loaded ontology that has not been fixed yet. Use `tardy verify-doc` for full pipeline coverage; it goes through a different path and works as advertised.
 
 ---
 
