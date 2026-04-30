@@ -216,6 +216,13 @@ static const pattern_t patterns[] = {
     { " starred in ",           "starred_in"       },
     { " invented ",             "invented"         },
     { " discovered ",           "discovered"       },
+    { " created ",              "created"          },
+    { " founded ",              "founded"          },
+    { " composed ",             "composed"         },
+    { " painted ",              "painted"          },
+    { " designed ",             "designed"         },
+    { " developed ",            "developed"        },
+    { " built ",                "built"            },
     { " leads ",                "leads"            },
     { " owns ",                 "owns"             },
     /* Temporal */

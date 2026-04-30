@@ -420,6 +420,71 @@ void tardy_dl_load_backbone(tardy_dl_program_t *prog)
                             "createdBy", "X", "Y",
                             "locatedIn", "Y", "Z");
     tardy_dl_add_rule(prog, &r);
+
+    /* ---------------------------------------------------------------
+     * Tense / verb-form variations.
+     *
+     * Natural-language claims commonly use the past-tense verb form,
+     * but the ontology stores the noun form of the relationship. e.g.
+     * the .nt file stores `creator(X, Y)` but a claim like "X created
+     * Y" decomposes to `created(X, Y)`. Without these rules, the verb-
+     * form predicate fails to match the noun-form fact even though
+     * pred_match normalises case + underscores, because the bases are
+     * different ("created" vs "creator").
+     *
+     * These rules let the natural-language past tense ground against
+     * the ontology directly.
+     * --------------------------------------------------------------- */
+
+    /* created(X, Y) :- creator(X, Y) */
+    r = tardy_dl_make_rule("created", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* founded(X, Y) :- founder(X, Y) */
+    r = tardy_dl_make_rule("founded", "X", "Y",
+                            "founder", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* invented(X, Y) :- inventor(X, Y) */
+    r = tardy_dl_make_rule("invented", "X", "Y",
+                            "inventor", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* discovered(X, Y) :- discoverer(X, Y) */
+    r = tardy_dl_make_rule("discovered", "X", "Y",
+                            "discoverer", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* wrote(X, Y) :- creator(X, Y) — common synonym for authored works */
+    r = tardy_dl_make_rule("wrote", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* composed(X, Y) :- creator(X, Y) — for music attribution */
+    r = tardy_dl_make_rule("composed", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* painted(X, Y) :- creator(X, Y) — for visual works */
+    r = tardy_dl_make_rule("painted", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* built(X, Y) :- creator(X, Y) */
+    r = tardy_dl_make_rule("built", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* designed(X, Y) :- creator(X, Y) */
+    r = tardy_dl_make_rule("designed", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
+
+    /* developed(X, Y) :- creator(X, Y) */
+    r = tardy_dl_make_rule("developed", "X", "Y",
+                            "creator", "X", "Y", NULL, NULL, NULL);
+    tardy_dl_add_rule(prog, &r);
 }
 
 /* ============================================
