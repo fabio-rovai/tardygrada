@@ -309,6 +309,23 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
                 if (strcmp(reason, "NOT_VERIFIED") != 0) break;
             }
         }
+        /* Refinement: if the failure was reported as low_confidence but
+         * the grounding actually has zero grounded triples (i.e. the
+         * "evidence" was only a frame-shape match, not a real fact),
+         * surface this as ontology_gap. "low_confidence" implies we
+         * have weak evidence; "ontology_gap" correctly says we have
+         * none. The example that motivated this: tardy run "Venice
+         * is in Italy" -- Venice isn't in the bundled ontology, but
+         * the located_in frame matches and CRDT dry-merge finds no
+         * conflict, so the verifier was reporting confidence 0.60
+         * (frame-only) which fails the 0.85 threshold and surfaces
+         * as low_confidence. The user-visible answer ought to be
+         * "we don't know," i.e. ontology_gap. */
+        if (strcmp(reason, "low_confidence") == 0 &&
+            grounding.grounded == 0) {
+            reason = "ontology_gap";
+            avg_confidence = 0.0f;
+        }
         return json_ok(resp, resp_size, reason, avg_confidence);
     }
 }
