@@ -180,6 +180,10 @@ run_assert_result() {
 
 run_assert_verified "Paris is in France"          "headline-paris-in-france"
 run_assert_verified "Tokyo is in Japan"            "tokyo-in-japan"
+run_assert_verified "Madrid is in Spain"           "madrid-in-spain"
+run_assert_verified "Beijing is in China"          "beijing-in-china"
+run_assert_verified "Microsoft was founded by BillGates" "ms-founded-by-gates"
+run_assert_verified "MarieCurie discovered Radium" "curie-discovered-radium"
 run_assert_verified "5 + 5 = 10"                   "computational-arithmetic"
 run_assert_verified "The speed of light is 299792458 meters per second" \
                                                    "fundamental-constant"
