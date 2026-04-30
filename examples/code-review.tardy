@@ -1,0 +1,56 @@
+// Tardygrada — Code Review Specialization
+//
+// A worked example of the school metaphor: this is a curriculum file.
+// A generic agent walks in. It picks up this curriculum. It walks out
+// behaving as a code reviewer that:
+//
+//   - receives a code change and a description of what it does
+//   - verifies the description against the change (no contradictions)
+//   - grounds claims about complexity / safety against an ontology
+//   - emits a verified review verdict, or a CONFLICT report
+//
+// Run it directly:
+//     ./tardygrada examples/code-review.tardy
+//
+// Then submit a claim via MCP (see the snippet in the README).
+//
+// What "specialization" means here, concretely:
+//   - this agent only accepts inputs that match its receive() shapes
+//   - it enforces tighter invariants than a default agent
+//   - its outputs are ontology-grounded under the `code` domain
+//   - the verification pipeline runs at min_passing_layers = 5
+//     (3 above default — code review needs higher rigor than chat)
+
+agent CodeReviewer @sovereign @semantics(
+    truth.min_confidence: 0.85,
+    truth.min_consensus_agents: 3,
+    pipeline.min_passing_layers: 5,
+) {
+    invariant(trust_min: @verified)
+    invariant(non_empty)
+
+    // ---------- Curriculum: what this specialist verifies ----------
+
+    // The change under review (filename, diff hunk, or PR description).
+    // grounded_in(code) means triples extracted from this claim are
+    // checked against a code-domain ontology (function names, types,
+    // complexity classes, common bug patterns).
+    let change: Fact = receive("code change description") grounded_in(code) @verified
+
+    // The author's description of what the change does. The verifier
+    // checks this against the change for contradictions: e.g. "removes
+    // the cache" vs an actual diff that adds a new cache layer.
+    let description: Fact = receive("author description of the change") grounded_in(code) @verified
+
+    // The author's complexity claim. Cross-checked against the change.
+    // E.g. "O(n) lookup" vs a nested loop visible in the diff would
+    // surface as an implicit contradiction (lexical decomposer fires
+    // on the nested-loop -> O(n^2) cue pattern).
+    let complexity_claim: Fact = receive("complexity claim") grounded_in(code) @verified
+
+    // ---------- Reference data ----------
+
+    let reviewer_name: str = "Tardygrada CodeReviewer" @sovereign
+    let curriculum_version: int = 1
+    let safety_floor: float = 0.85
+}

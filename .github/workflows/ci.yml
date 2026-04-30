@@ -27,6 +27,9 @@ jobs:
     - name: Run tests
       run: make run
 
+    - name: Smoke tests (regression gate)
+      run: make test
+
     - name: Run benchmarks
       run: make bench
 

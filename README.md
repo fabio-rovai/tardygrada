@@ -76,6 +76,64 @@ The bridge exposes five tools: `verify_claim`, `verify_document`, `spawn_agent`,
 
 ---
 
+## Your first specialization
+
+A worked example of the school metaphor. We send a generic agent to the
+curriculum at [`examples/code-review.tardy`](examples/code-review.tardy).
+It walks in generic and walks out a code reviewer.
+
+```bash
+# 1. Start the curriculum as an MCP server (stdio).
+#    The agent CodeReviewer spawns with @sovereign trust, three
+#    receive() slots, and pipeline.min_passing_layers = 5.
+./tardygrada examples/code-review.tardy
+```
+
+What that prints:
+
+```text
+[tardygrada] agent CodeReviewer spawned
+[tardygrada]   @semantics(truth.min_confidence: 0.85)
+[tardygrada]   @semantics(pipeline.min_passing_layers: 5)
+[tardygrada]   invariant(trust_min)
+[tardygrada]   invariant(non_empty)
+[tardygrada]   receive("code change description") -> pending
+[tardygrada]   receive("author description of the change") -> pending
+[tardygrada]   receive("complexity claim") -> pending
+[tardygrada] MCP server starting on stdio
+```
+
+The three `receive(...) -> pending` slots are the curriculum the agent has to
+fill in. Any MCP client (Claude Code, Cursor, a script) can submit claims to
+them. The verification pipeline runs over each claim before it is allowed to
+resolve.
+
+**Submit a claim via MCP** (raw JSON-RPC, for illustration):
+
+```json
+{
+  "jsonrpc": "2.0", "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "submit_claim",
+    "arguments": {
+      "agent": "complexity_claim",
+      "claim": "The lookup is O(n) with a single pass over the input"
+    }
+  }
+}
+```
+
+Then `verify_claim` on the same agent runs the 8-layer pipeline. If the
+description elsewhere in the curriculum says the change adds a nested loop,
+the lexical implicit-relation layer fires on the `nested_loop -> O(n^2)`
+cue pattern and the claim resolves to `CONFLICT`, not `VERIFIED`.
+
+This is the whole metaphor in one example: *the agent is generic, the
+curriculum is specific, the verification pipeline is the exam*.
+
+---
+
 ## What works today (honest list)
 
 | Capability | Status | Number |
