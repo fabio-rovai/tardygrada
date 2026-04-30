@@ -6,6 +6,7 @@ docs/
 *.dSYM/
 tardygrada
 tardygrada_dbg
+tests/runrss
 /tmp/
 *.vo
 *.glob

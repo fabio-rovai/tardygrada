@@ -186,7 +186,56 @@ else
 fi
 
 # --------------------------------------------------------------------
-# 7. Context-size stress test. Runs verify-doc against documents at
+# 7. Per-type accuracy on ContraDoc (real data, 891 documents).
+# Catches regressions on document type (story / news / wiki) and on
+# contradiction scope (local / global / intra).
+#
+# Skipped when SMOKE_QUICK=1 because the bench takes ~6s.
+# --------------------------------------------------------------------
+
+if [ "${SMOKE_QUICK:-0}" = "1" ]; then
+    skip "contradoc/per-type-recall" "SMOKE_QUICK=1 set"
+else
+    OUTPUT="$(cd "$EVAL" && ./contradoc_bench 2>&1)"
+
+    parse_field4() {
+        # $1 = first-column label (e.g. "story" or "local")
+        # extracts the 4th field from a line that starts with that label.
+        # Note: ContraDoc table for doctype has 7 fields; we want $4 (TD Recall).
+        # Note: ContraDoc table for scope has 4 fields; we want $4 (Tardygrada).
+        echo "$OUTPUT" | awk -v label="$1" '$1 == label { print $4; exit }'
+    }
+
+    assert_field4_at_least() {
+        # $1 = label, $2 = threshold, $3 = test name
+        local actual
+        actual="$(parse_field4 "$1")"
+        if [ -z "$actual" ]; then
+            fail "contradoc/$3" "could not parse recall for $1"
+            return
+        fi
+        note "$1 recall = $actual"
+        if awk -v a="$actual" -v t="$2" 'BEGIN { exit !(a + 0 >= t + 0) }'; then
+            ok "contradoc/$3>=$2"
+        else
+            fail "contradoc/$3>=$2" "recall = $actual"
+        fi
+    }
+
+    # By document type (current measured: story 0.52, news 0.50, wiki 0.91)
+    assert_field4_at_least "story" "0.40" "story-recall"
+    assert_field4_at_least "news"  "0.40" "news-recall"
+    assert_field4_at_least "wiki"  "0.75" "wiki-recall"
+
+    # By scope (current measured: local 0.62, global 0.72, intra 0.58)
+    # mixed has only N=1 in the test set, so skip the assertion for it.
+    assert_field4_at_least "local"  "0.50" "local-scope-recall"
+    assert_field4_at_least "global" "0.55" "global-scope-recall"
+    assert_field4_at_least "intra"  "0.45" "intra-scope-recall"
+fi
+
+# --------------------------------------------------------------------
+# 8. Context-size stress test. Runs verify-doc against documents at
 # increasing sizes and asserts that detection still works and timing
 # stays bounded. Skipped when SMOKE_QUICK=1.
 # --------------------------------------------------------------------
@@ -201,6 +250,41 @@ elif [ -x "$ROOT/tests/context_stress.sh" ]; then
     fi
 else
     skip "context-stress" "tests/context_stress.sh not found"
+fi
+
+# --------------------------------------------------------------------
+# 9. Sentence-length stress test. Pushes one sentence past the
+# VDOC_MAX_SENT_LEN cap and asserts graceful degradation.
+# Skipped when SMOKE_QUICK=1.
+# --------------------------------------------------------------------
+
+if [ "${SMOKE_QUICK:-0}" = "1" ]; then
+    skip "sentence-stress" "SMOKE_QUICK=1 set"
+elif [ -x "$ROOT/tests/sentence_stress.sh" ]; then
+    if "$ROOT/tests/sentence_stress.sh"; then
+        ok "sentence-stress/cap-and-graceful-drop"
+    else
+        fail "sentence-stress/cap-and-graceful-drop" "see sentence_stress output above"
+    fi
+else
+    skip "sentence-stress" "tests/sentence_stress.sh not found"
+fi
+
+# --------------------------------------------------------------------
+# 10. Memory ceiling test. Asserts RSS doesn't blow up with input size.
+# Skipped when SMOKE_QUICK=1.
+# --------------------------------------------------------------------
+
+if [ "${SMOKE_QUICK:-0}" = "1" ]; then
+    skip "memory-ceiling" "SMOKE_QUICK=1 set"
+elif [ -x "$ROOT/tests/memory_ceiling.sh" ]; then
+    if "$ROOT/tests/memory_ceiling.sh"; then
+        ok "memory-ceiling/rss-bounded"
+    else
+        fail "memory-ceiling/rss-bounded" "see memory_ceiling output above"
+    fi
+else
+    skip "memory-ceiling" "tests/memory_ceiling.sh not found"
 fi
 
 # --------------------------------------------------------------------
