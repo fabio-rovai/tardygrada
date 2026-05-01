@@ -711,6 +711,40 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             contradictions, escaped_path, escaped_report);
     }
 
+    if (strcmp(cmd, "frames") == 0) {
+        /* Returns the frame registry as JSON. Each frame describes one
+         * predicate and whether either of its argument slots is
+         * "functional" (one value per key). Clients use this to derive
+         * which predicates are functional vs multi-value WITHOUT
+         * hard-coding lists in every script. The result is the same
+         * registry the daemon uses internally, so the two are always
+         * in sync. */
+        if (!srv->self_ontology_loaded) {
+            return json_error(resp, resp_size,
+                "self-ontology not initialized");
+        }
+        const tardy_frame_registry_t *reg = &srv->self_ontology.frames;
+        int n = (resp_size > 0) ? snprintf(resp, resp_size,
+            "{\"ok\":true,\"count\":%d,\"frames\":[", reg->count) : 0;
+        for (int i = 0; i < reg->count && n < resp_size - 64; i++) {
+            const tardy_frame_t *fr = &reg->frames[i];
+            int subj_func = fr->slot_count > 0 ? fr->slots[0].functional : 0;
+            int obj_func  = fr->slot_count > 1 ? fr->slots[1].functional : 0;
+            n += snprintf(resp + n, resp_size - n,
+                "%s{\"name\":\"%s\",\"predicate\":\"%s\","
+                "\"subject_functional\":%s,\"object_functional\":%s,"
+                "\"transitive\":%s,\"symmetric\":%s}",
+                i ? "," : "",
+                fr->name, fr->predicate,
+                subj_func ? "true" : "false",
+                obj_func  ? "true" : "false",
+                fr->transitive ? "true" : "false",
+                fr->symmetric  ? "true" : "false");
+        }
+        n += snprintf(resp + n, resp_size - n, "]}");
+        return n;
+    }
+
     if (strcmp(cmd, "submit-fact") == 0) {
         /* MCP-driven world-model growth.
          *

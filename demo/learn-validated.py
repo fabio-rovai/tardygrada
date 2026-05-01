@@ -53,6 +53,11 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIN = os.path.join(ROOT, "tardygrada")
 
+# Rejection memory — failed candidates persist here so the same wrong
+# claim doesn't get re-validated on every run. JSONL one record per
+# rejection, with provenance.
+REJECTED_LOG = os.path.join(ROOT, "tests", "rejected_log.jsonl")
+
 # ----------------------------------------------------------------------
 # Predicate classification
 # ----------------------------------------------------------------------
@@ -278,6 +283,44 @@ def parse_candidates(text):
     return out
 
 
+def load_rejection_memory():
+    """Read REJECTED_LOG and return a set of (subj, pred, obj) tuples
+    that have previously failed validation. Empty set if the file
+    doesn't exist or is malformed."""
+    rejected = set()
+    if not os.path.exists(REJECTED_LOG):
+        return rejected
+    try:
+        with open(REJECTED_LOG) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                    rejected.add((rec["subject"], rec["predicate"],
+                                  rec["object"]))
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return rejected
+
+
+def remember_rejection(subj, pred, obj, reason, votes):
+    """Append a rejection record to REJECTED_LOG so this triple will
+    be skipped on future runs. Records are JSONL so they're easy to
+    grep, easy to amend, and survive arbitrary daemon state changes."""
+    os.makedirs(os.path.dirname(REJECTED_LOG), exist_ok=True)
+    rec = {
+        "subject": subj, "predicate": pred, "object": obj,
+        "reason": reason, "votes": votes,
+        "ts": int(time.time()),
+    }
+    with open(REJECTED_LOG, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
 def chip(status):
     return {
         "accepted":     f"{GREEN}✓ accepted   {NC}",
@@ -303,6 +346,44 @@ def submit_via_mcp(cli, subj, pred, obj):
         except Exception:
             return "parse_error", content[0].get("text", "")
     return "no_content", res
+
+
+def fetch_predicate_classes(cli):
+    """Query the daemon's frame registry via the list_frames MCP tool
+    and return (functional_set, multi_value_set). Falls back to the
+    hardcoded constants if the daemon doesn't expose frames yet (older
+    binary). Predicates with object_functional=true are functional
+    (one value per subject); the rest of the framed predicates are
+    multi-value."""
+    try:
+        resp = cli.call_tool("list_frames", {})
+    except Exception:
+        return set(FUNCTIONAL_PREDS), set(MULTI_VALUE_PREDS)
+    res = resp.get("result", {})
+    content = res.get("content", [])
+    if not content or "text" not in content[0]:
+        return set(FUNCTIONAL_PREDS), set(MULTI_VALUE_PREDS)
+    try:
+        inner = json.loads(content[0]["text"])
+    except Exception:
+        return set(FUNCTIONAL_PREDS), set(MULTI_VALUE_PREDS)
+
+    functional = set()
+    multi_value = set()
+    for fr in inner.get("frames", []):
+        pred = fr.get("predicate")
+        if not pred:
+            continue
+        if fr.get("object_functional"):
+            functional.add(pred)
+        else:
+            multi_value.add(pred)
+    # Always merge with the hardcoded sets so we never narrow coverage.
+    # The frame registry is the source-of-truth for what IS functional;
+    # the hardcoded sets cover predicates the registry doesn't know about.
+    functional |= FUNCTIONAL_PREDS
+    multi_value = (multi_value | MULTI_VALUE_PREDS) - functional
+    return functional, multi_value
 
 
 def main(argv):
@@ -348,30 +429,53 @@ def main(argv):
         "clientInfo": {"name": "tardygrada-learn-validated", "version": "0.1"},
     })
     server = init_resp.get("result", {}).get("serverInfo", {})
-    print(f"{DIM}MCP server: {server.get('name', '?')} {server.get('version', '?')}{NC}\n")
+    print(f"{DIM}MCP server: {server.get('name', '?')} {server.get('version', '?')}{NC}")
+
+    # Auto-derive predicate classes from the live frame registry.
+    functional_preds, multi_value_preds = fetch_predicate_classes(cli)
+    print(f"{DIM}Predicate classes: {len(functional_preds)} functional, "
+          f"{len(multi_value_preds)} multi-value (auto-derived from frame registry){NC}\n")
 
     counts = {k: 0 for k in
               ("accepted", "duplicate", "derived", "conflict",
-               "unconfirmed", "skipped", "other")}
+               "unconfirmed", "skipped", "remembered", "other")}
+
+    rejected_memory = load_rejection_memory()
+    if rejected_memory:
+        print(f"{DIM}Rejection memory: {len(rejected_memory)} prior failures loaded.{NC}")
 
     print(f"{DIM}Processing {len(candidates)} candidates...{NC}\n")
     t0 = time.monotonic()
 
     for (subj, pred, obj) in candidates:
-        if pred in FUNCTIONAL_PREDS:
+        # Skip candidates already known to be wrong from a prior run.
+        # Saves an LLM call per skip and amortizes the rejection cost
+        # across all future learning batches.
+        if (subj, pred, obj) in rejected_memory:
+            counts["remembered"] += 1
+            print(f"  {chip('remembered')}{CYAN}[??]{NC} {subj} {pred} {obj} "
+                  f"{DIM}[in rejection memory]{NC}")
+            continue
+
+        if pred in functional_preds:
             # Direct submit; rely on dry_merge for the structural check.
             status, _ = submit_via_mcp(cli, subj, pred, obj)
             counts[status] = counts.get(status, 0) + 1
             print(f"  {chip(status)}{CYAN}[fn]{NC} {subj} {pred} {obj}")
 
-        elif pred in MULTI_VALUE_PREDS:
+        elif pred in multi_value_preds:
             # K-of-N validation gate.
             passed, votes = cross_validate(subj, pred, obj, k=K, n=N)
             if not passed:
                 counts["unconfirmed"] += 1
                 yes = sum(1 for v in votes if v == "YES")
+                # Persist the rejection so we don't re-pay the validator
+                # cost on the same wrong claim in future runs.
+                remember_rejection(subj, pred, obj,
+                                    reason=f"{yes}/{N} YES (K={K})",
+                                    votes=votes)
                 print(f"  {chip('unconfirmed')}{CYAN}[mv]{NC} {subj} {pred} {obj} "
-                      f"{DIM}[{yes}/{N} YES, votes={','.join(votes)}]{NC}")
+                      f"{DIM}[{yes}/{N} YES, votes={','.join(votes)}, remembered]{NC}")
                 continue
             status, _ = submit_via_mcp(cli, subj, pred, obj)
             counts[status] = counts.get(status, 0) + 1
@@ -387,7 +491,7 @@ def main(argv):
     elapsed_ms = int((time.monotonic() - t0) * 1000)
     print(f"\n{DIM}=== Validated learn-loop summary ==={NC}")
     for k in ("accepted", "duplicate", "derived", "conflict",
-              "unconfirmed", "skipped", "other"):
+              "unconfirmed", "remembered", "skipped", "other"):
         v = counts.get(k, 0)
         if v == 0:
             continue

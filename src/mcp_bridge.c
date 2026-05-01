@@ -125,7 +125,12 @@ static const char *TOOLS_LIST =
         "\"subject\":{\"type\":\"string\",\"description\":\"Subject local-name (e.g. Bern)\"},"
         "\"predicate\":{\"type\":\"string\",\"description\":\"Predicate local-name (e.g. capitalOf)\"},"
         "\"object\":{\"type\":\"string\",\"description\":\"Object local-name (e.g. Switzerland)\"}},"
-      "\"required\":[\"subject\",\"predicate\",\"object\"]}}"
+      "\"required\":[\"subject\",\"predicate\",\"object\"]}},"
+    "{\"name\":\"list_frames\","
+     "\"description\":\"List all registered predicate frames and which of their slots are "
+       "functional (single-valued). Clients use this to decide which predicates need only "
+       "structural verification (functional) vs which need cross-validation (multi-value).\","
+     "\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"
     "]}";
 
 /* ============================================
@@ -204,6 +209,9 @@ static int handle_tool_call(const char *tool_name, const char *args_json,
 
     } else if (strcmp(tool_name, "daemon_status") == 0) {
         snprintf(daemon_req, sizeof(daemon_req), "{\"cmd\":\"status\"}");
+
+    } else if (strcmp(tool_name, "list_frames") == 0) {
+        snprintf(daemon_req, sizeof(daemon_req), "{\"cmd\":\"frames\"}");
 
     } else if (strcmp(tool_name, "submit_fact") == 0) {
         if (tardy_json_parse(&ap, args_json, (int)strlen(args_json)) < 0)

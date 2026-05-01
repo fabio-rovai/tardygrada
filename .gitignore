@@ -12,3 +12,6 @@ tests/grounding_probe
 *.vo
 *.glob
 tests/learned_ontology.nt
+tests/sovereign_ontology.nt
+tests/promote_state.json
+tests/rejected_log.jsonl
