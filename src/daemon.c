@@ -128,6 +128,61 @@ static int json_ok(char *buf, int bufsz, const char *result, float confidence)
         result, (double)confidence);
 }
 
+/* Extended OK response: result + confidence + per-triple grounding with
+ * tier provenance. Emits:
+ *   {"ok":true,"result":"VERIFIED","confidence":0.85,
+ *    "triples":[{"s":"Paris","p":"located_in","o":"France",
+ *                 "status":"grounded","tier":"bundled"}, ...]}
+ * Falls back to plain json_ok format if grounding has no triples. */
+static int json_ok_with_grounding(char *buf, int bufsz,
+                                   const char *result, float confidence,
+                                   const tardy_grounding_t *g,
+                                   tardy_self_ontology_t *ont)
+{
+    if (!g || g->count == 0) {
+        return json_ok(buf, bufsz, result, confidence);
+    }
+    int w = snprintf(buf, bufsz,
+        "{\"ok\":true,\"result\":\"%s\",\"confidence\":%.2f,\"triples\":[",
+        result, (double)confidence);
+    if (w < 0 || w >= bufsz) return w;
+    for (int i = 0; i < g->count && i < TARDY_MAX_TRIPLES; i++) {
+        const char *status = "unknown";
+        switch (g->results[i].status) {
+        case TARDY_KNOWLEDGE_GROUNDED:     status = "grounded"; break;
+        case TARDY_KNOWLEDGE_CONTRADICTED: status = "contradicted"; break;
+        case TARDY_KNOWLEDGE_CONSISTENT:   status = "consistent"; break;
+        default: break;
+        }
+        const char *tier = "unknown";
+        if (g->results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
+            tardy_tier_t t = (tardy_tier_t)g->results[i].tier;
+            if (t == TARDY_TIER_NONE && ont) {
+                /* Datalog-only or derived match: tier wasn't set during
+                 * grounding. Best-effort lookup against the input form. */
+                t = tardy_self_ontology_get_tier(ont,
+                    g->results[i].triple.subject,
+                    g->results[i].triple.predicate,
+                    g->results[i].triple.object);
+            }
+            tier = tardy_tier_name(t);
+        }
+        int n = snprintf(buf + w, bufsz - w,
+            "%s{\"s\":\"%.60s\",\"p\":\"%.60s\",\"o\":\"%.60s\","
+            "\"status\":\"%s\",\"tier\":\"%s\"}",
+            i == 0 ? "" : ",",
+            g->results[i].triple.subject,
+            g->results[i].triple.predicate,
+            g->results[i].triple.object,
+            status, tier);
+        if (n < 0 || w + n >= bufsz) { w = bufsz - 1; break; }
+        w += n;
+    }
+    int n = snprintf(buf + w, bufsz - w, "]}");
+    if (n > 0) w += n;
+    return w;
+}
+
 static int json_error(char *buf, int bufsz, const char *error)
 {
     return snprintf(buf, bufsz, "{\"ok\":false,\"error\":\"%s\"}", error);
@@ -293,8 +348,12 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
     int verified = (pass_count >= 2);
     float avg_confidence = pass_count > 0 ? total_confidence / (float)pass_count : 0.0f;
 
+    tardy_self_ontology_t *ont = srv->self_ontology_loaded
+        ? &srv->self_ontology : NULL;
+
     if (verified) {
-        return json_ok(resp, resp_size, "VERIFIED", avg_confidence);
+        return json_ok_with_grounding(resp, resp_size, "VERIFIED",
+                                       avg_confidence, &grounding, ont);
     } else {
         const char *reason = "NOT_VERIFIED";
         for (int run = 0; run < 3; run++) {
@@ -328,7 +387,8 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             reason = "ontology_gap";
             avg_confidence = 0.0f;
         }
-        return json_ok(resp, resp_size, reason, avg_confidence);
+        return json_ok_with_grounding(resp, resp_size, reason,
+                                       avg_confidence, &grounding, ont);
     }
 }
 
@@ -799,8 +859,13 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
         int ok = 1;
         switch (mr) {
             case TARDY_MERGE_OK: {
-                /* Add to live ontology + persist to learned file. */
+                /* Add to live ontology + persist to learned file. Tag
+                 * with LEARNED tier so query-time provenance reflects
+                 * the actual entry point (submit_fact, not bundled). */
+                uint8_t saved = srv->self_ontology.current_tier;
+                srv->self_ontology.current_tier = TARDY_TIER_LEARNED;
                 tardy_self_ontology_add(&srv->self_ontology, subj, pred, obj);
+                srv->self_ontology.current_tier = saved;
                 /* Append to learned_ontology.nt under the project tree.
                  * We try the canonical project path first; on failure
                  * we fall back to /tmp so the daemon doesn't fail just
@@ -1066,8 +1131,8 @@ int tardy_daemon_start(const char *config_path, int foreground)
         };
         int bundled_loaded = 0;
         for (int p = 0; bundled_paths[p]; p++) {
-            int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
-                                                       bundled_paths[p]);
+            int loaded = tardy_self_ontology_load_ttl_with_tier(
+                &srv->self_ontology, bundled_paths[p], TARDY_TIER_BUNDLED);
             if (loaded > 0) {
                 srv->self_ontology_loaded = true;
                 bundled_loaded = loaded;
@@ -1076,8 +1141,8 @@ int tardy_daemon_start(const char *config_path, int foreground)
         }
         int sovereign_loaded = 0;
         for (int p = 0; sovereign_paths[p]; p++) {
-            int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
-                                                       sovereign_paths[p]);
+            int loaded = tardy_self_ontology_load_ttl_with_tier(
+                &srv->self_ontology, sovereign_paths[p], TARDY_TIER_SOVEREIGN);
             if (loaded > 0) {
                 srv->self_ontology_loaded = true;
                 sovereign_loaded = loaded;
@@ -1086,8 +1151,8 @@ int tardy_daemon_start(const char *config_path, int foreground)
         }
         int learned_loaded = 0;
         for (int p = 0; learned_paths[p]; p++) {
-            int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
-                                                       learned_paths[p]);
+            int loaded = tardy_self_ontology_load_ttl_with_tier(
+                &srv->self_ontology, learned_paths[p], TARDY_TIER_LEARNED);
             if (loaded > 0) {
                 srv->self_ontology_loaded = true;
                 learned_loaded = loaded;

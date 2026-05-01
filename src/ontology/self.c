@@ -100,6 +100,144 @@ int tardy_self_ontology_init(tardy_self_ontology_t *ont, tardy_vm_t *vm)
 }
 
 /* ============================================
+ * Tier sidecar helpers
+ * ============================================ */
+
+static void tier_key_build(char *out, int max_len,
+                            const char *s, const char *p, const char *o)
+{
+    /* Mirrors the agent-name format in tardy_self_ontology_add so a
+     * tier_map entry can be looked up either by triple parts or by the
+     * agent name directly. */
+    snprintf(out, max_len, "%.20s|%.20s|%.20s", s, p, o);
+}
+
+static void tier_map_record(tardy_self_ontology_t *ont,
+                             const char *s, const char *p, const char *o,
+                             uint8_t tier)
+{
+    if (tier == TARDY_TIER_NONE) return;
+    if (ont->tier_count >= TARDY_DL_MAX_FACTS) return;
+
+    char key[TARDY_TIER_KEY_MAX];
+    tier_key_build(key, sizeof(key), s, p, o);
+
+    /* If already present, upgrade tier (more-trusted wins). Tier order:
+     * BUNDLED (1) < SOVEREIGN (2) < LEARNED (3) numerically, but the
+     * intuitive trust order is BUNDLED ≈ SOVEREIGN > LEARNED. We
+     * preserve whichever was written first; submit_fact writes LEARNED
+     * after startup, and we don't want it to overwrite a BUNDLED entry
+     * that happens to match. */
+    for (int i = 0; i < ont->tier_count; i++) {
+        if (strcmp(ont->tier_map[i].key, key) == 0)
+            return;
+    }
+
+    strncpy(ont->tier_map[ont->tier_count].key, key,
+            TARDY_TIER_KEY_MAX - 1);
+    ont->tier_map[ont->tier_count].key[TARDY_TIER_KEY_MAX - 1] = '\0';
+    ont->tier_map[ont->tier_count].tier = tier;
+    ont->tier_count++;
+}
+
+const char *tardy_tier_name(tardy_tier_t tier)
+{
+    switch (tier) {
+    case TARDY_TIER_BUNDLED:   return "bundled";
+    case TARDY_TIER_SOVEREIGN: return "sovereign";
+    case TARDY_TIER_LEARNED:   return "learned";
+    default:                    return "unknown";
+    }
+}
+
+/* Predicate normalization mirroring frames.c — strip underscores and
+ * lowercase, so "located_in" matches "locatedIn". */
+static int self_pred_norm_eq(const char *a, const char *b)
+{
+    char na[64], nb[64];
+    int ai = 0, bi = 0;
+    for (int i = 0; a[i] && ai < 63; i++)
+        if (a[i] != '_')
+            na[ai++] = (char)((a[i] >= 'A' && a[i] <= 'Z') ? a[i] + 32 : a[i]);
+    na[ai] = '\0';
+    for (int i = 0; b[i] && bi < 63; i++)
+        if (b[i] != '_')
+            nb[bi++] = (char)((b[i] >= 'A' && b[i] <= 'Z') ? b[i] + 32 : b[i]);
+    nb[bi] = '\0';
+    return strcmp(na, nb) == 0;
+}
+
+/* Linear scan of tier_map with normalized comparison. Used when a
+ * Datalog query succeeds: we don't know which stored fact backed the
+ * inference, but if there's a tier_map entry whose subject/object match
+ * (with predicate normalized) we can attribute its tier. */
+static tardy_tier_t tier_map_find_normalized(
+    const tardy_self_ontology_t *ont,
+    const char *s, const char *p, const char *o)
+{
+    char ns[128], no[128];
+    normalize_name(s, ns, sizeof(ns));
+    normalize_name(o, no, sizeof(no));
+
+    for (int i = 0; i < ont->tier_count; i++) {
+        /* Parse key into s|p|o */
+        char tmp[TARDY_TIER_KEY_MAX];
+        strncpy(tmp, ont->tier_map[i].key, sizeof(tmp) - 1);
+        tmp[sizeof(tmp) - 1] = '\0';
+        char *bar1 = strchr(tmp, '|');
+        if (!bar1) continue;
+        *bar1 = '\0';
+        char *bar2 = strchr(bar1 + 1, '|');
+        if (!bar2) continue;
+        *bar2 = '\0';
+
+        const char *ks = tmp;
+        const char *kp = bar1 + 1;
+        const char *ko = bar2 + 1;
+
+        if (strcmp(ks, ns) == 0 &&
+            strcmp(ko, no) == 0 &&
+            self_pred_norm_eq(kp, p)) {
+            return (tardy_tier_t)ont->tier_map[i].tier;
+        }
+    }
+    return TARDY_TIER_NONE;
+}
+
+tardy_tier_t tardy_self_ontology_get_tier(const tardy_self_ontology_t *ont,
+                                           const char *s,
+                                           const char *p,
+                                           const char *o)
+{
+    if (!ont || !ont->initialized || !s || !p || !o) return TARDY_TIER_NONE;
+
+    /* Try the input triple as-is, then with subject/object normalized
+     * to ontology form (CamelCase). The decomposer output may be either
+     * "Paris" or "paris is in" depending on path; the load path always
+     * stores the IRI local-name form. */
+    char raw_key[TARDY_TIER_KEY_MAX];
+    tier_key_build(raw_key, sizeof(raw_key), s, p, o);
+    for (int i = 0; i < ont->tier_count; i++) {
+        if (strcmp(ont->tier_map[i].key, raw_key) == 0)
+            return (tardy_tier_t)ont->tier_map[i].tier;
+    }
+
+    char norm_s[128], norm_o[128];
+    normalize_name(s, norm_s, sizeof(norm_s));
+    normalize_name(o, norm_o, sizeof(norm_o));
+    char norm_key[TARDY_TIER_KEY_MAX];
+    tier_key_build(norm_key, sizeof(norm_key), norm_s, p, norm_o);
+    if (strcmp(norm_key, raw_key) != 0) {
+        for (int i = 0; i < ont->tier_count; i++) {
+            if (strcmp(ont->tier_map[i].key, norm_key) == 0)
+                return (tardy_tier_t)ont->tier_map[i].tier;
+        }
+    }
+    /* Last resort: predicate-normalized scan ("located_in" ≡ "locatedIn"). */
+    return tier_map_find_normalized(ont, s, p, o);
+}
+
+/* ============================================
  * Add Triple — each triple becomes a @sovereign agent
  * ============================================ */
 
@@ -143,6 +281,9 @@ int tardy_self_ontology_add(tardy_self_ontology_t *ont,
         ont->triple_count--;
         return -1;
     }
+
+    /* Record provenance if a load tier is currently set. */
+    tier_map_record(ont, subject, predicate, object, ont->current_tier);
 
     return 0;
 }
@@ -304,6 +445,18 @@ int tardy_self_ontology_load_ttl(tardy_self_ontology_t *ont,
     return loaded;
 }
 
+int tardy_self_ontology_load_ttl_with_tier(tardy_self_ontology_t *ont,
+                                            const char *path,
+                                            tardy_tier_t tier)
+{
+    if (!ont || !ont->initialized) return -1;
+    uint8_t saved = ont->current_tier;
+    ont->current_tier = (uint8_t)tier;
+    int loaded = tardy_self_ontology_load_ttl(ont, path);
+    ont->current_tier = saved;
+    return loaded;
+}
+
 /* ============================================
  * Ground — look up triples by querying agents
  *
@@ -329,6 +482,7 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
 
     for (int i = 0; i < count && i < TARDY_MAX_TRIPLES; i++) {
         out->results[i].triple = triples[i];
+        out->results[i].tier = TARDY_TIER_NONE;
 
         /* Normalize input — same as bridge.c IRI normalization */
         char norm_s[128], norm_o[128];
@@ -355,6 +509,16 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
 
         if (dl_result == 1) {
             evidence++;
+            /* Datalog inference doesn't tell us which stored fact backed
+             * the proof, so do a normalized lookup. Misses for
+             * Datalog-derived chains where no single stored fact has
+             * matching s/o (e.g. transitive locatedIn over countries) —
+             * tier is left NONE in that case. */
+            if (out->results[i].tier == TARDY_TIER_NONE) {
+                out->results[i].tier = (uint8_t)tier_map_find_normalized(
+                    ont, triples[i].subject, triples[i].predicate,
+                    triples[i].object);
+            }
         } else if (dl_result == -1) {
             contradictions++;
         }
@@ -376,6 +540,17 @@ int tardy_self_ontology_ground(tardy_self_ontology_t *ont,
 
                 if (obj_match) {
                     evidence++;
+                    /* Tier propagation: child_name IS the tier_map key
+                     * (both built via "%.20s|%.20s|%.20s"). Linear scan
+                     * is fine at n<<4096; first match wins. */
+                    if (out->results[i].tier == TARDY_TIER_NONE) {
+                        for (int t = 0; t < ont->tier_count; t++) {
+                            if (strcmp(ont->tier_map[t].key, child_name) == 0) {
+                                out->results[i].tier = ont->tier_map[t].tier;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }

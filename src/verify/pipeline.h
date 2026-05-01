@@ -18,6 +18,7 @@
 #ifndef TARDY_PIPELINE_H
 #define TARDY_PIPELINE_H
 
+#include <stdint.h>
 #include "../vm/types.h"
 #include "../vm/semantics.h"
 #include "../vm/crypto.h"
@@ -57,6 +58,7 @@ typedef struct {
     tardy_knowledge_status_t status;     /* grounded / unknown / contradicted */
     int                      evidence_count; /* how many supporting triples found */
     float                    confidence;
+    uint8_t                  tier;        /* tardy_tier_t — provenance of supporting fact */
 } tardy_grounding_result_t;
 
 typedef struct {

@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.18] — 2026-04-29
+
+Provenance-aware querying: every grounded triple now carries the tier
+of the supporting fact in the daemon's `run` response.
+
+src/ontology/self.{h,c}
+  New `tardy_tier_t` enum (BUNDLED / SOVEREIGN / LEARNED / NONE) plus a
+  per-fact tier sidecar (`tier_map`) sized to TARDY_DL_MAX_FACTS.
+  `tardy_self_ontology_load_ttl_with_tier(path, tier)` tags every fact
+  loaded from a tier file; `tardy_self_ontology_add` records the
+  current_tier when called from the daemon's submit-fact path so
+  freshly-accepted facts are tagged LEARNED.
+  Tier propagation runs in two grounding paths:
+  - Datalog query success: normalized lookup against tier_map
+    (handles snake_case ↔ camelCase predicate mismatch between
+    decomposer output and stored facts).
+  - Substring fallback: child agent name IS the tier_map key, so an
+    exact strcmp lookup attributes provenance.
+
+src/verify/pipeline.h
+  `tardy_grounding_result_t` gains `uint8_t tier`. Carried through the
+  pipeline for query-time provenance.
+
+src/daemon.c
+  Three-tier load uses `_with_tier` variants: BUNDLED for
+  wikidata_common.nt, SOVEREIGN for sovereign_ontology.nt, LEARNED for
+  learned_ontology.nt. The submit-fact handler tags new facts LEARNED
+  before calling `tardy_self_ontology_add`.
+  New `json_ok_with_grounding` emits an extended response:
+    {"ok":true,"result":"VERIFIED","confidence":0.85,
+     "triples":[{"s":"France","p":"has_capital","o":"Paris",
+                 "status":"grounded","tier":"bundled"}]}
+  Used for both the verified and not-verified paths so provenance is
+  available even when the verifier returns ontology_gap or
+  contradiction. Previous response shape (without `triples`) is
+  preserved when there are no decomposed triples.
+
+Verified end-to-end: bundled tier (Paris/France), sovereign tier
+(Edinburgh/Scotland), and learned tier (Vancouver/Canada submitted via
+MCP at runtime) all surface their tier correctly in the run response.
+
+---
+
 ## [2.0.4] — 2026-04-30
 
 `tardy run` headline example now actually verifies. Two surgical fixes
