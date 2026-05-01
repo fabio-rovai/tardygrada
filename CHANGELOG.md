@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.20] — 2026-04-29
+
+Daemon-side validation gate for multi-value predicates. Closes the
+loophole where any client (MCP, wikidata-ingest.py, raw socket) could
+submit "Anthropic founder MarkZuckerberg" and have it accepted because
+the predicate is multi-value (no functional-dep conflict). Now every
+submit-fact passes through the same gate, regardless of caller.
+
+src/daemon.c
+  New TARDY_VALIDATE env var with three modes:
+    off    — default, legacy behaviour
+    mock   — built-in known-wrong list mirroring
+             demo/learn-validated.py MOCK_KNOWN_WRONG (deterministic
+             for tests/CI; SamAltman→Anthropic etc.)
+    extern — fork+exec TARDY_VALIDATE_CMD with "S P O\n" on stdin,
+             expect YES/NO on stdout
+  Functional predicates (capitalOf, has_capital — anything where one
+  slot is functional) skip the gate; dry_merge already protects them.
+  Rejected facts append to tests/rejected_log.jsonl (same format as
+  demo/learn-validated.py and demo/promote.py) so the learning loop
+  doesn't keep re-proposing the same bad fact.
+
+Verified: SamAltman→Anthropic rejected under mock; DarioAmodei→Anthropic
+accepted (multi-value passes); Reykjavik→Iceland accepted (functional
+predicate, skipped gate). Extern mode tested with a /bin/sh validator
+that rejects "BillGates founded Atari" and accepts the legitimate
+NolanBushnell→Atari.
+
+---
+
 ## [2.0.19] — 2026-04-29
 
 Wikidata SPARQL ingestor: scale the ontology beyond the ~180 hand-

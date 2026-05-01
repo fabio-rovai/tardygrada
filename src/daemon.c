@@ -28,9 +28,11 @@
 #include <sys/un.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <time.h>
@@ -115,6 +117,161 @@ static int load_config(tardy_vm_t *vm, const char *config_path)
     }
 
     return loaded;
+}
+
+/* ============================================
+ * Submit-fact validation gate
+ *
+ * For multi-value predicates (founder, member, employee — where one
+ * subject can have many objects), the dry_merge functional-dep check
+ * doesn't catch semantic errors like "Anthropic founder MarkZuckerberg"
+ * — both slots are non-functional, so anything with the right shape
+ * passes structurally. This gate sits inside the daemon's submit_fact
+ * path so every client (MCP, learn-validated.py, wikidata-ingest.py)
+ * goes through the same check.
+ *
+ * Modes (TARDY_VALIDATE env var):
+ *   off    — default; legacy behaviour, no daemon-side validation
+ *   mock   — built-in known-wrong list, deterministic for tests/CI
+ *   extern — shell out to TARDY_VALIDATE_CMD, expect YES/NO on stdout
+ *
+ * Functional predicates (capitalOf, etc.) skip the gate; the dry_merge
+ * functional-dep check already protects them.
+ * ============================================ */
+
+typedef enum {
+    TARDY_VAL_OFF = 0,
+    TARDY_VAL_MOCK,
+    TARDY_VAL_EXTERN
+} tardy_validate_mode_t;
+
+static tardy_validate_mode_t validate_mode_from_env(void)
+{
+    const char *m = getenv("TARDY_VALIDATE");
+    if (!m || !*m || strcmp(m, "off") == 0)    return TARDY_VAL_OFF;
+    if (strcmp(m, "mock")   == 0)               return TARDY_VAL_MOCK;
+    if (strcmp(m, "extern") == 0)               return TARDY_VAL_EXTERN;
+    return TARDY_VAL_OFF;
+}
+
+/* Mirror demo/learn-validated.py MOCK_KNOWN_WRONG so daemon and
+ * orchestrator scripts agree on what a "bad" fact looks like. */
+static int mock_validator_says_no(const char *s, const char *p, const char *o)
+{
+    static const char *known_wrong[][3] = {
+        {"Anthropic", "founder", "SamAltman"},
+        {"Twitter",   "founder", "MarkZuckerberg"},
+        {"Microsoft", "founder", "ElonMusk"},
+        {"Apple",     "founder", "BillGates"},
+        {"Facebook",  "founder", "LarryPage"},
+        {NULL, NULL, NULL}
+    };
+    for (int i = 0; known_wrong[i][0]; i++) {
+        if (strcmp(known_wrong[i][0], s) == 0 &&
+            strcmp(known_wrong[i][1], p) == 0 &&
+            strcmp(known_wrong[i][2], o) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Shell out to TARDY_VALIDATE_CMD with "S P O\n" on stdin. Return
+ *   1  validator said YES
+ *   0  validator said NO
+ *  -1  validator failed (treated as NO by callers) */
+static int extern_validator(const char *s, const char *p, const char *o)
+{
+    const char *cmd = getenv("TARDY_VALIDATE_CMD");
+    if (!cmd || !*cmd) return -1;
+
+    int in_pipe[2], out_pipe[2];
+    if (pipe(in_pipe) < 0) return -1;
+    if (pipe(out_pipe) < 0) { close(in_pipe[0]); close(in_pipe[1]); return -1; }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(in_pipe[0]); close(in_pipe[1]);
+        close(out_pipe[0]); close(out_pipe[1]);
+        return -1;
+    }
+    if (pid == 0) {
+        /* child */
+        dup2(in_pipe[0],  STDIN_FILENO);
+        dup2(out_pipe[1], STDOUT_FILENO);
+        close(in_pipe[0]);  close(in_pipe[1]);
+        close(out_pipe[0]); close(out_pipe[1]);
+        execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
+        _exit(127);
+    }
+    /* parent */
+    close(in_pipe[0]); close(out_pipe[1]);
+    char line[512];
+    int n = snprintf(line, sizeof(line), "%s %s %s\n", s, p, o);
+    if (n > 0) {
+        ssize_t w = write(in_pipe[1], line, (size_t)n);
+        (void)w;
+    }
+    close(in_pipe[1]);
+
+    char buf[64] = {0};
+    ssize_t r = read(out_pipe[0], buf, sizeof(buf) - 1);
+    close(out_pipe[0]);
+    int status = 0;
+    waitpid(pid, &status, 0);
+
+    if (r <= 0) return -1;
+    /* uppercase first non-space token */
+    char tok[16] = {0};
+    int ti = 0;
+    int seen = 0;
+    for (ssize_t i = 0; i < r && ti < (int)sizeof(tok) - 1; i++) {
+        char c = buf[i];
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            if (seen) break;
+            continue;
+        }
+        seen = 1;
+        if (c >= 'a' && c <= 'z') c = (char)(c - 32);
+        tok[ti++] = c;
+    }
+    if (strcmp(tok, "YES") == 0) return 1;
+    if (strcmp(tok, "NO")  == 0) return 0;
+    return -1;
+}
+
+/* Predicate is "multi-value" if neither slot is functional, OR the
+ * frame is unknown (we can't prove it's safe). For functional
+ * predicates the dry_merge gate already protects against bad inputs,
+ * so we let those skip validation regardless. */
+static int predicate_is_multi_value(const tardy_frame_registry_t *frames,
+                                     const char *pred)
+{
+    const tardy_frame_t *frame = tardy_frames_find(frames, pred);
+    if (!frame) return 1;
+    if (frame->slots[0].functional || frame->slots[1].functional) return 0;
+    return 1;
+}
+
+/* Returns:
+ *   1   pass — proceed with submit
+ *   0   fail — reject and log
+ *  -1   indeterminate — caller decides; we treat as fail (conservative) */
+static int validate_fact(tardy_validate_mode_t mode,
+                          const tardy_frame_registry_t *frames,
+                          const char *s, const char *p, const char *o)
+{
+    if (mode == TARDY_VAL_OFF) return 1;
+    if (!predicate_is_multi_value(frames, p)) return 1;
+
+    if (mode == TARDY_VAL_MOCK)
+        return mock_validator_says_no(s, p, o) ? 0 : 1;
+
+    /* extern */
+    int r = extern_validator(s, p, o);
+    if (r == 1) return 1;
+    if (r == 0) return 0;
+    return -1;
 }
 
 /* ============================================
@@ -854,6 +1011,52 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             &srv->self_ontology.frames,
             &srv->self_ontology.datalog,
             pred, subj, obj);
+
+        /* Validation gate (Phase C). For multi-value predicates the
+         * functional-dep check can't catch semantic errors like
+         * "Anthropic founder MarkZuckerberg" — both slots are non-
+         * functional. We run validation BEFORE the merge so a rejected
+         * fact never enters the ontology nor the learned file. */
+        if (mr == TARDY_MERGE_OK) {
+            tardy_validate_mode_t vmode = validate_mode_from_env();
+            int v = validate_fact(vmode, &srv->self_ontology.frames,
+                                   subj, pred, obj);
+            if (v == 0 || v == -1) {
+                /* Append to rejection memory so the learning loop
+                 * doesn't keep re-proposing the same bad fact. Path
+                 * mirrors learn-validated.py / promote.py convention. */
+                const char *rej_paths[] = {
+                    "tests/rejected_log.jsonl",
+                    "/Users/fabio/projects/tardygrada/tests/rejected_log.jsonl",
+                    "/tmp/tardygrada_rejected.jsonl",
+                    NULL
+                };
+                for (int p = 0; rej_paths[p]; p++) {
+                    FILE *f = fopen(rej_paths[p], "a");
+                    if (!f) continue;
+                    fprintf(f, "{\"subject\":\"%s\",\"predicate\":\"%s\","
+                            "\"object\":\"%s\",\"reason\":\"%s\","
+                            "\"ts\":%ld,\"source\":\"daemon-submit-gate\"}\n",
+                            subj, pred, obj,
+                            v == 0 ? "validator said NO"
+                                    : "validator unavailable",
+                            (long)time(NULL));
+                    fclose(f);
+                    break;
+                }
+                char esc_s[256], esc_p[256], esc_o[512];
+                json_escape(subj, esc_s, sizeof(esc_s));
+                json_escape(pred, esc_p, sizeof(esc_p));
+                json_escape(obj,  esc_o, sizeof(esc_o));
+                return snprintf(resp, resp_size,
+                    "{\"ok\":false,\"status\":\"rejected\","
+                    "\"reason\":\"%s\",\"subject\":\"%s\","
+                    "\"predicate\":\"%s\",\"object\":\"%s\"}",
+                    v == 0 ? "validator said NO"
+                            : "validator unavailable",
+                    esc_s, esc_p, esc_o);
+            }
+        }
 
         const char *status;
         int ok = 1;
