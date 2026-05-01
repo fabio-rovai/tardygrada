@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.23] — 2026-05-01
+
+src/vm/context.h
+  TARDY_CTX_MAX_CHILDREN bumped from 256 to 4096. The per-agent children
+  cap was the real bottleneck for ontology size — each loaded triple
+  becomes a child of the parent ontology agent, and submit-fact
+  silently no-op'd once the cap was hit (the daemon still reported
+  "accepted" because the agent-spawn return code wasn't checked in the
+  submit handler). 4096 matches TARDY_DL_MAX_FACTS so the two limits
+  are now consistent. Memory cost per parent: 4096 * (64+16) ≈ 320KB,
+  paid lazily via mmap anonymous pages.
+
+  Discovered while loading larger bundled ontologies (~270 facts
+  trying to fit in 256 slots). The 256 cap was a v1 placeholder;
+  this is a one-line lift, no API change.
+
+---
+
 ## [2.0.22] — 2026-05-01
 
 First concrete adapter: tardy-git wraps the git CLI behind the

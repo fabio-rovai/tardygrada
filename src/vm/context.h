@@ -62,7 +62,13 @@ typedef struct {
  * Children live here. Named lookup + semantic query.
  * ============================================ */
 
-#define TARDY_CTX_MAX_CHILDREN 256
+/* Bumped from 256 to 4096 (2026-05-01) to match TARDY_DL_MAX_FACTS:
+ * the per-agent children cap was the real bottleneck for ontology
+ * size, since each loaded triple becomes a child of the ontology
+ * parent agent. Submit-fact silently no-op'd at the cap. Memory cost
+ * per parent agent: 4096 * (64+16) ≈ 320KB, paid lazily via mmap
+ * anonymous pages, so the cost is only realised on actual growth. */
+#define TARDY_CTX_MAX_CHILDREN 4096
 #define TARDY_CTX_MAX_NAME     64
 
 typedef struct {
