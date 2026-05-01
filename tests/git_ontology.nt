@@ -1,0 +1,26 @@
+# tardygrada git domain ontology — bundled tier.
+# Loaded by the daemon on startup so the tardy-git adapter can ground
+# safety checks against it without bootstrapping.
+#
+# Conventions:
+#   - protected_branch: refs that the adapter MUST refuse to delete or
+#     force-push without an explicit override
+#   - protected_ref:    refs that should never be moved imperatively
+#   - destructive_op:   git operations the adapter routes through
+#     verification regardless of arguments
+
+# Protected branches (default repo conventions)
+<http://tardygrada.org/main> <http://schema.org/is_a> <http://tardygrada.org/protected_branch> .
+<http://tardygrada.org/master> <http://schema.org/is_a> <http://tardygrada.org/protected_branch> .
+<http://tardygrada.org/develop> <http://schema.org/is_a> <http://tardygrada.org/protected_branch> .
+<http://tardygrada.org/release> <http://schema.org/is_a> <http://tardygrada.org/protected_branch> .
+
+# Protected refs
+<http://tardygrada.org/HEAD> <http://schema.org/is_a> <http://tardygrada.org/protected_ref> .
+
+# Destructive operations
+<http://tardygrada.org/branch_delete> <http://schema.org/is_a> <http://tardygrada.org/destructive_op> .
+<http://tardygrada.org/push_force> <http://schema.org/is_a> <http://tardygrada.org/destructive_op> .
+<http://tardygrada.org/reset_hard> <http://schema.org/is_a> <http://tardygrada.org/destructive_op> .
+<http://tardygrada.org/clean_force> <http://schema.org/is_a> <http://tardygrada.org/destructive_op> .
+<http://tardygrada.org/checkout_discard> <http://schema.org/is_a> <http://tardygrada.org/destructive_op> .

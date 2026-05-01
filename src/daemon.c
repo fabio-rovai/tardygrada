@@ -1374,6 +1374,11 @@ int tardy_daemon_start(const char *config_path, int foreground)
             "/Users/fabio/projects/tardygrada/tests/wikidata_common.nt",
             NULL
         };
+        const char *git_paths[] = {
+            "tests/git_ontology.nt",
+            "/Users/fabio/projects/tardygrada/tests/git_ontology.nt",
+            NULL
+        };
         const char *sovereign_paths[] = {
             "tests/sovereign_ontology.nt",
             "/Users/fabio/projects/tardygrada/tests/sovereign_ontology.nt",
@@ -1393,6 +1398,18 @@ int tardy_daemon_start(const char *config_path, int foreground)
             if (loaded > 0) {
                 srv->self_ontology_loaded = true;
                 bundled_loaded = loaded;
+                break;
+            }
+        }
+        /* Load the git domain ontology on top of the wikidata corpus so
+         * tardy-git adapter has facts to ground against. Same BUNDLED
+         * tier — these are hand-curated repo conventions. */
+        for (int p = 0; git_paths[p]; p++) {
+            int loaded = tardy_self_ontology_load_ttl_with_tier(
+                &srv->self_ontology, git_paths[p], TARDY_TIER_BUNDLED);
+            if (loaded > 0) {
+                srv->self_ontology_loaded = true;
+                bundled_loaded += loaded;
                 break;
             }
         }

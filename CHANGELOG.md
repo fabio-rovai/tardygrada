@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.22] — 2026-05-01
+
+First concrete adapter: tardy-git wraps the git CLI behind the
+verification gate. Demonstrates the "terraform for software" thesis
+end-to-end — a real piece of legacy software is now callable through
+the same ontology / decompose / ground pipeline that protects natural-
+language claims.
+
+tests/git_ontology.nt
+  New bundled-tier corpus with 11 facts: protected_branch (main, master,
+  develop, release), protected_ref (HEAD), and destructive_op
+  (branch_delete, push_force, reset_hard, clean_force, checkout_discard).
+  Loaded on daemon startup as TIER_BUNDLED, separate file from
+  wikidata_common.nt.
+
+src/daemon.c
+  Three-tier load now also reads tests/git_ontology.nt under the
+  bundled tier, with the same path-fallback convention.
+
+demo/tardy-git.py
+  Verifiable wrapper around git. Five gated subcommands:
+    `branch -d/-D NAME`   reject if NAME is_a protected_branch
+    `push --force ...`    reject (push_force is destructive_op)
+    `reset --hard ...`    reject (reset_hard is destructive_op)
+    `clean -f / -fd`      reject (clean_force is destructive_op)
+    `checkout -- PATH`    reject (checkout_discard is destructive_op)
+  Read-only commands (status, log, diff) pass through unverified.
+  --explain dumps the verification trace; --allow-unsafe overrides.
+  Each rejection shows the grounded triple AND its tier so the user
+  knows why and where the rule comes from.
+
+Demo verified end-to-end against /tmp/tardy-git-demo: branch -D main
+rejected with grounded(main, is_a, protected_branch, tier=bundled);
+branch -D feature-x executes; push --force rejected; reset --hard
+rejected; --allow-unsafe successfully bypasses.
+
+The architecture this proves out:
+  LLM → MCP tool → tardygrada verify → adapter → real software
+                          │
+                          ▼
+                   ontology (the software's domain model)
+
+The next layer up is auto-introspection: parse `git --help` and OpenAPI
+specs to emit ontology frames automatically, so adding a new piece of
+software doesn't require hand-curating `tests/SOFTWARE_ontology.nt`.
+
+---
+
 ## [2.0.21] — 2026-04-29
 
 Time-aware facts: each fact can carry an optional validity interval
