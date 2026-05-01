@@ -113,7 +113,19 @@ static const char *TOOLS_LIST =
       "\"required\":[\"agent\"]}},"
     "{\"name\":\"daemon_status\","
      "\"description\":\"Get Tardygrada daemon status\","
-     "\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"
+     "\"inputSchema\":{\"type\":\"object\",\"properties\":{}}},"
+    "{\"name\":\"submit_fact\","
+     "\"description\":\"Propose a triple (subject, predicate, object) to the world model. "
+       "The verifier runs a dry-merge against the live ontology: returns 'accepted' for "
+       "new non-conflicting facts (which are persisted to learned_ontology.nt and added to "
+       "the live Datalog), 'duplicate' for known facts, 'derived' for facts that follow "
+       "from existing rules, or 'conflict' for facts that violate a functional dependency.\","
+     "\"inputSchema\":{\"type\":\"object\","
+      "\"properties\":{"
+        "\"subject\":{\"type\":\"string\",\"description\":\"Subject local-name (e.g. Bern)\"},"
+        "\"predicate\":{\"type\":\"string\",\"description\":\"Predicate local-name (e.g. capitalOf)\"},"
+        "\"object\":{\"type\":\"string\",\"description\":\"Object local-name (e.g. Switzerland)\"}},"
+      "\"required\":[\"subject\",\"predicate\",\"object\"]}}"
     "]}";
 
 /* ============================================
@@ -192,6 +204,29 @@ static int handle_tool_call(const char *tool_name, const char *args_json,
 
     } else if (strcmp(tool_name, "daemon_status") == 0) {
         snprintf(daemon_req, sizeof(daemon_req), "{\"cmd\":\"status\"}");
+
+    } else if (strcmp(tool_name, "submit_fact") == 0) {
+        if (tardy_json_parse(&ap, args_json, (int)strlen(args_json)) < 0)
+            return build_error(out, out_size, id, -32602, "Invalid arguments");
+        int si = tardy_json_find(&ap, 0, "subject");
+        int pi = tardy_json_find(&ap, 0, "predicate");
+        int oi = tardy_json_find(&ap, 0, "object");
+        if (si < 0 || pi < 0 || oi < 0) {
+            return build_error(out, out_size, id, -32602,
+                "submit_fact requires subject, predicate, object");
+        }
+        char subj[256], pred[256], obj[512];
+        tardy_json_str(&ap, si, subj, sizeof(subj));
+        tardy_json_str(&ap, pi, pred, sizeof(pred));
+        tardy_json_str(&ap, oi, obj,  sizeof(obj));
+        char esc_s[256], esc_p[256], esc_o[512];
+        json_escape(subj, esc_s, sizeof(esc_s));
+        json_escape(pred, esc_p, sizeof(esc_p));
+        json_escape(obj,  esc_o, sizeof(esc_o));
+        snprintf(daemon_req, sizeof(daemon_req),
+                 "{\"cmd\":\"submit-fact\","
+                 "\"subject\":\"%s\",\"predicate\":\"%s\",\"object\":\"%s\"}",
+                 esc_s, esc_p, esc_o);
 
     } else {
         return build_error(out, out_size, id, -32601, "Unknown tool");

@@ -11,3 +11,4 @@ tests/grounding_probe
 /tmp/
 *.vo
 *.glob
+tests/learned_ontology.nt

@@ -20,6 +20,8 @@
 #include "verify/numeric.h"
 #include "verify/llm_decompose.h"
 #include "ontology/inference.h"
+#include "ontology/self.h"
+#include "ontology/frames.h"
 #include "compiler/exec.h"
 #include "memory/palace.h"
 #include <sys/socket.h>
@@ -709,6 +711,103 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             contradictions, escaped_path, escaped_report);
     }
 
+    if (strcmp(cmd, "submit-fact") == 0) {
+        /* MCP-driven world-model growth.
+         *
+         * Accepts a candidate triple (subject, predicate, object) from a
+         * generator (LLM, subagent, anything that emits structured
+         * triples). Runs tardy_crdt_dry_merge against the live ontology.
+         * Outcomes:
+         *   - DUPLICATE: already known. Returns ok=true,
+         *     status="duplicate". No write.
+         *   - CONFLICT:  violates a functional dependency. Returns
+         *     ok=false, status="conflict". No write.
+         *   - DERIVED:   already derivable from existing rules+facts.
+         *     Returns ok=true, status="derived". No write needed (it
+         *     is already in Datalog).
+         *   - OK:        new, no conflict. Writes to learned_ontology.nt
+         *     in the project tests/ directory AND adds to the live
+         *     Datalog so subsequent verifications see it without a
+         *     daemon restart. Returns ok=true, status="accepted".
+         *
+         * The learned_ontology.nt file is loaded on next daemon start
+         * the same way wikidata_common.nt is. Provenance lives in the
+         * filename: facts that appeared via this path are
+         * distinguishable from the bundled corpus.
+         */
+        int s_tok = tardy_json_find(&parser, 0, "subject");
+        int p_tok = tardy_json_find(&parser, 0, "predicate");
+        int o_tok = tardy_json_find(&parser, 0, "object");
+        if (s_tok < 0 || p_tok < 0 || o_tok < 0) {
+            return json_error(resp, resp_size,
+                "submit-fact requires subject, predicate, object");
+        }
+        char subj[128], pred[128], obj[256];
+        tardy_json_str(&parser, s_tok, subj, sizeof(subj));
+        tardy_json_str(&parser, p_tok, pred, sizeof(pred));
+        tardy_json_str(&parser, o_tok, obj,  sizeof(obj));
+        if (!subj[0] || !pred[0] || !obj[0]) {
+            return json_error(resp, resp_size,
+                "subject/predicate/object must be non-empty");
+        }
+        if (!srv->self_ontology_loaded) {
+            return json_error(resp, resp_size,
+                "self-ontology not initialized");
+        }
+
+        /* Dry-merge first so we know which bucket we land in. */
+        tardy_merge_result_t mr = tardy_crdt_dry_merge(
+            &srv->self_ontology.frames,
+            &srv->self_ontology.datalog,
+            pred, subj, obj);
+
+        const char *status;
+        int ok = 1;
+        switch (mr) {
+            case TARDY_MERGE_OK: {
+                /* Add to live ontology + persist to learned file. */
+                tardy_self_ontology_add(&srv->self_ontology, subj, pred, obj);
+                /* Append to learned_ontology.nt under the project tree.
+                 * We try the canonical project path first; on failure
+                 * we fall back to /tmp so the daemon doesn't fail just
+                 * because the binary was moved. */
+                const char *paths[] = {
+                    "tests/learned_ontology.nt",
+                    "/Users/fabio/projects/tardygrada/tests/learned_ontology.nt",
+                    "/tmp/tardygrada_learned.nt",
+                    NULL
+                };
+                int wrote = 0;
+                for (int p = 0; paths[p] && !wrote; p++) {
+                    FILE *f = fopen(paths[p], "a");
+                    if (!f) continue;
+                    fprintf(f,
+                        "<http://tardygrada.org/%s> "
+                        "<http://schema.org/%s> "
+                        "<http://tardygrada.org/%s> .\n",
+                        subj, pred, obj);
+                    fclose(f);
+                    wrote = 1;
+                }
+                status = "accepted";
+                break;
+            }
+            case TARDY_MERGE_DUPLICATE: status = "duplicate"; break;
+            case TARDY_MERGE_DERIVED:   status = "derived";   break;
+            case TARDY_MERGE_CONFLICT:  status = "conflict"; ok = 0; break;
+            default:                    status = "unknown";  ok = 0; break;
+        }
+
+        char esc_s[256], esc_p[256], esc_o[512];
+        json_escape(subj, esc_s, sizeof(esc_s));
+        json_escape(pred, esc_p, sizeof(esc_p));
+        json_escape(obj,  esc_o, sizeof(esc_o));
+        return snprintf(resp, resp_size,
+            "{\"ok\":%s,\"status\":\"%s\",\"subject\":\"%s\","
+            "\"predicate\":\"%s\",\"object\":\"%s\"}",
+            ok ? "true" : "false", status, esc_s, esc_p, esc_o);
+    }
+
     if (strcmp(cmd, "spawn") == 0) {
         int name_tok = tardy_json_find(&parser, 0, "name");
         if (name_tok < 0)
@@ -895,24 +994,46 @@ int tardy_daemon_start(const char *config_path, int foreground)
     tardy_mcp_init(srv, vm);
     daemon_srv = srv;
 
-    /* Load ontology */
+    /* Load ontology — bundled + accumulated (from MCP submit_fact). */
     {
-        const char *ont_paths[] = {
+        const char *bundled_paths[] = {
             "tests/wikidata_common.nt",
             "/Users/fabio/projects/tardygrada/tests/wikidata_common.nt",
             NULL
         };
-        for (int p = 0; ont_paths[p]; p++) {
+        const char *learned_paths[] = {
+            "tests/learned_ontology.nt",
+            "/Users/fabio/projects/tardygrada/tests/learned_ontology.nt",
+            "/tmp/tardygrada_learned.nt",
+            NULL
+        };
+        int bundled_loaded = 0;
+        for (int p = 0; bundled_paths[p]; p++) {
             int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
-                                                       ont_paths[p]);
+                                                       bundled_paths[p]);
             if (loaded > 0) {
                 srv->self_ontology_loaded = true;
-                char msg[128];
-                int len = snprintf(msg, sizeof(msg),
-                    "[daemon] ontology: %d triples loaded\n", loaded);
-                tardy_write(STDERR_FILENO, msg, len);
+                bundled_loaded = loaded;
                 break;
             }
+        }
+        int learned_loaded = 0;
+        for (int p = 0; learned_paths[p]; p++) {
+            int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
+                                                       learned_paths[p]);
+            if (loaded > 0) {
+                srv->self_ontology_loaded = true;
+                learned_loaded = loaded;
+                break;
+            }
+        }
+        if (bundled_loaded > 0 || learned_loaded > 0) {
+            char msg[160];
+            int len = snprintf(msg, sizeof(msg),
+                "[daemon] ontology: %d bundled + %d learned = %d triples\n",
+                bundled_loaded, learned_loaded,
+                bundled_loaded + learned_loaded);
+            tardy_write(STDERR_FILENO, msg, len);
         }
     }
 
