@@ -204,6 +204,123 @@ static tardy_tier_t tier_map_find_normalized(
     return TARDY_TIER_NONE;
 }
 
+/* ============================================
+ * Validity sidecar
+ * ============================================ */
+
+int tardy_self_ontology_set_validity(tardy_self_ontology_t *ont,
+                                      const char *subject,
+                                      const char *predicate,
+                                      const char *object,
+                                      const char *since,
+                                      const char *until)
+{
+    if (!ont || !ont->initialized) return -1;
+    if (ont->validity_count >= TARDY_DL_MAX_FACTS) return -1;
+
+    char key[TARDY_TIER_KEY_MAX];
+    tier_key_build(key, sizeof(key), subject, predicate, object);
+
+    /* If already present, update in place. */
+    int idx = -1;
+    for (int i = 0; i < ont->validity_count; i++) {
+        if (strcmp(ont->validity_map[i].key, key) == 0) {
+            idx = i; break;
+        }
+    }
+    if (idx < 0) {
+        idx = ont->validity_count++;
+        strncpy(ont->validity_map[idx].key, key, TARDY_TIER_KEY_MAX - 1);
+        ont->validity_map[idx].key[TARDY_TIER_KEY_MAX - 1] = '\0';
+    }
+    if (since) {
+        strncpy(ont->validity_map[idx].since, since, TARDY_DATE_MAX - 1);
+        ont->validity_map[idx].since[TARDY_DATE_MAX - 1] = '\0';
+    } else {
+        ont->validity_map[idx].since[0] = '\0';
+    }
+    if (until) {
+        strncpy(ont->validity_map[idx].until, until, TARDY_DATE_MAX - 1);
+        ont->validity_map[idx].until[TARDY_DATE_MAX - 1] = '\0';
+    } else {
+        ont->validity_map[idx].until[0] = '\0';
+    }
+    return 0;
+}
+
+static const tardy_validity_entry_t *validity_find(
+    const tardy_self_ontology_t *ont,
+    const char *s, const char *p, const char *o)
+{
+    if (!ont) return NULL;
+    char raw_key[TARDY_TIER_KEY_MAX];
+    tier_key_build(raw_key, sizeof(raw_key), s, p, o);
+    for (int i = 0; i < ont->validity_count; i++) {
+        if (strcmp(ont->validity_map[i].key, raw_key) == 0)
+            return &ont->validity_map[i];
+    }
+    /* Try predicate-normalised + subj/obj-normalised match for the
+     * Datalog-derived case (same approach as tier_map_find_normalized). */
+    char ns[128], no[128];
+    normalize_name(s, ns, sizeof(ns));
+    normalize_name(o, no, sizeof(no));
+    for (int i = 0; i < ont->validity_count; i++) {
+        char tmp[TARDY_TIER_KEY_MAX];
+        strncpy(tmp, ont->validity_map[i].key, sizeof(tmp) - 1);
+        tmp[sizeof(tmp) - 1] = '\0';
+        char *bar1 = strchr(tmp, '|');
+        if (!bar1) continue;
+        *bar1 = '\0';
+        char *bar2 = strchr(bar1 + 1, '|');
+        if (!bar2) continue;
+        *bar2 = '\0';
+        if (strcmp(tmp, ns) == 0 &&
+            strcmp(bar2 + 1, no) == 0 &&
+            self_pred_norm_eq(bar1 + 1, p)) {
+            return &ont->validity_map[i];
+        }
+    }
+    return NULL;
+}
+
+int tardy_self_ontology_get_validity(const tardy_self_ontology_t *ont,
+                                      const char *s,
+                                      const char *p,
+                                      const char *o,
+                                      char *since_out, int since_max,
+                                      char *until_out, int until_max)
+{
+    const tardy_validity_entry_t *v = validity_find(ont, s, p, o);
+    if (!v) {
+        if (since_out && since_max > 0) since_out[0] = '\0';
+        if (until_out && until_max > 0) until_out[0] = '\0';
+        return 0;
+    }
+    if (since_out && since_max > 0) {
+        strncpy(since_out, v->since, (size_t)since_max - 1);
+        since_out[since_max - 1] = '\0';
+    }
+    if (until_out && until_max > 0) {
+        strncpy(until_out, v->until, (size_t)until_max - 1);
+        until_out[until_max - 1] = '\0';
+    }
+    return 1;
+}
+
+int tardy_self_ontology_valid_at(const tardy_self_ontology_t *ont,
+                                  const char *s, const char *p, const char *o,
+                                  const char *valid_at)
+{
+    if (!valid_at || !valid_at[0]) return 1;       /* no constraint */
+    const tardy_validity_entry_t *v = validity_find(ont, s, p, o);
+    if (!v) return 1;                               /* untimed = always */
+    /* Empty since = unbounded past; empty until = unbounded future.
+     * ISO YYYY-MM-DD is lexicographically ordered, so plain strcmp. */
+    if (v->since[0] && strcmp(valid_at, v->since) < 0) return 0;
+    if (v->until[0] && strcmp(valid_at, v->until) > 0) return 0;
+    return 1;
+}
+
 tardy_tier_t tardy_self_ontology_get_tier(const tardy_self_ontology_t *ont,
                                            const char *s,
                                            const char *p,

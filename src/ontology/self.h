@@ -40,11 +40,21 @@ typedef enum {
 } tardy_tier_t;
 
 #define TARDY_TIER_KEY_MAX 80
+#define TARDY_DATE_MAX 16   /* ISO 8601 date "YYYY-MM-DD" + null + slack */
 
 typedef struct {
     char    key[TARDY_TIER_KEY_MAX];   /* "s|p|o" — matches agent name */
     uint8_t tier;                       /* tardy_tier_t value */
 } tardy_tier_entry_t;
+
+/* Per-fact validity interval. Empty since="" means "valid from forever
+ * ago"; empty until="" means "valid forever". ISO dates are stored as
+ * strings so comparisons are plain strcmp, no calendar math. */
+typedef struct {
+    char key[TARDY_TIER_KEY_MAX];
+    char since[TARDY_DATE_MAX];
+    char until[TARDY_DATE_MAX];
+} tardy_validity_entry_t;
 
 typedef struct {
     tardy_vm_t              *vm;
@@ -59,6 +69,10 @@ typedef struct {
     tardy_tier_entry_t       tier_map[TARDY_DL_MAX_FACTS];
     int                      tier_count;
     uint8_t                  current_tier;    /* set by load_ttl_with_tier */
+    /* Per-fact validity sidecar. Sized smaller than tier_map (most
+     * facts have no time component). */
+    tardy_validity_entry_t   validity_map[TARDY_DL_MAX_FACTS];
+    int                      validity_count;
 } tardy_self_ontology_t;
 
 /* Initialize self-hosted ontology within a VM */
@@ -94,6 +108,35 @@ tardy_tier_t tardy_self_ontology_get_tier(const tardy_self_ontology_t *ont,
 
 /* Human-readable tier name (for JSON output). */
 const char *tardy_tier_name(tardy_tier_t tier);
+
+/* Attach a validity interval to a fact. Empty strings mean unbounded
+ * on that side. Quietly no-ops if the fact key isn't already present
+ * — callers should call this AFTER tardy_self_ontology_add. */
+int tardy_self_ontology_set_validity(tardy_self_ontology_t *ont,
+                                      const char *subject,
+                                      const char *predicate,
+                                      const char *object,
+                                      const char *since,
+                                      const char *until);
+
+/* Look up validity for a triple. Out args are nullable. Returns 1 if a
+ * record was found, 0 otherwise. Empty strings indicate unbounded. */
+int tardy_self_ontology_get_validity(const tardy_self_ontology_t *ont,
+                                      const char *subject,
+                                      const char *predicate,
+                                      const char *object,
+                                      char *since_out, int since_max,
+                                      char *until_out, int until_max);
+
+/* Test if a triple is valid at the given ISO date. Returns 1 if valid
+ * (or if no validity record exists — facts with no time annotation are
+ * "always valid"), 0 if expressly outside. valid_at "" or NULL means
+ * "no constraint". */
+int tardy_self_ontology_valid_at(const tardy_self_ontology_t *ont,
+                                  const char *subject,
+                                  const char *predicate,
+                                  const char *object,
+                                  const char *valid_at);
 
 /* Ground triples against the self-hosted ontology.
  * Same interface as the bridge — drop-in replacement. */

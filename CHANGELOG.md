@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.21] — 2026-04-29
+
+Time-aware facts: each fact can carry an optional validity interval
+(since / until ISO dates), and `run` queries can filter by valid_at.
+Lets the ontology represent things like "Obama presidentOf USA" valid
+2009–2017 alongside "Trump presidentOf USA" valid 2017–2021 without
+the two collapsing into a contradiction.
+
+src/ontology/self.{h,c}
+  New tardy_validity_entry_t sidecar (parallel to tier_map),
+  set_validity / get_validity / valid_at API. ISO dates are stored as
+  strings — strcmp compares correctly because YYYY-MM-DD is
+  lexicographically ordered, no calendar math needed. Empty since=""
+  means "valid from forever ago"; empty until="" means "valid forever".
+  Predicate-normalised lookup mirrors tier_map_find_normalized so
+  snake_case ↔ camelCase doesn't lose attribution.
+
+src/daemon.c
+  submit-fact accepts optional "since" and "until" fields and records
+  them via tardy_self_ontology_set_validity after the merge succeeds.
+  run accepts an optional "valid_at" field and threads it through
+  json_ok_with_grounding. Each grounded triple's response now includes
+  "since" / "until" (when known) and a "valid_at_match" boolean (when
+  valid_at was supplied). Untimed facts always match — they're treated
+  as "always valid" rather than rejected.
+
+Limitation: validity is keyed on the exact (s,p,o) as submitted. When
+a query grounds via Datalog rule derivation that flips direction
+(founded(Person, Company) → founder(Company, Person)), the validity
+lookup may miss because the input triple uses the inverse predicate.
+Use the same direction at submit and query time, or submit both
+directions explicitly.
+
+Verified: Tsukuba locatedIn Japan with since=1900-01-01 surfaces
+since/until in the run response, and valid_at=1850-06-01 correctly
+returns valid_at_match=false. Untimed facts (Paris/France from
+bundled) report valid_at_match=true regardless of valid_at.
+
+---
+
 ## [2.0.20] — 2026-04-29
 
 Daemon-side validation gate for multi-value predicates. Closes the

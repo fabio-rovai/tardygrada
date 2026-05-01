@@ -294,7 +294,8 @@ static int json_ok(char *buf, int bufsz, const char *result, float confidence)
 static int json_ok_with_grounding(char *buf, int bufsz,
                                    const char *result, float confidence,
                                    const tardy_grounding_t *g,
-                                   tardy_self_ontology_t *ont)
+                                   tardy_self_ontology_t *ont,
+                                   const char *valid_at)
 {
     if (!g || g->count == 0) {
         return json_ok(buf, bufsz, result, confidence);
@@ -312,26 +313,58 @@ static int json_ok_with_grounding(char *buf, int bufsz,
         default: break;
         }
         const char *tier = "unknown";
+        char since_buf[TARDY_DATE_MAX] = {0};
+        char until_buf[TARDY_DATE_MAX] = {0};
+        int has_validity = 0;
+        int valid_at_match = 1;
         if (g->results[i].status == TARDY_KNOWLEDGE_GROUNDED) {
             tardy_tier_t t = (tardy_tier_t)g->results[i].tier;
             if (t == TARDY_TIER_NONE && ont) {
-                /* Datalog-only or derived match: tier wasn't set during
-                 * grounding. Best-effort lookup against the input form. */
                 t = tardy_self_ontology_get_tier(ont,
                     g->results[i].triple.subject,
                     g->results[i].triple.predicate,
                     g->results[i].triple.object);
             }
             tier = tardy_tier_name(t);
+            if (ont) {
+                has_validity = tardy_self_ontology_get_validity(ont,
+                    g->results[i].triple.subject,
+                    g->results[i].triple.predicate,
+                    g->results[i].triple.object,
+                    since_buf, sizeof(since_buf),
+                    until_buf, sizeof(until_buf));
+                valid_at_match = tardy_self_ontology_valid_at(ont,
+                    g->results[i].triple.subject,
+                    g->results[i].triple.predicate,
+                    g->results[i].triple.object,
+                    valid_at);
+            }
         }
         int n = snprintf(buf + w, bufsz - w,
             "%s{\"s\":\"%.60s\",\"p\":\"%.60s\",\"o\":\"%.60s\","
-            "\"status\":\"%s\",\"tier\":\"%s\"}",
+            "\"status\":\"%s\",\"tier\":\"%s\"",
             i == 0 ? "" : ",",
             g->results[i].triple.subject,
             g->results[i].triple.predicate,
             g->results[i].triple.object,
             status, tier);
+        if (n < 0 || w + n >= bufsz) { w = bufsz - 1; break; }
+        w += n;
+        if (has_validity) {
+            n = snprintf(buf + w, bufsz - w,
+                ",\"since\":\"%s\",\"until\":\"%s\"",
+                since_buf, until_buf);
+            if (n < 0 || w + n >= bufsz) { w = bufsz - 1; break; }
+            w += n;
+        }
+        if (valid_at && valid_at[0]) {
+            n = snprintf(buf + w, bufsz - w,
+                ",\"valid_at_match\":%s",
+                valid_at_match ? "true" : "false");
+            if (n < 0 || w + n >= bufsz) { w = bufsz - 1; break; }
+            w += n;
+        }
+        n = snprintf(buf + w, bufsz - w, "}");
         if (n < 0 || w + n >= bufsz) { w = bufsz - 1; break; }
         w += n;
     }
@@ -394,7 +427,8 @@ static int json_escape(const char *src, char *dst, int dst_size)
  * ============================================ */
 
 static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
-                      const char *claim, char *resp, int resp_size)
+                      const char *claim, const char *valid_at,
+                      char *resp, int resp_size)
 {
     if (!claim || !claim[0])
         return json_error(resp, resp_size, "empty claim");
@@ -510,7 +544,8 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
 
     if (verified) {
         return json_ok_with_grounding(resp, resp_size, "VERIFIED",
-                                       avg_confidence, &grounding, ont);
+                                       avg_confidence, &grounding, ont,
+                                       valid_at);
     } else {
         const char *reason = "NOT_VERIFIED";
         for (int run = 0; run < 3; run++) {
@@ -545,7 +580,8 @@ static int handle_run(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             avg_confidence = 0.0f;
         }
         return json_ok_with_grounding(resp, resp_size, reason,
-                                       avg_confidence, &grounding, ont);
+                                       avg_confidence, &grounding, ont,
+                                       valid_at);
     }
 }
 
@@ -809,7 +845,11 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             return json_error(resp, resp_size, "missing claim field");
         char claim[2048];
         tardy_json_str(&parser, claim_tok, claim, sizeof(claim));
-        return handle_run(vm, srv, claim, resp, resp_size);
+        char valid_at[TARDY_DATE_MAX] = {0};
+        int va_tok = tardy_json_find(&parser, 0, "valid_at");
+        if (va_tok >= 0)
+            tardy_json_str(&parser, va_tok, valid_at, sizeof(valid_at));
+        return handle_run(vm, srv, claim, valid_at, resp, resp_size);
     }
 
     if (strcmp(cmd, "remember") == 0) {
@@ -1001,6 +1041,15 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
             return json_error(resp, resp_size,
                 "subject/predicate/object must be non-empty");
         }
+        /* Optional time annotations (Phase D). */
+        char since_buf[TARDY_DATE_MAX] = {0};
+        char until_buf[TARDY_DATE_MAX] = {0};
+        int since_tok = tardy_json_find(&parser, 0, "since");
+        int until_tok = tardy_json_find(&parser, 0, "until");
+        if (since_tok >= 0)
+            tardy_json_str(&parser, since_tok, since_buf, sizeof(since_buf));
+        if (until_tok >= 0)
+            tardy_json_str(&parser, until_tok, until_buf, sizeof(until_buf));
         if (!srv->self_ontology_loaded) {
             return json_error(resp, resp_size,
                 "self-ontology not initialized");
@@ -1069,6 +1118,11 @@ static int dispatch_request(tardy_vm_t *vm, tardy_mcp_server_t *srv,
                 srv->self_ontology.current_tier = TARDY_TIER_LEARNED;
                 tardy_self_ontology_add(&srv->self_ontology, subj, pred, obj);
                 srv->self_ontology.current_tier = saved;
+                /* Record validity if since/until were provided. */
+                if (since_buf[0] || until_buf[0]) {
+                    tardy_self_ontology_set_validity(&srv->self_ontology,
+                        subj, pred, obj, since_buf, until_buf);
+                }
                 /* Append to learned_ontology.nt under the project tree.
                  * We try the canonical project path first; on failure
                  * we fall back to /tmp so the daemon doesn't fail just
