@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.19] — 2026-04-29
+
+Wikidata SPARQL ingestor: scale the ontology beyond the ~180 hand-
+curated facts toward 10K+ by pulling from Wikidata.
+
+demo/wikidata-ingest.py
+  Self-contained Python ingestor — no external deps beyond stdlib.
+  Five preset queries (capitals, founders, authors, composers,
+  countries) wrap commonly-useful Wikidata properties:
+  P1376 (capital of), P112 (founder), P50 (author), P86 (composer),
+  P17 (country) with type-filtering on instance-of so we get cities
+  and books rather than incidental matches.
+  Each result row → (subject, predicate, object) triple → daemon
+  submit-fact → LEARNED tier. Strict ASCII normalisation: reject
+  labels with non-ASCII letters rather than mangle diacritics
+  (Brač → Bra was producing junk in the live ontology).
+  Incremental: re-running reports duplicates and skips them, so the
+  ingestor is safe to use as an idempotent batch.
+  SSL fallback: macOS Python without certifi is common; the script
+  retries unverified after the first SSL failure with a clear note
+  about how to install certs properly.
+
+Verified end-to-end: 30 capitals from SPARQL → 21 duplicates (already
+in bundled), 4 conflicts (functional-dep gate caught Moscow capitalOf
+MoscowOblast vs the existing Moscow capitalOf Russia), 5 newly accepted
+(Boston/Massachusetts, Stuttgart/Baden-Wurttemberg, etc). New facts
+verify with `tier=learned` via the run command.
+
+Use:
+  ./tardygrada daemon start
+  ./demo/wikidata-ingest.py capitals --limit 200
+  ./demo/wikidata-ingest.py founders --limit 500
+  ./demo/wikidata-ingest.py --list
+
+---
+
 ## [2.0.18] — 2026-04-29
 
 Provenance-aware querying: every grounded triple now carries the tier
