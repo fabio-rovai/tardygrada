@@ -1028,11 +1028,34 @@ int tardy_daemon_start(const char *config_path, int foreground)
     tardy_mcp_init(srv, vm);
     daemon_srv = srv;
 
-    /* Load ontology — bundled + accumulated (from MCP submit_fact). */
+    /* Load ontology in three tiers, in order of trust:
+     *
+     *   bundled    — tests/wikidata_common.nt, hand-curated, treated as
+     *                @sovereign on load.
+     *   sovereign  — tests/sovereign_ontology.nt, facts that were
+     *                accepted via MCP submit_fact AND subsequently
+     *                re-confirmed K_PROMOTE times by demo/promote.py.
+     *   learned    — tests/learned_ontology.nt, freshly accepted via
+     *                MCP submit_fact but not yet re-confirmed.
+     *
+     * All three are read on every daemon start; the differences are
+     * provenance and how they're ratified, not how they're stored.
+     * The runtime currently treats all loaded triples uniformly inside
+     * Datalog. The TIER metadata lives in the file naming + the
+     * orchestration scripts (demo/promote.py); a future change can
+     * surface tier as an annotation on each fact for query-time
+     * filtering, but for now the storage path is shared.
+     */
     {
         const char *bundled_paths[] = {
             "tests/wikidata_common.nt",
             "/Users/fabio/projects/tardygrada/tests/wikidata_common.nt",
+            NULL
+        };
+        const char *sovereign_paths[] = {
+            "tests/sovereign_ontology.nt",
+            "/Users/fabio/projects/tardygrada/tests/sovereign_ontology.nt",
+            "/tmp/tardygrada_sovereign.nt",
             NULL
         };
         const char *learned_paths[] = {
@@ -1051,6 +1074,16 @@ int tardy_daemon_start(const char *config_path, int foreground)
                 break;
             }
         }
+        int sovereign_loaded = 0;
+        for (int p = 0; sovereign_paths[p]; p++) {
+            int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
+                                                       sovereign_paths[p]);
+            if (loaded > 0) {
+                srv->self_ontology_loaded = true;
+                sovereign_loaded = loaded;
+                break;
+            }
+        }
         int learned_loaded = 0;
         for (int p = 0; learned_paths[p]; p++) {
             int loaded = tardy_self_ontology_load_ttl(&srv->self_ontology,
@@ -1061,12 +1094,12 @@ int tardy_daemon_start(const char *config_path, int foreground)
                 break;
             }
         }
-        if (bundled_loaded > 0 || learned_loaded > 0) {
-            char msg[160];
+        if (bundled_loaded + sovereign_loaded + learned_loaded > 0) {
+            char msg[200];
             int len = snprintf(msg, sizeof(msg),
-                "[daemon] ontology: %d bundled + %d learned = %d triples\n",
-                bundled_loaded, learned_loaded,
-                bundled_loaded + learned_loaded);
+                "[daemon] ontology: %d bundled + %d sovereign + %d learned = %d triples\n",
+                bundled_loaded, sovereign_loaded, learned_loaded,
+                bundled_loaded + sovereign_loaded + learned_loaded);
             tardy_write(STDERR_FILENO, msg, len);
         }
     }
