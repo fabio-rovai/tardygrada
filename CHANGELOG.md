@@ -54,6 +54,75 @@ tests/grounding_probe.c
   Useful for future debugging of grounding-path issues. Not built
   by default; build with the command in its header comment.
 
+## [2.0.14] — 2026-05-01
+
+End-to-end LLM-driven world-model growth via MCP, plus dashboard
+label-overlap fix.
+
+LLM-driven learn-loop (empirical findings)
+
+  Demonstrated the full path: subagent dispatch -> CSV triples ->
+  demo/learn-mcp.py -> MCP submit_fact -> dry_merge -> live ontology
+  + learned_ontology.nt persistence. Two batches, two findings.
+
+  Batch 1 (12 Eastern European capitals from one subagent):
+    Minsk capitalOf Belarus              -> accepted
+    Kyiv capitalOf Ukraine                -> accepted
+    Chisinau capitalOf Moldova            -> accepted
+    Skopje capitalOf NorthMacedonia       -> accepted
+    Tirana capitalOf Albania              -> accepted
+    Pristina capitalOf Kosovo             -> accepted
+    Sarajevo capitalOf BosniaAndHerzegovina -> accepted
+    Podgorica capitalOf Montenegro        -> accepted
+    Lviv location Ukraine                 -> accepted
+    Krakow location Poland                -> accepted
+    Dubrovnik location Croatia            -> accepted
+    Transylvania location Romania         -> accepted
+  All 12 verify via natural-language `tardy run` after the loop.
+
+  Batch 2 (5 valid + 5 intentional conflicts):
+    Bogota capitalOf Colombia        -> accepted   (new)
+    LaPaz capitalOf Bolivia          -> accepted   (new)
+    Asuncion capitalOf Paraguay      -> accepted   (new)
+    Khartoum capitalOf Sudan         -> accepted   (new)
+    Dakar capitalOf Senegal          -> accepted   (new)
+    Marseille capitalOf France       -> conflict   (Paris is canonical)
+    Munich capitalOf Germany         -> conflict   (Berlin is canonical)
+    Osaka capitalOf Japan            -> conflict   (Tokyo is canonical)
+    Manchester capitalOf UnitedKingdom -> conflict (London is canonical)
+    Anthropic founder SamAltman      -> ACCEPTED   (false positive)
+
+  Architectural finding: 4 of 5 conflicts caught via functional
+  dependency on the capitalOf frame. The 5th (Anthropic founder
+  SamAltman) was accepted because `founder` is a multi-value predicate
+  -- a company can legitimately have multiple co-founders (Apple had
+  3, Google had 2). Marking founder as functional would correctly
+  reject SamAltman but ALSO incorrectly reject Wozniak alongside Jobs.
+
+  The right fix for multi-value predicates is NOT structural: it's a
+  cross-validation pass. Before promoting a multi-value claim from
+  @verified to @sovereign, require K independent confirming sources.
+  K=2 from independent prompts catches most LLM hallucinations
+  without false-rejecting legitimate co-founders.
+
+  This is the open architectural gap that the next iteration of the
+  learn-loop should close. submit_fact today catches structural
+  conflicts at insert time. It does NOT catch semantic conflicts on
+  multi-value predicates. The bad SamAltman fact was manually rolled
+  back by editing tests/learned_ontology.nt; documented here so the
+  failure mode is recorded.
+
+dashboard/index.html
+
+  Per-cell SVG clipPath plus per-group clipPath at the predicate
+  header band. Width-checked truncation for both the predicate label
+  and the leaf subject/object labels using monospace glyph-width
+  estimation. Group header band only painted when the rect is at
+  least 50x18 px. Subject + object labels only painted when the cell
+  is at least 50x24 px. Below those thresholds the cell shows only
+  on hover via the tooltip. Closes the visual overlap reported during
+  the learn-loop demo.
+
 ## [2.0.3] — 2026-04-30
 
 Documentation: replaced the "Paris is in France returns low_confidence"

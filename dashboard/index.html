@@ -349,12 +349,37 @@
         .paddingTop(d => d.depth === 1 ? 14 : 0)
         .round(true)(root);
 
+      // Per-leaf clipPath so any label drawn over its bounds is silently
+      // clipped instead of bleeding into adjacent cells. Each gets a
+      // unique id keyed off the leaf index.
+      const defs = svg.append("defs");
+      defs.selectAll("clipPath")
+        .data(root.leaves())
+        .join("clipPath")
+        .attr("id", (_, i) => `clip-leaf-${i}`)
+        .append("rect")
+        .attr("x", 0).attr("y", 0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0);
+
+      // Same for predicate group strips.
+      defs.selectAll("clipPath.group-clip")
+        .data(root.descendants().filter(d => d.depth === 1))
+        .join("clipPath")
+        .attr("class", "group-clip")
+        .attr("id", (_, i) => `clip-group-${i}`)
+        .append("rect")
+        .attr("x", 0).attr("y", 0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", 14);
+
       // Group cell containers
       const leaves = svg.selectAll("g.leaf")
         .data(root.leaves())
         .join("g")
         .attr("class", "leaf")
-        .attr("transform", d => `translate(${d.x0},${d.y0})`);
+        .attr("transform", d => `translate(${d.x0},${d.y0})`)
+        .attr("clip-path", (_, i) => `url(#clip-leaf-${i})`);
 
       leaves.append("rect")
         .attr("class", "cell")
@@ -380,23 +405,85 @@
         })
         .on("mouseout", () => tooltip.classList.remove("show"));
 
-      // Per-predicate header tiles
-      svg.selectAll("g.group")
+      // Per-predicate header band (only when there's room).
+      // Pad inside top of each predicate rect with a darker strip so
+      // the label sits on its own background and doesn't cross into
+      // child cells.
+      const groupSel = svg.selectAll("g.group")
         .data(root.descendants().filter(d => d.depth === 1))
         .join("g")
         .attr("class", "group")
         .attr("transform", d => `translate(${d.x0},${d.y0})`)
-        .append("text")
+        .attr("clip-path", (_, i) => `url(#clip-group-${i})`);
+
+      groupSel.each(function (d) {
+        const w = d.x1 - d.x0;
+        const h = d.y1 - d.y0;
+        // Skip the header for tiny predicates (won't fit any label)
+        if (w < 50 || h < 18) return;
+        const g = d3.select(this);
+        // Background strip
+        g.append("rect")
+          .attr("class", "group-strip")
+          .attr("x", 0).attr("y", 0)
+          .attr("width", w).attr("height", 14)
+          .attr("fill", "rgba(0,0,0,0.55)");
+        // Label, fitted to width
+        const fullLabel = d.data.name + " · " + d.data.count;
+        const text = truncateForWidth(fullLabel, w - 8);
+        g.append("text")
           .attr("class", "cell-label")
           .attr("x", 4).attr("y", 11)
-          .text(d => d.data.name + " · " + d.data.count);
+          .text(text);
+      });
 
-      // Build the lookup
+      // Per-cell subject labels — ONLY when the cell is big enough.
+      // We need >= 60px wide for a token to fit, and >= 22px tall for
+      // two lines (subject on top, object below).
+      leaves.each(function (d) {
+        const w = d.x1 - d.x0;
+        const h = d.y1 - d.y0;
+        const g = d3.select(this);
+        if (w < 50 || h < 24) return;
+        const subj = truncateForWidth(d.data.subject, w - 6);
+        const obj  = truncateForWidth("→ " + d.data.object, w - 6);
+        // Only paint subject when it has room with margin from the
+        // group header strip above (avoid overlap into header band).
+        const yTop = d.y0 < d.parent.y0 + 16 ? 28 : 16;
+        if (h >= yTop) {
+          g.append("text")
+            .attr("class", "cell-label")
+            .attr("x", 4).attr("y", yTop - 4)
+            .text(subj);
+          if (h >= yTop + 14) {
+            g.append("text")
+              .attr("class", "cell-label small")
+              .attr("x", 4).attr("y", yTop + 9)
+              .text(obj);
+          }
+        }
+      });
+
+      // Build the lookup (rect handles for the glow effect).
       leaves.each(function (d) {
         const p = d.parent.data.name;
         const key = `${p}:${d.data.subject}:${d.data.object}`;
         cellByKey.set(key.toLowerCase(), this.querySelector("rect"));
       });
+    }
+
+    // Average glyph width at the current font size for monospace
+    // labels. Roughly 6.6px per char at 11px monospace; we use 6.4 to
+    // be a hair conservative.
+    const _PX_PER_CHAR = 6.4;
+    const _PX_PER_CHAR_SMALL = 5.4;
+    function truncateForWidth(s, maxPx, small=false) {
+      const per = small ? _PX_PER_CHAR_SMALL : _PX_PER_CHAR;
+      if (!s) return "";
+      const maxChars = Math.max(1, Math.floor(maxPx / per));
+      if (s.length <= maxChars) return s;
+      if (maxChars <= 1) return "…";
+      return s.slice(0, maxChars - 1) + "…";
     }
 
     function renderLegend() {
