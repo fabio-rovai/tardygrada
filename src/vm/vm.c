@@ -35,7 +35,21 @@ int tardy_vm_init(tardy_vm_t *vm, const tardy_semantics_t *semantics)
     if (!vm)
         return -1;
 
-    memset(vm, 0, sizeof(tardy_vm_t));
+    /* Zero only what init actually writes plus the trailing scalar state.
+     * The unused tail of agents[]/tombstones[] is left lazy: fresh
+     * MAP_ANONYMOUS pages are guaranteed zero by the kernel, and
+     * tardy_vm_shutdown clears the prefix that was actually used during
+     * the prior lifecycle (benchmark.c and friends reuse the struct via
+     * shutdown→init). memset'ing the full struct (~24 GB at 4096 children)
+     * would materialise every page and OOM constrained runners. */
+    memset(&vm->agents[0], 0, sizeof(tardy_agent_t));
+    vm->agent_count     = 0;
+    vm->tombstone_count = 0;
+    memset(&vm->root_id,   0, sizeof(vm->root_id));
+    memset(&vm->root_key,  0, sizeof(vm->root_key));
+    memset(&vm->semantics, 0, sizeof(vm->semantics));
+    vm->boot_time = 0;
+    vm->running   = false;
 
     /* Apply semantics (or defaults) */
     if (semantics)
@@ -102,6 +116,18 @@ void tardy_vm_shutdown(tardy_vm_t *vm)
             a->custom_semantics = NULL;
         }
     }
+
+    /* Zero the slice we actually touched (incl. agents[0]) so a subsequent
+     * tardy_vm_init() can skip the full-struct memset. Anything past these
+     * counts was never written and remains lazy/zero. */
+    if (vm->agent_count > 0)
+        memset(vm->agents, 0,
+               sizeof(tardy_agent_t) * (size_t)vm->agent_count);
+    if (vm->tombstone_count > 0)
+        memset(vm->tombstones, 0,
+               sizeof(tardy_tombstone_t) * (size_t)vm->tombstone_count);
+    vm->agent_count     = 0;
+    vm->tombstone_count = 0;
 }
 
 /* ============================================
