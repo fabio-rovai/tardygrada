@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.24] — 2026-05-02
+
+Makefile
+  The CLI's help text and all docs/READMEs use the conversational
+  form `tardy daemon start`, but the binary is named `tardygrada`.
+  Users following the help text would get "command not found". Now
+  `make` creates a `tardy` symlink → `tardygrada` after the build,
+  and `make clean` removes both. Either name works on the command
+  line.
+
+---
+
 ## [2.0.23] — 2026-05-01
 
 src/vm/context.h

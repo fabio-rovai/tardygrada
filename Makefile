@@ -61,13 +61,17 @@ SRC = src/main.c \
 OBJ = $(SRC:.c=.o) src/vm/monocypher.o
 BIN = tardygrada
 
-.PHONY: all clean run size bench test dashboard
+.PHONY: all clean run size bench test dashboard tardy
 
 all: $(BIN)
 
 $(BIN): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 	@echo "Built: $@ ($$(wc -c < $@ | tr -d ' ') bytes)"
+	@# The CLI's help text and conversational form is `tardy`. Provide a
+	@# symlink so both names work without diverging.
+	@ln -sf $(BIN) tardy
+	@echo "Symlink: tardy -> $(BIN)"
 
 src/vm/monocypher.o: src/vm/monocypher.c
 	$(CC) $(MONOCYPHER_FLAGS) -c -o $@ $<
@@ -113,4 +117,4 @@ dashboard: $(BIN)
 	@python3 dashboard/server.py
 
 clean:
-	rm -f $(OBJ) $(BIN) src/vm/monocypher.o
+	rm -f $(OBJ) $(BIN) tardy src/vm/monocypher.o
