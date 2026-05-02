@@ -450,7 +450,7 @@ int tardy_exec_file(const char *path)
     /* Create VM */
     tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
                                          PROT_READ | PROT_WRITE,
-                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                                         TARDY_MAP_LAZY, -1, 0);
     if (vm == MAP_FAILED)
         return 1;
 

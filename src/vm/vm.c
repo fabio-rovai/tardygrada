@@ -4,6 +4,7 @@
  */
 
 #include "vm.h"
+#include "util.h"
 #include "heal.h"
 #include "constitution.h"
 #include "persist.h"
@@ -754,7 +755,7 @@ tardy_uuid_t tardy_vm_spawn_child(tardy_vm_t *parent_vm,
     /* Allocate child VM via mmap */
     tardy_vm_t *child = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
                                             PROT_READ | PROT_WRITE,
-                                            MAP_PRIVATE | MAP_ANONYMOUS,
+                                            TARDY_MAP_LAZY,
                                             -1, 0);
     if (child == MAP_FAILED)
         return ZERO_UUID;

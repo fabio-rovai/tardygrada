@@ -1313,7 +1313,7 @@ int tardy_daemon_start(const char *config_path, int foreground)
     /* Allocate VM via mmap (too large for stack) */
     tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
                                          PROT_READ | PROT_WRITE,
-                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                                         TARDY_MAP_LAZY, -1, 0);
     if (vm == MAP_FAILED) {
         tardy_write(STDERR_FILENO, "[daemon] mmap failed\n", 21);
         unlink(TARDY_DAEMON_PID);
