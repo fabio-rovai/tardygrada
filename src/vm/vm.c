@@ -117,15 +117,11 @@ void tardy_vm_shutdown(tardy_vm_t *vm)
         }
     }
 
-    /* Zero the slice we actually touched (incl. agents[0]) so a subsequent
-     * tardy_vm_init() can skip the full-struct memset. Anything past these
-     * counts was never written and remains lazy/zero. */
-    if (vm->agent_count > 0)
-        memset(vm->agents, 0,
-               sizeof(tardy_agent_t) * (size_t)vm->agent_count);
-    if (vm->tombstone_count > 0)
-        memset(vm->tombstones, 0,
-               sizeof(tardy_tombstone_t) * (size_t)vm->tombstone_count);
+    /* Reset agent/tombstone counts. Don't memset the agents/tombstones arrays
+     * themselves — they contain huge lazy-allocated context (327 KB children
+     * per agent; materializing 5000+ would OOM CI). The next init() will
+     * zero only agents[0] and the trailing scalars it needs. Anything not
+     * re-initialized by init stays stale, but unreachable (agent_count=0). */
     vm->agent_count     = 0;
     vm->tombstone_count = 0;
 }
