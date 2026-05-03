@@ -1,5 +1,9 @@
 CC = cc
 CFLAGS = -std=c11 -O2 -Wall
+UNAME := $(shell uname)
+ifeq ($(UNAME),Linux)
+  CFLAGS += -D_DEFAULT_SOURCE
+endif
 TARDY = ../src
 
 TARDY_SRC = $(filter-out $(TARDY)/main.c, $(wildcard $(TARDY)/vm/*.c $(TARDY)/coordinate/*.c $(TARDY)/compiler/*.c $(TARDY)/ontology/*.c $(TARDY)/verify/*.c $(TARDY)/mcp/*.c))
