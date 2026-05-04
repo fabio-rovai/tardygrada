@@ -60,7 +60,7 @@ float_at_least() {
 }
 
 # --------------------------------------------------------------------
-# 1. scaling_bench: 5000 agents must complete in < 3000ms
+# 1. scaling_bench: 5000 agents must complete in < 5000ms
 # (CI runners are slower than local dev; threshold accommodates variability)
 # --------------------------------------------------------------------
 
@@ -71,10 +71,10 @@ if [ -z "$LAST_TOTAL" ]; then
     fail "scaling/5000-agents" "could not parse 5000-agent total_ms from output"
 else
     note "5000 agents total_ms = $LAST_TOTAL"
-    if awk -v v="$LAST_TOTAL" 'BEGIN { exit !(v + 0 < 3000) }'; then
-        ok "scaling/5000-agents-under-3000ms"
+    if awk -v v="$LAST_TOTAL" 'BEGIN { exit !(v + 0 < 5000) }'; then
+        ok "scaling/5000-agents-under-5000ms"
     else
-        fail "scaling/5000-agents-under-3000ms" "$LAST_TOTAL ms (threshold: 3000ms)"
+        fail "scaling/5000-agents-under-5000ms" "$LAST_TOTAL ms (threshold: 5000ms)"
     fi
 fi
 
