@@ -20,6 +20,7 @@
 #include <sys/mman.h>
 
 #include "vm/vm.h"
+#include "vm/util.h"
 #include "ontology/self.h"
 #include "ontology/datalog.h"
 #include "verify/pipeline.h"
@@ -29,7 +30,7 @@ int main(void)
 {
     /* Allocate VM */
     tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
-        PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        PROT_READ | PROT_WRITE, TARDY_MAP_LAZY, -1, 0);
     if (vm == MAP_FAILED) { perror("mmap"); return 1; }
     tardy_vm_init(vm, NULL);
 

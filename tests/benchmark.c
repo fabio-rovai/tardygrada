@@ -13,6 +13,7 @@
  */
 
 #include "../src/vm/vm.h"
+#include "../src/vm/util.h"
 #include "../src/vm/semantic.h"
 #include "../src/verify/pipeline.h"
 #include "../src/verify/decompose.h"
@@ -43,7 +44,7 @@ int main(void)
 {
     tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
                                          PROT_READ | PROT_WRITE,
-                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                                         TARDY_MAP_LAZY, -1, 0);
     if (vm == MAP_FAILED) return 1;
     tardy_vm_init(vm, NULL);
 
