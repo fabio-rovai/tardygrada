@@ -10,10 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "vm/types.h"
 #include "vm/vm.h"
 #include "vm/semantics.h"
+#include "vm/util.h"
 
 /* ============================================
  * Timing helper
@@ -64,9 +67,11 @@ int main(void)
         }
 
         tardy_semantics_t sem = TARDY_DEFAULT_SEMANTICS;
-        tardy_vm_t *vm = calloc(1, sizeof(tardy_vm_t));
-        if (!vm) {
-            fprintf(stderr, "OOM allocating VM for N=%d\n", N);
+        tardy_vm_t *vm = (tardy_vm_t *)mmap(NULL, sizeof(tardy_vm_t),
+                                            PROT_READ | PROT_WRITE,
+                                            TARDY_MAP_LAZY, -1, 0);
+        if (vm == MAP_FAILED) {
+            fprintf(stderr, "mmap failed for VM at N=%d\n", N);
             continue;
         }
 
@@ -159,7 +164,7 @@ int main(void)
         /* Cleanup */
         free(agent_ids);
         tardy_vm_shutdown(vm);
-        free(vm);
+        munmap(vm, sizeof(tardy_vm_t));
     }
 
     printf("\n=== Done ===\n");
