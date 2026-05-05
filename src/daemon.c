@@ -1484,7 +1484,14 @@ int tardy_daemon_start(const char *config_path, int foreground)
         return 1;
     }
 
-    if (listen(listen_fd, 1) < 0) {
+    /* Backlog of 1 was too tight: on macOS, AF_UNIX listen() strictly
+     * enforces the queue limit, and the CLI does two back-to-back
+     * connects per request (is_running() probe, then daemon_send()).
+     * The second connect would race with the first still sitting in
+     * the accept queue and fail ECONNREFUSED, surfacing as flaky
+     * "daemon send failed" in CI. SOMAXCONN gives plenty of headroom
+     * without being exorbitant. */
+    if (listen(listen_fd, SOMAXCONN) < 0) {
         tardy_write(STDERR_FILENO, "[daemon] listen failed\n", 23);
         daemon_cleanup();
         return 1;
