@@ -1,0 +1,118 @@
+name: Main Config
+version: 1.0.0
+schema: v1
+models:
+  # Default: thinking disabled — instant streaming, ideal for chat/edit/apply.
+  # Qwen3.6's thinking block streams as a non-standard `delta.reasoning` field that
+  # Continue can't render, so with thinking ON the UI looks frozen for 30-60s.
+  - name: Qwen3.6-35B (fast)
+    provider: openai
+    model: mlx-community/Qwen3.6-35B-A3B-8bit
+    apiBase: http://localhost:8080/v1
+    apiKey: local-no-key-needed
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      temperature: 0.7
+      topP: 0.8
+      maxTokens: 4096
+    requestOptions:
+      extraBodyProperties:
+        top_k: 20
+        chat_template_kwargs:
+          enable_thinking: false
+
+  # Opt-in: thinking enabled for hard problems. Expect a silent pause while it
+  # reasons (Continue doesn't display the reasoning stream) — the answer appears
+  # when thinking finishes. Higher maxTokens so thinking doesn't starve the answer.
+  - name: Qwen3.6-35B (thinking)
+    provider: openai
+    model: mlx-community/Qwen3.6-35B-A3B-8bit
+    apiBase: http://localhost:8080/v1
+    apiKey: local-no-key-needed
+    roles:
+      - chat
+    defaultCompletionOptions:
+      temperature: 0.6
+      topP: 0.95
+      maxTokens: 16384
+    requestOptions:
+      extraBodyProperties:
+        top_k: 20
+        chat_template_kwargs:
+          enable_thinking: true
+
+  # Agent mode: served by vllm-mlx on :8081 (Hermes tool-call parser) so the model
+  # can invoke tools / MCP servers. Select this model AND switch Continue to "Agent"
+  # mode to use the dispatch_subagent tool registered below.
+  # capabilities: [tool_use] is REQUIRED — without it Continue doesn't trust an
+  # unknown local model with native tool calling and instead describes tools in
+  # the system prompt, which makes Qwen narrate tool use in prose on a loop
+  # ("Okay, I'll read the file. Wait, I can use...") instead of emitting calls.
+  - name: Qwen3.6-35B (agent)
+    provider: openai
+    model: mlx-community/Qwen3.6-35B-A3B-8bit
+    apiBase: http://localhost:8081/v1
+    apiKey: local-no-key-needed
+    capabilities:
+      - tool_use
+    roles:
+      - chat
+    defaultCompletionOptions:
+      temperature: 0.7
+      topP: 0.8
+      maxTokens: 4096
+    requestOptions:
+      extraBodyProperties:
+        top_k: 20
+        presence_penalty: 1.5
+        chat_template_kwargs:
+          enable_thinking: false
+
+# MCP server exposing dispatch_subagent(task, target=claude|qwen):
+#   target=claude -> escalate to Claude via `claude -p` (strong, paid)
+#   target=qwen   -> fan out to a free local Qwen worker on :8080
+mcpServers:
+  - name: qwen-subagents
+    command: /Users/fabio/qwen-tools/bin/python
+    args:
+      - /Users/fabio/.continue/mcp-servers/dispatch_subagent.py
+  # Free web access (no API key): search_web via DuckDuckGo (ddgs) + fetch_url.
+  # Replaces Continue's built-in web search, which requires an API key.
+  - name: web-access
+    command: /Users/fabio/qwen-tools/bin/python
+    args:
+      - /Users/fabio/.continue/mcp-servers/web_search.py
+  # Filesystem access (read-only): list_directory, find_files, read_file (with
+  # .docx text extraction), grep_files. Continue's built-in file tools only see
+  # the open workspace, so ~/Downloads, ~/Desktop etc. are invisible without this
+  # — that's why agent-mode Qwen refused to "locate files". Works on any path.
+  - name: filesystem
+    command: /Users/fabio/qwen-tools/bin/python
+    args:
+      - /Users/fabio/.continue/mcp-servers/filesystem_tools.py
+  # Tardygrada verification runtime (verify_claim, verify_document, daemon_status).
+  # Grounds claims against ~/qwen-skills/ontology (open-ontologies socket must be
+  # up for bridge grounding: qwen-server start onto). Daemon: qwen-server start tardy
+  # NOTE: launched via a framing shim, not `tardy mcp-bridge` directly — tardy's
+  # bridge speaks LSP Content-Length framing, but Continue/MCP use newline-delimited
+  # JSON, so without the shim tardy's tools silently never load. See tardygrada_bridge.py.
+  - name: tardygrada
+    command: /Users/fabio/qwen-tools/bin/python
+    args:
+      - /Users/fabio/.continue/mcp-servers/tardygrada_bridge.py
+  # Open Ontologies engine (70+ RDF/OWL tools) — DISABLED by default: its 70+
+  # tool schemas balloon every agent-mode prompt by thousands of tokens and
+  # made agent mode crawl. Uncomment for ontology sessions, then re-comment.
+  # - name: open-ontologies
+  #   command: /Users/fabio/qwen-skills/vendor/bin/open-ontologies
+  #   args:
+  #     - serve
+  # Brain in the Fish — document scoring; the connected LLM does the OWL
+  # decomposition (hangzhou-tunneling pattern), BITF gates/scores it.
+  - name: brain-in-the-fish
+    command: /Users/fabio/qwen-skills/vendor/brain-in-the-fish/target/release/brain-in-the-fish
+    args:
+      - serve

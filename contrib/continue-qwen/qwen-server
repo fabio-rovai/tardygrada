@@ -1,0 +1,174 @@
+#!/bin/bash
+# qwen-server — manage the local inference stack (idempotent; safe from launchd).
+#   qwen-server start|stop|status|restart [fast|agent|tardy|onto]
+# fast  = mlx_lm.server :8080   agent = vllm-mlx :8081
+# tardy = tardygrada daemon     onto  = open-ontologies grounding socket
+set -u
+LOGS="$HOME/qwen-skills/logs"; mkdir -p "$LOGS"
+MODEL="mlx-community/Qwen3.6-35B-A3B-8bit"
+TARDY="$HOME/qwen-skills/vendor/tardygrada/tardygrada"
+OO="$HOME/qwen-skills/vendor/bin/open-ontologies"
+ONTO_NT="$HOME/qwen-skills/ontology/tests/wikidata_common.nt"
+ONTO_SOCK="/tmp/tardygrada-ontology-complete.sock"  # path tardygrada's bridge dials
+
+# /v1/models answers instantly even when generation is wedged (observed
+# deadlock) — liveness must be a real 1-token generation probe.
+up() {
+  local model
+  model=$(curl -s --max-time 2 "http://localhost:$1/v1/models" | \
+          /usr/bin/python3 -c "import json,sys;print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null) || return 1
+  curl -s --max-time 25 -X POST "http://localhost:$1/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1,\"chat_template_kwargs\":{\"enable_thinking\":false}}" \
+    | grep -q '"choices"'
+}
+
+start_fast() {
+  # never double-start: a busy (serialized) server fails the gen probe too
+  pgrep -f "mlx_lm.server --model .* --port 8080" >/dev/null && { echo "fast  :8080 already up"; return; }
+  nohup "$HOME/mlx/bin/mlx_lm.server" --model "$MODEL" --port 8080 \
+    >>"$LOGS/fast.log" 2>&1 &
+  echo "fast  :8080 starting (pid $!, log $LOGS/fast.log)"
+}
+start_agent() {
+  pgrep -f "vllm-mlx serve .* --port 8081" >/dev/null && { echo "agent :8081 already up"; return; }
+  # prefix cache: agent-mode prompts repeat a huge system+tools prefix every
+  # turn; caching it collapses TTFT from ~20s+ to near-instant on turn 2+
+  nohup "$HOME/vllm/bin/vllm-mlx" serve "$MODEL" --port 8081 \
+    --tool-call-parser hermes --reasoning-parser qwen3 --enable-auto-tool-choice \
+    --enable-prefix-cache \
+    >>"$LOGS/agent.log" 2>&1 &
+  echo "agent :8081 starting (pid $!, log $LOGS/agent.log)"
+}
+start_tardy() {
+  [ -x "$TARDY" ] || { echo "tardy: not built"; return; }
+  "$TARDY" daemon status >/dev/null 2>&1 && { echo "tardy daemon already up"; return; }
+  (cd "$HOME/qwen-skills/ontology" 2>/dev/null || cd "$(dirname "$TARDY")"; \
+   "$TARDY" daemon start >>"$LOGS/tardy.log" 2>&1)
+  echo "tardy daemon started"
+}
+start_onto() {
+  [ -x "$OO" ] || { echo "onto: binary missing"; return; }
+  # check the process, not the socket file — a stale file both fakes "up"
+  # and blocks the new server's bind
+  pgrep -f "open-ontologies serve-unix" >/dev/null && { echo "onto already up"; return; }
+  rm -f "$ONTO_SOCK"
+  FILES=""; [ -f "$ONTO_NT" ] && FILES="--file $ONTO_NT"
+  nohup "$OO" serve-unix --socket "$ONTO_SOCK" $FILES >>"$LOGS/onto.log" 2>&1 &
+  echo "onto grounding socket starting (pid $!, log $LOGS/onto.log)"
+}
+# Real onto liveness: the socket must ANSWER a ground query, not merely exist.
+# open-ontologies can keep the socket bound while its query engine is wedged
+# (returns nothing / errors), which a pgrep or socket-file check both miss.
+onto_alive() {
+  [ -S "$ONTO_SOCK" ] || return 1
+  /usr/bin/python3 - "$ONTO_SOCK" <<'PY' 2>/dev/null
+import socket, sys
+try:
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(3)
+    s.connect(sys.argv[1])
+    s.sendall(b'{"action":"ground","triples":[{"s":"Tokyo","p":"capitalOf","o":"Japan"}]}\n')
+    d = b""
+    while b"\n" not in d:
+        c = s.recv(4096)
+        if not c: break
+        d += c
+    sys.exit(0 if b'"results"' in d else 1)
+except Exception:
+    sys.exit(1)
+PY
+}
+heal_onto() {
+  if onto_alive; then echo "heal: onto healthy"; return; fi
+  echo "heal: onto socket dead/unresponsive -> restarting"
+  pkill -f "open-ontologies serve-unix" 2>/dev/null; sleep 1; rm -f "$ONTO_SOCK"
+  start_onto
+  # onto restarted -> the daemon's bridge connection is now stale; bounce it
+  # so grounding reconnects to the fresh socket.
+  sleep 3; stop_one tardy 2>/dev/null; sleep 1; start_tardy
+}
+stop_one() {
+  case "$1" in
+    fast)  pkill -f "mlx_lm.server --model .* --port 8080" && echo "fast stopped" || echo "fast not running";;
+    agent) pkill -f "vllm-mlx serve .* --port 8081" && echo "agent stopped" || echo "agent not running";;
+    tardy) "$TARDY" daemon stop 2>/dev/null && echo "tardy stopped" || echo "tardy not running";;
+    onto)  pkill -f "open-ontologies serve-unix" && echo "onto stopped" || echo "onto not running";;
+  esac
+}
+# Degradation detection: under memory pressure macOS pages a model server's
+# weights to SSD (observed: vllm at 0.1GB RSS, 18.6GB swap used) — the server
+# still answers but every request faults pages back from disk = "super slow".
+# RSS is unreliable (vllm mmaps lazily), so time the 1-token gen probe instead.
+probe_status() {  # $1 = port, $2 = label, $3 = pgrep pattern
+  local s0=$SECONDS dt
+  if up "$1"; then
+    dt=$((SECONDS - s0))
+    if [ "$dt" -gt 8 ]; then
+      echo "$2 UP but SLOW (probe ${dt}s — paged out or cold; restart to reload weights)"
+    else
+      echo "$2 UP (probe ${dt}s)"
+    fi
+  elif pgrep -f "$3" >/dev/null; then
+    echo "$2 WEDGED? (process up, gen probe failed — busy or deadlocked; restart if idle)"
+  else
+    echo "$2 DOWN"
+  fi
+}
+status() {
+  probe_status 8080 "fast  :8080" "mlx_lm.server --model .* --port 8080"
+  probe_status 8081 "agent :8081" "vllm-mlx serve .* --port 8081"
+  [ -x "$TARDY" ] && "$TARDY" daemon status 2>/dev/null | head -1 || echo "tardy daemon DOWN"
+  pgrep -f "open-ontologies serve-unix" >/dev/null && echo "onto  socket UP" || echo "onto  socket DOWN"
+}
+
+# heal: probe each model server and fix what's unhealthy.
+#   default (auto/cron-safe): restart only if DOWN, or probe-failed while the
+#     process is idle (<20% CPU) — never kills a busy in-flight generation.
+#   --force (the button): also restart SLOW (paged-out) and probe-failed
+#     servers unconditionally; clients self-heal and retry.
+cpu_pct() { ps -o %cpu= -p "$(pgrep -f "$1" | head -1)" 2>/dev/null | awk '{print int($1)}'; }
+heal_one() {  # $1 port  $2 name  $3 pgrep pattern
+  local s0=$SECONDS dt cpu
+  if ! pgrep -f "$3" >/dev/null; then
+    echo "heal: $2 DOWN -> starting"; start_$2; return
+  fi
+  if up "$1"; then
+    dt=$((SECONDS - s0))
+    if [ "$dt" -gt 8 ]; then
+      if [ "${FORCE:-0}" = 1 ]; then
+        echo "heal: $2 SLOW (probe ${dt}s, paged out) -> restarting"
+        stop_one "$2"; sleep 2; start_$2
+      else
+        echo "heal: $2 SLOW (probe ${dt}s) — skipping (no --force; may be busy)"
+      fi
+    else
+      echo "heal: $2 healthy (probe ${dt}s)"
+    fi
+  else
+    cpu=$(cpu_pct "$3"); cpu=${cpu:-0}
+    if [ "${FORCE:-0}" = 1 ] || [ "$cpu" -lt 20 ]; then
+      echo "heal: $2 wedged (probe failed, cpu ${cpu}%) -> restarting"
+      stop_one "$2"; sleep 2; start_$2
+    else
+      echo "heal: $2 probe failed but busy (cpu ${cpu}%) — leaving alone"
+    fi
+  fi
+}
+heal() {
+  heal_one 8080 fast  "mlx_lm.server --model .* --port 8080"
+  heal_one 8081 agent "vllm-mlx serve .* --port 8081"
+  start_tardy               # idempotent no-op when already up
+  heal_onto                 # socket-liveness probe, restarts onto (+daemon) if wedged
+}
+
+CMD="${1:-status}"; TARGET="${2:-all}"
+[ "$TARGET" = "--force" ] && { FORCE=1; TARGET=all; }
+targets() { [ "$TARGET" = all ] && echo "fast agent tardy onto" || echo "$TARGET"; }
+case "$CMD" in
+  start)   for t in $(targets); do start_$t; done;;
+  stop)    for t in $(targets); do stop_one $t; done;;
+  restart) for t in $(targets); do stop_one $t; done; sleep 2; for t in $(targets); do start_$t; done;;
+  status)  status;;
+  heal)    heal;;
+  *) echo "usage: qwen-server start|stop|status|restart|heal [fast|agent|tardy|onto|--force]"; exit 1;;
+esac
