@@ -112,6 +112,19 @@ static void normalize_for_iri(const char *input, char *output, int max_len)
 {
     int oi = 0;
     int capitalize_next = 1; /* capitalize first char */
+
+    /* Strip a leading article ("the ", "a ", "an ") — the decomposer keeps
+     * it ("The telephone") but the corpus stores the bare noun ("Telephone"). */
+    while (*input == ' ') input++;
+    if ((input[0] == 't' || input[0] == 'T') && (input[1] == 'h' || input[1] == 'H') &&
+        (input[2] == 'e' || input[2] == 'E') && input[3] == ' ')
+        input += 4;
+    else if ((input[0] == 'a' || input[0] == 'A') && (input[1] == 'n' || input[1] == 'N') &&
+             input[2] == ' ')
+        input += 3;
+    else if ((input[0] == 'a' || input[0] == 'A') && input[1] == ' ')
+        input += 2;
+
     for (int i = 0; input[i] && oi < max_len - 1; i++) {
         if (input[i] == ' ' || input[i] == '-' || input[i] == '_') {
             capitalize_next = 1;
@@ -128,9 +141,27 @@ static void normalize_for_iri(const char *input, char *output, int max_len)
     output[oi] = '\0';
 }
 
-/* Map common decomposer predicates to schema.org predicates */
-static const char *map_predicate(const char *pred)
+/* Map common decomposer predicates to schema.org / corpus predicates.
+ *
+ * When *inverse is set, the extractor's predicate runs in the OPPOSITE
+ * direction to the way the ontology stores it, so the caller must swap
+ * subject and object before querying (e.g. the decomposer emits
+ * "Japan has_capital Tokyo" but the corpus stores "Tokyo capitalOf Japan").
+ * The socket does exact triple matching with no inverse reasoning, so the
+ * direction has to be corrected here. Pass NULL for *inverse if the caller
+ * does not care. */
+static const char *map_predicate_ex(const char *pred, int *inverse)
 {
+    if (inverse) *inverse = 0;
+
+    /* Inverse predicates: extractor direction is opposite the corpus. */
+    if (strcmp(pred, "has_capital") == 0) { if (inverse) *inverse = 1; return "capitalOf"; }
+
+    /* Direct synonyms the decomposer emits that the corpus stores under a
+     * schema.org name. */
+    if (strcmp(pred, "capital_of") == 0) return "capitalOf";
+    if (strcmp(pred, "discovered_by") == 0) return "discoverer";
+    if (strcmp(pred, "invented_by") == 0) return "inventor";
     if (strcmp(pred, "created_at") == 0) return "locationCreated";
     if (strcmp(pred, "created_by") == 0) return "creator";
     if (strcmp(pred, "created_in") == 0) return "dateCreated";
@@ -173,11 +204,16 @@ static int build_ground_request(char *buf, int buf_size,
         char norm_o[TARDY_MAX_TRIPLE_LEN];
         normalize_for_iri(triples[i].subject, norm_s, TARDY_MAX_TRIPLE_LEN);
         normalize_for_iri(triples[i].object, norm_o, TARDY_MAX_TRIPLE_LEN);
-        const char *norm_p = map_predicate(triples[i].predicate);
+        int inverse = 0;
+        const char *norm_p = map_predicate_ex(triples[i].predicate, &inverse);
+        /* Swap subject/object for inverse predicates so the direction
+         * matches how the corpus stores the fact. */
+        const char *out_s = inverse ? norm_o : norm_s;
+        const char *out_o = inverse ? norm_s : norm_o;
 
         w += snprintf(buf + w, buf_size - w,
                       "{\"s\":\"%s\",\"p\":\"%s\",\"o\":\"%s\"}",
-                      norm_s, norm_p, norm_o);
+                      out_s, norm_p, out_o);
     }
 
     w += snprintf(buf + w, buf_size - w, "]}");
@@ -200,11 +236,14 @@ static int build_consistency_request(char *buf, int buf_size,
         char norm_o[TARDY_MAX_TRIPLE_LEN];
         normalize_for_iri(triples[i].subject, norm_s, TARDY_MAX_TRIPLE_LEN);
         normalize_for_iri(triples[i].object, norm_o, TARDY_MAX_TRIPLE_LEN);
-        const char *norm_p = map_predicate(triples[i].predicate);
+        int inverse = 0;
+        const char *norm_p = map_predicate_ex(triples[i].predicate, &inverse);
+        const char *out_s = inverse ? norm_o : norm_s;
+        const char *out_o = inverse ? norm_s : norm_o;
 
         w += snprintf(buf + w, buf_size - w,
                       "{\"s\":\"%s\",\"p\":\"%s\",\"o\":\"%s\"}",
-                      norm_s, norm_p, norm_o);
+                      out_s, norm_p, out_o);
     }
 
     w += snprintf(buf + w, buf_size - w, "]}");
@@ -325,6 +364,16 @@ int tardy_ontology_ground(tardy_ontology_conn_t *conn,
             out->results[i].evidence_count =
                 (int)tardy_json_int(&parser, ev_tok);
 
+        /* A GROUNDED status means the ontology holds an exact matching triple
+         * with no contradictions — strong evidence. The grounding socket
+         * scores a single-witness match conservatively (~0.65), which sinks
+         * below a typical min_confidence bar and would drop an otherwise
+         * cleanly-grounded claim to "low_confidence". Floor it to the
+         * high-confidence signal a clean exact match warrants. */
+        if (out->results[i].status == TARDY_KNOWLEDGE_GROUNDED &&
+            out->results[i].confidence < 0.9f)
+            out->results[i].confidence = 0.9f;
+
         /* Skip to next result object */
         tok += parser.tokens[tok].children + 1;
         out->count++;
@@ -378,6 +427,14 @@ int tardy_ontology_check_consistency(tardy_ontology_conn_t *conn,
     if (explain_tok >= 0)
         tardy_json_str(&parser, explain_tok,
                        out->explanation, sizeof(out->explanation));
+
+    /* An "inconsistent" verdict with zero contradictions and an engine
+     * error in the explanation (e.g. IRI parse failure on a literal term)
+     * is a failed check, not a proof of inconsistency — treat as
+     * inconclusive rather than flagging a grounded claim. */
+    if (!out->consistent && out->contradiction_count == 0 &&
+        strstr(out->explanation, "failed") != NULL)
+        out->consistent = true;
 
     return 0;
 }

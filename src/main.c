@@ -16,6 +16,8 @@
  *   }
  */
 
+#include <stdlib.h>
+
 #include "vm/vm.h"
 #include "vm/util.h"
 #include "mcp/server.h"
@@ -1688,9 +1690,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* tardy run "claim" / tardy verify "claim" — try daemon first */
+    /* tardy run "claim" / tardy verify "claim" — try daemon first.
+     * TARDY_NO_DAEMON=1 forces standalone even with a daemon up (batch
+     * verifiers want standalone's confidence scoring; the daemon serves
+     * MCP clients). */
     if ((strcmp(cmd, "run") == 0 || strcmp(cmd, "verify") == 0) && argc >= 3) {
-        if (tardy_daemon_is_running()) {
+        if (!getenv("TARDY_NO_DAEMON") && tardy_daemon_is_running()) {
             /* Send to daemon */
             char request[4096];
             char escaped[2048];
