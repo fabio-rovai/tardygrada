@@ -484,8 +484,23 @@ typedef struct {
  *   5. If ANY check fires -> contradiction detected
  *
  * Returns true if contradiction detected. */
+/* Per-document contradiction signals, by evidence class. Populated by
+ * run_tardygrada when TARDY_SIGNALS is set (exhaustive mode: no
+ * short-circuit, so every signal is counted, not just the first). Used for
+ * reject-option calibration: strong structural/numeric evidence versus the
+ * weaker implicit heuristic. Default behaviour without the env var is
+ * IDENTICAL to the published benchmark. */
+typedef struct {
+    int n_triple;   /* 3a: same subject+predicate, different object */
+    int n_numeric;  /* 3b: deterministic numeric mismatch */
+    int n_implicit; /* 3c: heuristic implicit contradiction */
+} cd_signals_t;
+static cd_signals_t g_cd_signals;
+
 static bool run_tardygrada(const char *text, const tardy_semantics_t *sem)
 {
+    const int exhaustive = getenv("TARDY_SIGNALS") != NULL;
+    memset(&g_cd_signals, 0, sizeof(g_cd_signals));
     /* Split into sentences */
     char sbuf[SENTENCE_BUF_SIZE];
     const char *sentences[MAX_SENTENCES];
@@ -564,16 +579,16 @@ static bool run_tardygrada(const char *text, const tardy_semantics_t *sem)
     bool detected = false;
     int contradiction_count = 0;
 
-    for (int g = 0; g < group_count && !detected; g++) {
-        for (int a = 0; a < groups[g].count && !detected; a++) {
-            for (int b = a + 1; b < groups[g].count && !detected; b++) {
+    for (int g = 0; g < group_count && (!detected || exhaustive); g++) {
+        for (int a = 0; a < groups[g].count && (!detected || exhaustive); a++) {
+            for (int b = a + 1; b < groups[g].count && (!detected || exhaustive); b++) {
                 int si = groups[g].sentence_indices[a];
                 int sj = groups[g].sentence_indices[b];
                 if (si == sj) continue;
 
                 /* 3a: Triple consistency -- same subject+predicate, different object */
-                for (int ti = 0; ti < per_sent[si].triple_count && !detected; ti++) {
-                    for (int tj = 0; tj < per_sent[sj].triple_count && !detected; tj++) {
+                for (int ti = 0; ti < per_sent[si].triple_count && (!detected || exhaustive); ti++) {
+                    for (int tj = 0; tj < per_sent[sj].triple_count && (!detected || exhaustive); tj++) {
                         tardy_triple_t *ta = &per_sent[si].triples[ti];
                         tardy_triple_t *tb = &per_sent[sj].triples[tj];
 
@@ -599,22 +614,24 @@ static bool run_tardygrada(const char *text, const tardy_semantics_t *sem)
                             ta->object[0] && tb->object[0]) {
                             detected = true;
                             contradiction_count++;
+                            g_cd_signals.n_triple++;
                         }
                     }
                 }
 
                 /* 3b: Numeric verification on the sentence pair */
-                if (!detected) {
+                if (!detected || exhaustive) {
                     const char *pair[2] = { dsent[si], dsent[sj] };
                     tardy_numeric_check_t nc = tardy_numeric_verify(pair, 2);
                     if (nc.has_contradiction) {
                         detected = true;
                         contradiction_count++;
+                        g_cd_signals.n_numeric++;
                     }
                 }
 
                 /* 3c: LLM decomposition for implicit contradictions */
-                if (!detected) {
+                if (!detected || exhaustive) {
                     const char *pair[2] = { dsent[si], dsent[sj] };
                     tardy_decomposition_t basic;
                     memset(&basic, 0, sizeof(basic));
@@ -632,6 +649,7 @@ static bool run_tardygrada(const char *text, const tardy_semantics_t *sem)
                     if (llm.found_implicit_contradiction) {
                         detected = true;
                         contradiction_count++;
+                        g_cd_signals.n_implicit++;
                     }
                 }
             }
@@ -863,6 +881,21 @@ int main(void)
         bool sc_flag = run_selfcheck(text);
         bool fs_flag = run_factscore(text);
         bool td_flag = run_tardygrada(text, &sem);
+        if (getenv("TARDY_SIGNALS")) {
+            static FILE *sig_out = NULL;
+            if (!sig_out) {
+                const char *path = getenv("TARDY_DUMP");
+                sig_out = fopen(path ? path : "/tmp/cd_signals.tsv", "w");
+                if (sig_out)
+                    fprintf(sig_out, "doc\tgold\tn_triple\tn_numeric\tn_implicit\n");
+            }
+            if (sig_out) {
+                fprintf(sig_out, "%d\t%d\t%d\t%d\t%d\n", i,
+                        ground_truth ? 1 : 0, g_cd_signals.n_triple,
+                        g_cd_signals.n_numeric, g_cd_signals.n_implicit);
+                fflush(sig_out);
+            }
+        }
 
         /* --- Overall confusion matrices --- */
 
