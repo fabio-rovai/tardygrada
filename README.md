@@ -5,30 +5,65 @@
   <img src="tardygrada-logo.png" alt="Tardygrada" width="200">
 </p>
 
-<h3 align="center">The school where AI agents go to specialize.</h3>
-<p align="center">A tiny C runtime that turns generic LLM agents into verified specialists, and checks their work on the way out.</p>
+<h3 align="center">A verified runtime for trustworthy AI agents.</h3>
+<p align="center">Every claim an agent makes passes an 8-layer verification pipeline <em>before</em> it counts — deterministic checks, explainable verdicts, no LLM judging an LLM.</p>
 
 ---
 
 ## What this is
 
+Today's AI agents cannot prove their outputs are true. The standard mitigations
+are structural non-starters: post-hoc monitors flag errors after they are acted
+on, and LLM-judges inherit the failure mode they are meant to catch. Tardygrada
+inverts the architecture: **outputs are gated before release**, by a pipeline
+of independent checks that are deterministic wherever determinism is possible,
+and every verdict names the layer and the evidence that decided it.
+
 **Two things in one 350 KB C binary.**
 
-1. **A verification runtime.** Catches LLM contradictions, agent traces that *say* they did work but didn't, and tampered intermediate data. Plugs into Claude Code, Cursor, or Qwen Code as an MCP server.
+1. **The verification runtime.** Catches contradictions between claims, claims
+   that conflict with an attached ontology, numbers that don't add up, agent
+   traces that *say* they did work but didn't, and tampered intermediate data.
+   Plugs into Claude Code, Cursor, or Qwen Code as an MCP server.
 
-2. **A specialization layer.** A small language (`.tardy`) for writing verifiable, agent-shaped programs. Compiled `.tardy` files run as MCP servers themselves — a "curriculum" your generic agent can pick up to behave as a domain specialist.
+2. **A language for verifiable agent programs.** `.tardy` files declare what an
+   agent must establish (`receive()` slots), under what semantics
+   (`truth.min_confidence`, `pipeline.min_passing_layers`), with what
+   invariants. Compiled programs run as MCP servers — a curriculum a generic
+   agent picks up, with the pipeline as the exam.
 
-The mental model:
+The pipeline (see [`src/verify/pipeline.h`](src/verify/pipeline.h)):
 
-| | |
-|---|---|
-| Agents | the students |
-| `.tardy` programs | the curriculum |
-| 8-layer verification pipeline | the exam |
-| Persistent daemon + memory palace | the campus |
-| MCP bridge | the front gate |
+| # | Layer | Nature |
+|---|---|---|
+| 1 | Decompose — text to triples, independent decomposers | deterministic |
+| 2 | Ontology grounding — triples vs knowledge graph | deterministic |
+| 3 | Consistency — OWL reasoning for contradictions | deterministic |
+| 4 | Probabilistic scoring — conjunction-safe aggregation | quantitative |
+| 5 | Protocol — session-type compliance | deterministic |
+| 6 | Formal certification — proof-certificate primitives | building block |
+| 7 | Cross-representation bridge — layers must agree | deterministic |
+| 8 | Work verification — laziness / fake-work detection | deterministic |
 
-A generic Claude agent walks in. You point it at a `.tardy` curriculum and the verification pipeline. It walks out doing the work it was sent to do, with every claim grounded and every step audit-logged.
+Verdicts are three-valued by design: `VERIFIED`, `CONFLICT`, or
+`UNVERIFIABLE` — the runtime never converts "could not decide" into either
+answer. Layer 4's aggregation is conjunction-safe (geometric mean plus a
+weakest-link floor: one unsupported triple cannot hide behind nine strong
+ones), and learned rule confidence is a capped Beta posterior — repetition
+alone can never manufacture certainty, and contradicting evidence lowers it.
+
+## Research programme
+
+A Phase 1 feasibility study on this runtime runs from October 2026. The
+scientific question is composition: the layers are individually
+validated (numbers below), and Phase 1 measures whether their composition
+lifts real-document detection past fixed gates — F1 ≥ 0.70 and precision
+≥ 0.90 on ContraDoc-class data at p95 < 500 ms — with all evaluation code and
+gates in [`evaluation/`](evaluation/), reproducible offline. The current
+work item, derived from a measured failure analysis of the document detector's
+evidence quality, is licence-based conflict detection: a differing-value pair
+counts as evidence only when the predicate licenses uniqueness or the values
+are demonstrably incompatible.
 
 ---
 
@@ -89,9 +124,9 @@ The bridge exposes five tools: `verify_claim`, `verify_document`, `spawn_agent`,
 
 ## Your first specialization
 
-A worked example of the school metaphor. We send a generic agent to the
-curriculum at [`examples/code-review.tardy`](examples/code-review.tardy).
-It walks in generic and walks out a code reviewer.
+A worked example. A generic agent picks up the curriculum at
+[`examples/code-review.tardy`](examples/code-review.tardy) and comes out a
+code reviewer whose claims are gated by the pipeline.
 
 ```bash
 # 1. Start the curriculum as an MCP server (stdio).
@@ -140,8 +175,8 @@ description elsewhere in the curriculum says the change adds a nested loop,
 the lexical implicit-relation layer fires on the `nested_loop -> O(n^2)`
 cue pattern and the claim resolves to `CONFLICT`, not `VERIFIED`.
 
-This is the whole metaphor in one example: *the agent is generic, the
-curriculum is specific, the verification pipeline is the exam*.
+That is the design in one example: *the agent is generic, the curriculum is
+specific, and the verification pipeline decides what counts*.
 
 ---
 
@@ -149,8 +184,9 @@ curriculum is specific, the verification pipeline is the exam*.
 
 | Capability | Status | Number |
 |---|---|---|
-| Real-document contradiction detection (ContraDoc, 891 docs) | Real benchmark on real data | **F1 0.58** |
+| Real-document contradiction detection (ContraDoc, 891 docs) | Real benchmark on real data | **F1 0.57** (LexBase 0.16, FActScore 0.09) |
 | Agent-trajectory hallucination detection (AgentHallu, 693 trajectories) | Real benchmark on real data | **F1 0.58** |
+| Compositional contradiction suite (650 cases: 500 clear + 150 adversarial) | Designed-for-it; adversarial split added in v2.0 | **clear F1 1.00, 0 FP; combined 0.95; 18 µs/doc** |
 | Laziness / fake-work detection (synthetic adversarial traces, 100) | Synthetic, designed-for-it | **F1 0.92, 0 false positives** |
 | Memory tampering detection (OS mprotect + SHA-256 + ed25519) | Real OS-level enforcement | n/a |
 | VM scaling (5 → 5,000 agents) | Real | ~92 ms total |
@@ -291,11 +327,11 @@ cd evaluation && make
 
 ./laziness_bench       # 100 synthetic traces, F1 0.92
 ./scaling_bench        # 5 -> 5000 agents, near-linear
-./contradoc_bench      # 891 real ContraDoc documents, F1 0.58
+./contradoc_bench      # 891 real ContraDoc documents, F1 0.57
 ./agenthallu_bench     # 693 real AgentHallu trajectories, F1 0.58
 ./halueval_bench       # 500 HaluEval examples, F1 0.03 (intentional weakness)
 ./vitaminc_bench       # 500 VitaminC fact-verification cases
-./hallucination_bench  # synthetic; see CHANGELOG.md for caveats on this one
+./hallucination_bench  # 650 cases (500 clear + 150 adversarial); clear F1 1.00, 18 us/doc
 ./ablation_bench       # layer-by-layer contribution
 ```
 
