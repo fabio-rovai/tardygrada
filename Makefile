@@ -101,9 +101,22 @@ bench: $(BIN)
 # Smoke tests — fast assertions on the parts that already work.
 # Builds main binary and evaluation binaries on demand, then runs
 # tests/smoke.sh which asserts F1/timing thresholds and rename invariants.
-test: $(BIN)
+test: unit-tests $(BIN)
 	@$(MAKE) -C evaluation >/dev/null
 	@./tests/smoke.sh
+
+# Standalone unit tests for the verification maths. These pin the Layer 4
+# aggregation (geometric mean + weakest-link floor; the arithmetic mean let
+# one weak conjunct hide behind many strong ones) and the Beta-posterior rule
+# confidence (repetition alone can never reach certainty; contradicting
+# observations lower it).
+unit-tests:
+	@$(CC) $(CFLAGS) -o /tmp/tardy_test_layer4 tests/test_layer4_math.c src/verify/pipeline.c -lm
+	@/tmp/tardy_test_layer4
+	@$(CC) $(CFLAGS) -o /tmp/tardy_test_rulconf tests/test_rule_confidence.c src/ontology/inference.c -lm
+	@/tmp/tardy_test_rulconf
+
+.PHONY: unit-tests
 
 # Live dashboard — d3 treemap of the bundled ontology + a verify panel
 # that lights up the cells a claim grounds against. Requires the daemon

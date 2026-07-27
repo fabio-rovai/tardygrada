@@ -12,7 +12,8 @@
 typedef struct {
     int   min_evidence_triples;        /* min ontology triples to call something Fact */
     int   max_contradictions;          /* max contradictions allowed (0 = absolute) */
-    float min_confidence;              /* min probabilistic confidence */
+    float min_confidence;              /* min aggregate confidence (geometric mean) */
+    float min_triple_confidence;       /* floor on the WEAKEST supporting triple */
     int   min_consensus_agents;        /* min agents that must independently agree */
     float min_agreement_ratio;         /* min agreement ratio (0.67 = 2/3 BFT) */
 } tardy_truth_semantics_t;
@@ -76,6 +77,7 @@ static const tardy_semantics_t TARDY_DEFAULT_SEMANTICS = {
         .min_evidence_triples        = 1,
         .max_contradictions          = 0,
         .min_confidence              = 0.85f,
+        .min_triple_confidence       = 0.50f,
         .min_consensus_agents        = 3,
         .min_agreement_ratio         = 0.67f,
     },

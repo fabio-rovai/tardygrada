@@ -25,12 +25,27 @@
 #define TARDY_MAX_RULES 64
 
 /* An inference rule: if (condition) then (conclusion) */
+/* Rule confidence is a Beta posterior mean over observations, seeded with the
+ * rule's hand-set prior as PRIOR_STRENGTH pseudo-observations. Repetition
+ * alone can never manufacture certainty: the value approaches but never
+ * reaches TARDY_RULE_CONF_CEIL, and contradicting observations pull it back
+ * down. */
+#define TARDY_RULE_PRIOR_STRENGTH 10.0f
+#define TARDY_RULE_CONF_CEIL      0.99f
+
 typedef struct {
     char if_pred[64];    /* if triple has this predicate... */
     char then_pred[64];  /* ...infer a triple with this predicate */
     int  swap_so;        /* 1 = swap subject/object in conclusion */
-    float confidence;    /* confidence of the inferred triple */
+    float confidence;    /* posterior confidence of the inferred triple */
+    float prior;         /* seeded prior mean; 0 = not yet captured */
+    int   support;       /* observations consistent with the rule */
+    int   contra;        /* observations contradicting the rule */
 } tardy_rule_t;
+
+/* Recompute a rule's confidence from its observation counts. */
+void tardy_rule_update(tardy_rule_t *rule, int observed_support,
+                       int observed_contra);
 
 typedef struct {
     tardy_rule_t rules[TARDY_MAX_RULES];

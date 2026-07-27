@@ -40,6 +40,36 @@ static int ici_contains(const char *haystack, const char *needle)
  * like OWL inference but as simple if-then rules.
  * ============================================ */
 
+/* Beta posterior mean, seeded with the rule's hand-set prior as pseudo-counts.
+ *
+ * conf = (prior * S + support) / (S + support + contra), capped at CEIL.
+ *
+ * With no observations this returns the prior unchanged, so the seeded
+ * backbone constants still hold. Supporting observations raise it with
+ * diminishing returns and it never reaches certainty; contradicting
+ * observations lower it, which the old multiplicative boost could not do. */
+void tardy_rule_update(tardy_rule_t *rule, int observed_support,
+                       int observed_contra)
+{
+    if (!rule) return;
+
+    /* Capture the seeded value as the prior the first time this rule is
+     * updated. Rules are memset to zero at init, so prior == 0 means unset. */
+    if (rule->prior <= 0.0f) rule->prior = rule->confidence;
+
+    if (observed_support > 0) rule->support += observed_support;
+    if (observed_contra > 0)  rule->contra  += observed_contra;
+
+    float s = TARDY_RULE_PRIOR_STRENGTH;
+    float num = rule->prior * s + (float)rule->support;
+    float den = s + (float)rule->support + (float)rule->contra;
+    float conf = den > 0.0f ? num / den : rule->prior;
+
+    if (conf > TARDY_RULE_CONF_CEIL) conf = TARDY_RULE_CONF_CEIL;
+    if (conf < 0.0f) conf = 0.0f;
+    rule->confidence = conf;
+}
+
 void tardy_inference_init(tardy_ruleset_t *rs)
 {
     if (!rs) return;
@@ -224,10 +254,12 @@ int tardy_inference_learn(tardy_ruleset_t *rs,
             for (int r = 0; r < rs->count; r++) {
                 if (strcmp(rs->rules[r].if_pred, triples[i].predicate) == 0 &&
                     strcmp(rs->rules[r].then_pred, triples[j].predicate) == 0) {
-                    /* Rule exists, boost confidence */
-                    rs->rules[r].confidence *= 1.05f;
-                    if (rs->rules[r].confidence > 1.0f)
-                        rs->rules[r].confidence = 1.0f;
+                    /* Rule exists: record one supporting observation and
+                     * recompute the posterior. Never a raw multiplicative
+                     * boost — that let fifteen repetitions of the same claim
+                     * drive a rule to certainty with no evidence against it
+                     * ever being representable. */
+                    tardy_rule_update(&rs->rules[r], 1, 0);
                     exists = 1;
                     break;
                 }

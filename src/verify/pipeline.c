@@ -9,6 +9,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
+
+/* Floor used to keep log-space aggregation finite when a supporting triple
+ * scores zero. Well below any usable threshold, so it cannot rescue a claim. */
+#define TARDY_CONF_EPS 1e-6f
 
 static uint64_t now_ns(void)
 {
@@ -308,30 +313,58 @@ tardy_layer_result_t tardy_verify_probabilistic(
         return r;
     }
 
-    /* Average confidence across grounded + consistent triples */
-    float total_conf = 0.0f;
+    /* A claim is the CONJUNCTION of its triples: it holds only if every
+     * triple holds. The arithmetic mean is the wrong aggregator for a
+     * conjunction — it lets one weak triple hide behind many strong ones
+     * (nine at 0.95 plus one at 0.20 averages 0.875 and clears an 0.85 bar,
+     * while the claim it scores is unsupported at exactly one point).
+     *
+     * Use the geometric mean instead: the length-normalised product, which
+     * is the conjunction score corrected for claim length. It is always
+     * <= the arithmetic mean and is dominated by the weakest term.
+     *
+     * The geometric mean alone still dilutes: one 0.20 among nineteen 0.99s
+     * recovers to 0.91. So gate separately on the weakest term. Both must
+     * clear. */
+    float log_sum = 0.0f;
+    float weakest = 1.0f;
     int counted = 0;
     for (int i = 0; i < grounding->count; i++) {
         if (grounding->results[i].status == TARDY_KNOWLEDGE_GROUNDED ||
             grounding->results[i].status == TARDY_KNOWLEDGE_CONSISTENT) {
-            total_conf += grounding->results[i].confidence;
+            float c = grounding->results[i].confidence;
+            if (c < 0.0f) c = 0.0f;
+            if (c > 1.0f) c = 1.0f;
+            /* Guard log(0): a zero-confidence term zeroes the product, which
+             * is the correct conjunction semantics, but must not produce
+             * -inf. TARDY_CONF_EPS keeps the arithmetic finite while leaving
+             * the score far below any usable threshold. */
+            log_sum += logf(c > TARDY_CONF_EPS ? c : TARDY_CONF_EPS);
+            if (c < weakest) weakest = c;
             counted++;
         }
     }
 
-    float avg = counted > 0 ? total_conf / (float)counted : 0.0f;
+    float geo = counted > 0 ? expf(log_sum / (float)counted) : 0.0f;
+    if (counted == 0) weakest = 0.0f;
 
-    if (avg < sem->truth.min_confidence) {
+    r.confidence = geo;
+
+    if (weakest < sem->truth.min_triple_confidence) {
         r.passed = false;
-        r.confidence = avg;
         snprintf(r.detail, sizeof(r.detail),
-                 "confidence %.3f < %.3f threshold",
-                 avg, sem->truth.min_confidence);
+                 "weakest triple %.3f < %.3f floor (aggregate %.3f over %d triples)",
+                 weakest, sem->truth.min_triple_confidence, geo, counted);
+    } else if (geo < sem->truth.min_confidence) {
+        r.passed = false;
+        snprintf(r.detail, sizeof(r.detail),
+                 "confidence %.3f < %.3f threshold (weakest %.3f)",
+                 geo, sem->truth.min_confidence, weakest);
     } else {
         r.passed = true;
-        r.confidence = avg;
         snprintf(r.detail, sizeof(r.detail),
-                 "confidence %.3f from %d evidence triples", avg, counted);
+                 "confidence %.3f from %d evidence triples (weakest %.3f)",
+                 geo, counted, weakest);
     }
 
     r.compute_ns = now_ns() - start;
