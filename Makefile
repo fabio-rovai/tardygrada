@@ -94,7 +94,7 @@ bench: $(BIN)
 		src/vm/monocypher.c src/vm/message.c src/vm/constitution.c \
 		src/vm/heal.c src/vm/persist.c src/vm/semantic.c \
 		src/verify/pipeline.c src/verify/decompose.c \
-		src/mcp/json.c src/ontology/bridge.c
+		src/mcp/json.c src/ontology/bridge.c -lm
 	./bench
 	rm -f bench
 
