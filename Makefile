@@ -66,7 +66,7 @@ BIN = tardygrada
 all: $(BIN)
 
 $(BIN): $(OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lm
 	@echo "Built: $@ ($$(wc -c < $@ | tr -d ' ') bytes)"
 	@# The CLI's help text and conversational form is `tardy`. Provide a
 	@# symlink so both names work without diverging.
