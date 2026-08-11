@@ -1,5 +1,6 @@
 [![CI](https://github.com/fabio-rovai/tardygrada/actions/workflows/ci.yml/badge.svg)](https://github.com/fabio-rovai/tardygrada/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Sponsor](https://img.shields.io/github/sponsors/fabio-rovai?label=Sponsor&logo=GitHub%20Sponsors&logoColor=EA4AAA&color=EA4AAA)](https://github.com/sponsors/fabio-rovai)
 
 <p align="center">
   <img src="tardygrada-logo.png" alt="Tardygrada" width="200">
@@ -389,3 +390,9 @@ MIT. See [LICENSE](LICENSE).
 ## Versioning
 
 This is v2.0. See [CHANGELOG.md](CHANGELOG.md) for the v1 → v2 scope realignment — what was renamed, what was scoped down, and what was hardened.
+
+---
+
+## Sponsor
+
+If this work is useful to you, you can support its continued development through [GitHub Sponsors](https://github.com/sponsors/fabio-rovai).
